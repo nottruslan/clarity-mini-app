@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 
@@ -8,8 +8,10 @@ interface Step1NameProps {
 
 export default function Step1Name({ onNext }: Step1NameProps) {
   const [name, setName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleNext = () => {
+    inputRef.current?.blur();
     onNext(name.trim() || 'Новая привычка');
   };
 
@@ -25,6 +27,7 @@ export default function Step1Name({ onNext }: Step1NameProps) {
       }
     >
       <input
+        ref={inputRef}
         type="text"
         className="wizard-input"
         placeholder="Например: Пить воду"
@@ -35,7 +38,6 @@ export default function Step1Name({ onNext }: Step1NameProps) {
             handleNext();
           }
         }}
-        autoFocus
       />
     </WizardSlide>
   );

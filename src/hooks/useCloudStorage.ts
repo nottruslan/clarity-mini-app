@@ -112,10 +112,54 @@ export function useCloudStorage() {
     await updateFinance(newFinance);
   }, [finance, updateFinance]);
 
+  const updateTransaction = useCallback(async (id: string, updates: Partial<FinanceData['transactions'][0]>) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      transactions: finance.transactions.map(t => 
+        t.id === id ? { ...t, ...updates } : t
+      )
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
+  const deleteTransaction = useCallback(async (id: string) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      transactions: finance.transactions.filter(t => t.id !== id)
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
   const addCategory = useCallback(async (category: FinanceData['categories'][0]) => {
     const newFinance: FinanceData = {
       ...finance,
       categories: [...finance.categories, category]
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
+  const addBudget = useCallback(async (budget: FinanceData['budgets'][0]) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      budgets: [...(finance.budgets || []), budget]
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
+  const updateBudget = useCallback(async (budget: FinanceData['budgets'][0]) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      budgets: (finance.budgets || []).map(b => 
+        b.categoryId === budget.categoryId ? budget : b
+      )
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
+  const deleteBudget = useCallback(async (categoryId: string) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      budgets: (finance.budgets || []).filter(b => b.categoryId !== categoryId)
     };
     await updateFinance(newFinance);
   }, [finance, updateFinance]);
@@ -150,7 +194,12 @@ export function useCloudStorage() {
     // Finance
     updateFinance,
     addTransaction,
+    updateTransaction,
+    deleteTransaction,
     addCategory,
+    addBudget,
+    updateBudget,
+    deleteBudget,
     
     // Onboarding
     markOnboardingShown,

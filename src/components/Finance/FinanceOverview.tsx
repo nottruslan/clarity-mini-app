@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { FinanceData } from '../../utils/storage';
+import PeriodSelector, { type Period, filterTransactionsByPeriod } from './PeriodSelector';
 
 interface FinanceOverviewProps {
   finance: FinanceData;
 }
 
 export default function FinanceOverview({ finance }: FinanceOverviewProps) {
-  const transactions = finance.transactions || [];
+  const [period, setPeriod] = useState<Period>('month');
+  const allTransactions = finance.transactions || [];
+  const transactions = filterTransactionsByPeriod(allTransactions, period);
   
   const totalIncome = transactions
     .filter(t => t.type === 'income')
@@ -16,29 +20,6 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
     .reduce((sum, t) => sum + t.amount, 0);
   
   const balance = totalIncome - totalExpense;
-
-  // Статистика за текущий месяц
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  
-  const monthlyIncome = transactions
-    .filter(t => {
-      const date = new Date(t.date);
-      return t.type === 'income' && 
-             date.getMonth() === currentMonth && 
-             date.getFullYear() === currentYear;
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
-  
-  const monthlyExpense = transactions
-    .filter(t => {
-      const date = new Date(t.date);
-      return t.type === 'expense' && 
-             date.getMonth() === currentMonth && 
-             date.getFullYear() === currentYear;
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ru-RU', {
@@ -54,13 +35,23 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
       padding: '16px',
       borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
     }}>
-      <h2 style={{
-        fontSize: '20px',
-        fontWeight: '600',
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: '16px'
       }}>
-        Обзор
-      </h2>
+        <h2 style={{
+          fontSize: '20px',
+          fontWeight: '600'
+        }}>
+          Обзор
+        </h2>
+      </div>
+      
+      <div style={{ marginBottom: '16px' }}>
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </div>
 
       <div style={{
         display: 'grid',
@@ -135,32 +126,6 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
         </div>
       </div>
 
-      <div style={{
-        marginTop: '16px',
-        padding: '12px',
-        borderRadius: '10px',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)'
-      }}>
-        <div style={{
-          fontSize: '12px',
-          color: 'var(--tg-theme-hint-color)',
-          marginBottom: '8px'
-        }}>
-          Этот месяц
-        </div>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontSize: '14px'
-        }}>
-          <span style={{ color: '#4caf50' }}>
-            +{formatCurrency(monthlyIncome)}
-          </span>
-          <span style={{ color: '#f44336' }}>
-            -{formatCurrency(monthlyExpense)}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }

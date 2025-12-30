@@ -1,0 +1,138 @@
+import { useState } from 'react';
+import { FinanceData } from '../../utils/storage';
+import { Period } from './PeriodSelector';
+import CategoryChart from './CategoryChart';
+import TrendsChart from './TrendsChart';
+
+interface StatisticsViewProps {
+  finance: FinanceData;
+  period: Period;
+}
+
+export default function StatisticsView({ finance, period }: StatisticsViewProps) {
+  const [activeTab, setActiveTab] = useState<'categories' | 'trends'>('categories');
+
+  const transactions = finance.transactions || [];
+  const categories = finance.categories || [];
+
+  const incomeTransactions = transactions.filter(t => t.type === 'income');
+  const expenseTransactions = transactions.filter(t => t.type === 'expense');
+
+  return (
+    <div style={{
+      background: 'var(--tg-theme-section-bg-color)',
+      padding: '16px',
+      borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
+    }}>
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '20px',
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        borderRadius: '12px',
+        padding: '4px'
+      }}>
+        <button
+          onClick={() => setActiveTab('categories')}
+          style={{
+            flex: 1,
+            padding: '10px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: activeTab === 'categories'
+              ? 'var(--tg-theme-button-color)'
+              : 'transparent',
+            color: activeTab === 'categories'
+              ? 'var(--tg-theme-button-text-color)'
+              : 'var(--tg-theme-text-color)',
+            fontSize: '14px',
+            fontWeight: activeTab === 'categories' ? '600' : '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          По категориям
+        </button>
+        <button
+          onClick={() => setActiveTab('trends')}
+          style={{
+            flex: 1,
+            padding: '10px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: activeTab === 'trends'
+              ? 'var(--tg-theme-button-color)'
+              : 'transparent',
+            color: activeTab === 'trends'
+              ? 'var(--tg-theme-button-text-color)'
+              : 'var(--tg-theme-text-color)',
+            fontSize: '14px',
+            fontWeight: activeTab === 'trends' ? '600' : '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          Тренды
+        </button>
+      </div>
+
+      {activeTab === 'categories' && (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '24px'
+        }}>
+          {expenseTransactions.length > 0 && (
+            <div>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                marginBottom: '16px'
+              }}>
+                Расходы по категориям
+              </h3>
+              <CategoryChart
+                transactions={transactions}
+                categories={categories}
+                type="expense"
+              />
+            </div>
+          )}
+          {incomeTransactions.length > 0 && (
+            <div>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                marginBottom: '16px'
+              }}>
+                Доходы по категориям
+              </h3>
+              <CategoryChart
+                transactions={transactions}
+                categories={categories}
+                type="income"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'trends' && (
+        <div>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            marginBottom: '16px'
+          }}>
+            Динамика доходов и расходов
+          </h3>
+          <TrendsChart
+            transactions={transactions}
+            period={period}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+

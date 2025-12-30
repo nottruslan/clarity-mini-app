@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Category } from '../../../utils/storage';
 import WizardSlide from '../../Wizard/WizardSlide';
 import WizardCard from '../../Wizard/WizardCard';
@@ -22,15 +22,26 @@ export default function Step3Category({
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const filteredCategories = categories.filter(c => c.type === type);
 
   const handleCreateCategory = () => {
     if (newCategoryName.trim()) {
+      inputRef.current?.blur();
       onCreateCategory(newCategoryName.trim());
       setSelectedCategory(newCategoryName.trim());
       setShowCreateForm(false);
       setNewCategoryName('');
+    }
+  };
+
+  const handleNext = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    if (selectedCategory) {
+      onNext(selectedCategory);
     }
   };
 
@@ -62,7 +73,7 @@ export default function Step3Category({
             Назад
           </GradientButton>
           <GradientButton
-            onClick={() => selectedCategory && onNext(selectedCategory)}
+            onClick={handleNext}
             disabled={!selectedCategory}
           >
             Продолжить
@@ -103,6 +114,7 @@ export default function Step3Category({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <input
+              ref={inputRef}
               type="text"
               className="wizard-input"
               placeholder="Название категории"
@@ -113,12 +125,12 @@ export default function Step3Category({
                   handleCreateCategory();
                 }
               }}
-              autoFocus
             />
             <div style={{ display: 'flex', gap: '12px' }}>
               <GradientButton
                 variant="secondary"
                 onClick={() => {
+                  inputRef.current?.blur();
                   setShowCreateForm(false);
                   setNewCategoryName('');
                 }}

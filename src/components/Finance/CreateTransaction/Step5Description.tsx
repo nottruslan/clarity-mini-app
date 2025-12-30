@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 
@@ -20,8 +20,10 @@ export default function Step5Description({
   onBack 
 }: Step5DescriptionProps) {
   const [description, setDescription] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleComplete = () => {
+    textareaRef.current?.blur();
     onComplete(description.trim() || undefined);
   };
 
@@ -64,6 +66,7 @@ export default function Step5Description({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
         <textarea
+          ref={textareaRef}
           className="wizard-input"
           placeholder="Например: Зарплата за март"
           value={description}

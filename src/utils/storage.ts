@@ -38,9 +38,18 @@ export interface Transaction {
   createdAt: number;
 }
 
+export interface Budget {
+  id?: string;
+  categoryId: string;
+  categoryName: string;
+  limit: number;
+  period: 'month' | 'year';
+}
+
 export interface FinanceData {
   transactions: Transaction[];
   categories: Category[];
+  budgets: Budget[];
 }
 
 export interface Category {
@@ -157,11 +166,57 @@ export async function saveHabits(habits: Habit[]): Promise<void> {
 }
 
 /**
+ * Категории по умолчанию
+ */
+export function getDefaultCategories(): Category[] {
+  const incomeCategories: Category[] = [
+    { id: generateId(), name: 'Зарплата', type: 'income', color: '#4caf50' },
+    { id: generateId(), name: 'Подарки', type: 'income', color: '#4caf50' },
+    { id: generateId(), name: 'Инвестиции', type: 'income', color: '#4caf50' },
+    { id: generateId(), name: 'Фриланс', type: 'income', color: '#4caf50' },
+    { id: generateId(), name: 'Прочее', type: 'income', color: '#4caf50' }
+  ];
+
+  const expenseCategories: Category[] = [
+    { id: generateId(), name: 'Еда', type: 'expense', color: '#f44336' },
+    { id: generateId(), name: 'Транспорт', type: 'expense', color: '#f44336' },
+    { id: generateId(), name: 'Развлечения', type: 'expense', color: '#f44336' },
+    { id: generateId(), name: 'Здоровье', type: 'expense', color: '#f44336' },
+    { id: generateId(), name: 'Покупки', type: 'expense', color: '#f44336' },
+    { id: generateId(), name: 'Жилье', type: 'expense', color: '#f44336' },
+    { id: generateId(), name: 'Образование', type: 'expense', color: '#f44336' },
+    { id: generateId(), name: 'Прочее', type: 'expense', color: '#f44336' }
+  ];
+
+  return [...incomeCategories, ...expenseCategories];
+}
+
+/**
  * Получить финансовые данные
  */
 export async function getFinanceData(): Promise<FinanceData> {
   const data = await getStorageData<FinanceData>(STORAGE_KEYS.FINANCE);
-  return data || { transactions: [], categories: [] };
+  if (!data) {
+    // Инициализируем с категориями по умолчанию
+    const defaultData: FinanceData = {
+      transactions: [],
+      categories: getDefaultCategories(),
+      budgets: []
+    };
+    await saveFinanceData(defaultData);
+    return defaultData;
+  }
+  // Если категорий нет, добавляем их
+  if (!data.categories || data.categories.length === 0) {
+    data.categories = getDefaultCategories();
+    await saveFinanceData(data);
+  }
+  // Если budgets нет, инициализируем пустым массивом
+  if (!data.budgets) {
+    data.budgets = [];
+    await saveFinanceData(data);
+  }
+  return data;
 }
 
 /**
