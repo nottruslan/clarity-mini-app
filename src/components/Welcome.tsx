@@ -19,8 +19,6 @@ export function Welcome({ onComplete }: WelcomeProps) {
       
       // Настройка MainButton
       mainButton.setText('Начать');
-      mainButton.setBackgroundColor('#007AFF');
-      mainButton.setTextColor('#FFFFFF');
       mainButton.enable();
       mainButton.show();
 

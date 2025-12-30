@@ -20,23 +20,38 @@ export function App() {
 
   // Инициализация Telegram SDK
   useEffect(() => {
-    try {
-      const [miniApp] = initMiniApp();
-      const [viewport] = initViewport();
-      
-      miniApp.ready();
-      viewport.expand();
-      
-      setIsSDKReady(true);
-      
-      if (import.meta.env.DEV) {
-        console.log('🚀 Clarity Mini App initialized');
+    const initSDK = async () => {
+      try {
+        const [miniApp] = initMiniApp();
+        miniApp.ready();
+        
+        // Инициализируем viewport (может быть Promise)
+        try {
+          const [viewportPromise] = initViewport();
+          if (viewportPromise instanceof Promise) {
+            const viewport = await viewportPromise;
+            if (viewport && typeof viewport.expand === 'function') {
+              viewport.expand();
+            }
+          }
+        } catch (viewportError) {
+          // Viewport expand не критичен
+          console.warn('Viewport expand failed:', viewportError);
+        }
+        
+        setIsSDKReady(true);
+        
+        if (import.meta.env.DEV) {
+          console.log('🚀 Clarity Mini App initialized');
+        }
+      } catch (error) {
+        console.error('Failed to initialize SDK:', error);
+        // Продолжаем работу даже если SDK не инициализировался (для разработки в браузере)
+        setIsSDKReady(true);
       }
-    } catch (error) {
-      console.error('Failed to initialize SDK:', error);
-      // Продолжаем работу даже если SDK не инициализировался (для разработки в браузере)
-      setIsSDKReady(true);
-    }
+    };
+    
+    initSDK();
   }, []);
 
   const handleWelcomeComplete = async () => {

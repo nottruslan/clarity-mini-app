@@ -18,7 +18,8 @@ export function useOnboarding() {
 
   const checkOnboardingStatus = async () => {
     try {
-      const [cloudStorage] = initCloudStorage();
+      const result = initCloudStorage();
+      const [cloudStorage] = result instanceof Promise ? await result : result;
       const value = await cloudStorage.get(ONBOARDING_KEY);
       setIsOnboardingComplete(value === 'true');
     } catch (error) {
@@ -32,7 +33,8 @@ export function useOnboarding() {
 
   const completeOnboarding = async () => {
     try {
-      const [cloudStorage] = initCloudStorage();
+      const result = initCloudStorage();
+      const [cloudStorage] = result instanceof Promise ? await result : result;
       await cloudStorage.set(ONBOARDING_KEY, 'true');
       setIsOnboardingComplete(true);
     } catch (error) {
@@ -42,7 +44,8 @@ export function useOnboarding() {
 
   const resetOnboarding = async () => {
     try {
-      const [cloudStorage] = initCloudStorage();
+      const result = initCloudStorage();
+      const [cloudStorage] = result instanceof Promise ? await result : result;
       await cloudStorage.delete(ONBOARDING_KEY);
       setIsOnboardingComplete(false);
     } catch (error) {
