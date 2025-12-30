@@ -613,10 +613,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-top: auto;
-  margin-bottom: auto;
-  flex: 0 0 auto;
-  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .wizard-slide-actions {

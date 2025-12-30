@@ -81,72 +81,61 @@ export default function Step3Category({
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-        {!showCreateForm ? (
-          <>
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '12px',
-              maxHeight: '400px',
-              overflowY: 'auto' as const,
-              WebkitOverflowScrolling: 'touch' as any
-            }}>
-              {filteredCategories.map((category) => (
-                <WizardCard
-                  key={category.id}
-                  icon={getCategoryIcon(category.name)}
-                  title={category.name}
-                  selected={selectedCategory === category.name}
-                  onClick={() => setSelectedCategory(category.name)}
-                />
-              ))}
-            </div>
-
+      {!showCreateForm ? (
+        <>
+          {filteredCategories.map((category) => (
             <WizardCard
-              icon="+"
-              title="Создать категорию"
-              description="Добавить новую категорию"
-              selected={false}
-              onClick={() => setShowCreateForm(true)}
+              key={category.id}
+              icon={getCategoryIcon(category.name)}
+              title={category.name}
+              selected={selectedCategory === category.name}
+              onClick={() => setSelectedCategory(category.name)}
             />
-          </>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <input
-              ref={inputRef}
-              type="text"
-              className="wizard-input"
-              placeholder="Название категории"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && newCategoryName.trim()) {
-                  handleCreateCategory();
-                }
+          ))}
+          
+          <WizardCard
+            icon="+"
+            title="Создать категорию"
+            description="Добавить новую категорию"
+            selected={false}
+            onClick={() => setShowCreateForm(true)}
+          />
+        </>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            className="wizard-input"
+            placeholder="Название категории"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && newCategoryName.trim()) {
+                handleCreateCategory();
+              }
+            }}
+          />
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <GradientButton
+              variant="secondary"
+              onClick={() => {
+                inputRef.current?.blur();
+                setShowCreateForm(false);
+                setNewCategoryName('');
               }}
-            />
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <GradientButton
-                variant="secondary"
-                onClick={() => {
-                  inputRef.current?.blur();
-                  setShowCreateForm(false);
-                  setNewCategoryName('');
-                }}
-              >
-                Отмена
-              </GradientButton>
-              <GradientButton
-                onClick={handleCreateCategory}
-                disabled={!newCategoryName.trim()}
-              >
-                Создать
-              </GradientButton>
-            </div>
+            >
+              Отмена
+            </GradientButton>
+            <GradientButton
+              onClick={handleCreateCategory}
+              disabled={!newCategoryName.trim()}
+            >
+              Создать
+            </GradientButton>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </WizardSlide>
   );
 }
