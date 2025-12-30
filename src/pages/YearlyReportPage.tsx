@@ -37,6 +37,7 @@ import Step29Wishes from '../components/YearlyReport/CreateReport/Step29Wishes';
 import Step30WordOfYear from '../components/YearlyReport/CreateReport/Step30WordOfYear';
 import Step31SecretWish from '../components/YearlyReport/CreateReport/Step31SecretWish';
 import Step32Final from '../components/YearlyReport/CreateReport/Step32Final';
+import YearlyReportView from '../components/YearlyReport/YearlyReportView';
 
 interface YearlyReportPageProps {
   storage: ReturnType<typeof useCloudStorage>;
@@ -45,6 +46,7 @@ interface YearlyReportPageProps {
 export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
   const { shouldShow: showOnboarding, handleClose: closeOnboarding } = useOnboarding('yearly-report');
   const [isCreating, setIsCreating] = useState(false);
+  const [viewingReportId, setViewingReportId] = useState<string | null>(null);
   const [editingReport, setEditingReport] = useState<YearlyReport | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [reportData, setReportData] = useState<{ pastYear: PastYearData; futureYear: FutureYearData }>({
@@ -123,6 +125,14 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
     if (confirm('Вы уверены, что хотите удалить этот отчет?')) {
       await storage.deleteYearlyReport(id);
     }
+  };
+
+  const handleView = (report: YearlyReport) => {
+    setViewingReportId(report.id);
+  };
+
+  const handleCloseView = () => {
+    setViewingReportId(null);
   };
 
   if (showOnboarding) {
@@ -688,26 +698,22 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
     );
   }
 
+  const viewingReport = viewingReportId 
+    ? storage.yearlyReports.find(r => r.id === viewingReportId)
+    : null;
+
+  if (viewingReport) {
+    return <YearlyReportView report={viewingReport} onClose={handleCloseView} />;
+  }
+
   return (
     <div style={{ 
       flex: 1, 
       display: 'flex', 
       flexDirection: 'column',
+      position: 'relative',
       overflow: 'hidden'
     }}>
-      <div style={{
-        padding: '16px',
-        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
-      }}>
-        <button
-          className="tg-button"
-          onClick={handleCreateNew}
-          style={{ width: '100%' }}
-        >
-          📅 Создать отчет за {currentYear}
-        </button>
-      </div>
-
       <div style={{
         flex: 1,
         overflowY: 'auto',
@@ -783,17 +789,54 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
                         transition: 'width 0.3s ease'
                       }} />
                     </div>
+                    {/* Превью отчета */}
+                    {(report.futureYear.wordOfYear || report.pastYear.summary?.threeWords?.some(w => w)) && (
+                      <div style={{
+                        marginBottom: '12px',
+                        padding: '12px',
+                        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                        borderRadius: '8px'
+                      }}>
+                        {report.futureYear.wordOfYear && (
+                          <div style={{ marginBottom: '8px' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>Слово года: </span>
+                            <span style={{ fontSize: '14px', fontWeight: '600' }}>{report.futureYear.wordOfYear}</span>
+                          </div>
+                        )}
+                        {report.pastYear.summary?.threeWords?.some(w => w) && (
+                          <div>
+                            <span style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>Три слова: </span>
+                            <span style={{ fontSize: '14px' }}>
+                              {report.pastYear.summary.threeWords.filter(w => w).join(', ')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div style={{
                       display: 'flex',
                       gap: '8px'
                     }}>
                       <button
                         className="tg-button"
-                        onClick={() => handleEdit(report)}
+                        onClick={() => handleView(report)}
                         style={{
                           flex: 1,
                           fontSize: '14px',
                           padding: '10px 16px'
+                        }}
+                      >
+                        Просмотр
+                      </button>
+                      <button
+                        className="tg-button"
+                        onClick={() => handleEdit(report)}
+                        style={{
+                          flex: 1,
+                          fontSize: '14px',
+                          padding: '10px 16px',
+                          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                          color: 'var(--tg-theme-text-color)'
                         }}
                       >
                         Редактировать
@@ -819,6 +862,15 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
       </div>
+      {!isCreating && (
+        <button 
+          className="fab"
+          onClick={handleCreateNew}
+          aria-label="Создать отчет"
+        >
+          📅
+        </button>
+      )}
     </div>
   );
 }

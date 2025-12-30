@@ -854,5 +854,17 @@ body {
   display: none; /* Chrome, Safari, Opera */
 }
 
+/* Анимации для просмотра отчетов */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Старые стили форм удалены - теперь используется Wizard стиль */
 
