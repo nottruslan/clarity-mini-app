@@ -1,4 +1,4 @@
-import { FinanceData, Transaction } from '../../utils/storage';
+import { FinanceData } from '../../utils/storage';
 
 interface FinanceOverviewProps {
   finance: FinanceData;

@@ -9,13 +9,11 @@ interface TaskItemProps {
 
 export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
   const [swipeOffset, setSwipeOffset] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const maxSwipe = 80;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
-    setIsSwiping(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -36,7 +34,6 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
     } else {
       setSwipeOffset(0);
     }
-    setIsSwiping(false);
     touchStartX.current = null;
   };
 

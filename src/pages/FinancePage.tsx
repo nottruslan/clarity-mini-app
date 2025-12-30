@@ -134,7 +134,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
         />
         <Step3Category 
           type={transactionData.type!}
-          amount={transactionData.amount!}
+          amount={0}
           categories={storage.finance.categories}
           onNext={handleStep3Complete}
           onBack={handleBack}

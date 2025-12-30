@@ -7,7 +7,7 @@ interface Step3DateProps {
   onBack: () => void;
 }
 
-export default function Step3Date({ name, priority, onComplete, onBack }: Step3DateProps) {
+export default function Step3Date({ onComplete, onBack }: Step3DateProps) {
   const [hasDueDate, setHasDueDate] = useState(false);
   const [dueDate, setDueDate] = useState('');
 

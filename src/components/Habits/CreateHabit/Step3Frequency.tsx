@@ -7,7 +7,7 @@ interface Step3FrequencyProps {
   onBack: () => void;
 }
 
-export default function Step3Frequency({ name, icon, onComplete, onBack }: Step3FrequencyProps) {
+export default function Step3Frequency({ name, onComplete, onBack }: Step3FrequencyProps) {
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
 
   return (

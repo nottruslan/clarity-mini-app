@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { init, retrieveLaunchParams } from '@tma.js/sdk';
 
 export interface TelegramUser {
   id: number;
@@ -17,24 +16,29 @@ export function useTelegram() {
   const [webApp, setWebApp] = useState<any>(null);
 
   useEffect(() => {
-    init()
-      .then(() => {
-        const launchParams = retrieveLaunchParams();
-        setUser(launchParams.initData?.user || null);
-        
-        if (window.Telegram?.WebApp) {
-          const tg = window.Telegram.WebApp;
-          tg.ready();
-          tg.expand();
-          setWebApp(tg);
-        }
-        
-        setIsReady(true);
-      })
-      .catch((error) => {
-        console.error('Failed to initialize Telegram SDK:', error);
-        setIsReady(true); // Продолжаем работу даже при ошибке
-      });
+    // Инициализация Telegram Web App
+    if (window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+      setWebApp(tg);
+      
+      // Получаем данные пользователя
+      if (tg.initDataUnsafe?.user) {
+        const tgUser = tg.initDataUnsafe.user;
+        setUser({
+          id: tgUser.id,
+          first_name: tgUser.first_name,
+          last_name: tgUser.last_name,
+          username: tgUser.username,
+          language_code: tgUser.language_code,
+          is_premium: tgUser.is_premium,
+          photo_url: tgUser.photo_url
+        });
+      }
+    }
+    
+    setIsReady(true);
   }, []);
 
   return {

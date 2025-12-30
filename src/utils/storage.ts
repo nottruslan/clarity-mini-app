@@ -75,6 +75,12 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
   }
 
   return new Promise((resolve) => {
+    if (!window.Telegram?.WebApp?.CloudStorage) {
+      const data = localStorage.getItem(key);
+      resolve(data ? JSON.parse(data) : null);
+      return;
+    }
+    
     window.Telegram.WebApp.CloudStorage.getItem(key, (error, value) => {
       if (error) {
         console.error('Error getting from Cloud Storage:', error);
@@ -101,6 +107,12 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
   }
 
   return new Promise((resolve, reject) => {
+    if (!window.Telegram?.WebApp?.CloudStorage) {
+      localStorage.setItem(key, jsonData);
+      resolve();
+      return;
+    }
+    
     window.Telegram.WebApp.CloudStorage.setItem(key, jsonData, (error) => {
       if (error) {
         console.error('Error saving to Cloud Storage:', error);

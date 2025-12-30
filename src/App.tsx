@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useTelegram } from './hooks/useTelegram';
 import { useCloudStorage } from './hooks/useCloudStorage';
 import SectionSelector, { type Section } from './components/Navigation/SectionSelector';
-import SlideContainer from './components/Navigation/SlideContainer';
 import HomePage from './pages/HomePage';
 import TasksPage from './pages/TasksPage';
 import HabitsPage from './pages/HabitsPage';

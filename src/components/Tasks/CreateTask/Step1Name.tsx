@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import SlideContainer from '../../Navigation/SlideContainer';
 
 interface Step1NameProps {
   onNext: (name: string) => void;

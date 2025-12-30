@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 export function useSlideNavigation(totalSlides: number, initialSlide: number = 0) {
   const [currentSlide, setCurrentSlide] = useState(initialSlide);
