@@ -3,13 +3,13 @@ import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 import { type PastYearData } from '../../../utils/storage';
 
-interface Step8ChallengesProps {
+interface Step15ChallengesProps {
   onNext: (challenges: PastYearData['challenges']) => void;
   onBack: () => void;
   initialData?: PastYearData['challenges'];
 }
 
-export default function Step8Challenges({ onNext, onBack, initialData }: Step8ChallengesProps) {
+export default function Step15Challenges({ onNext, onBack, initialData }: Step15ChallengesProps) {
   const defaultChallenges = [
     { challenge: '', whoHelped: '', whatLearned: '' },
     { challenge: '', whoHelped: '', whatLearned: '' },
@@ -28,8 +28,8 @@ export default function Step8Challenges({ onNext, onBack, initialData }: Step8Ch
   return (
     <WizardSlide
       icon="💪"
-      title="Три самых больших испытания"
-      description="Напишите три своих величайших испытания прошедшего года"
+      title="Испытания"
+      description="С какими трудностями вы столкнулись?"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>

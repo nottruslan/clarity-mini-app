@@ -7,22 +7,36 @@ import WizardContainer from '../components/Wizard/WizardContainer';
 import { sectionColors } from '../utils/sectionColors';
 import Step1Welcome from '../components/YearlyReport/CreateReport/Step1Welcome';
 import Step2Calendar from '../components/YearlyReport/CreateReport/Step2Calendar';
-import Step3LifeAreas from '../components/YearlyReport/CreateReport/Step3LifeAreas';
-import Step4ImportantMoments from '../components/YearlyReport/CreateReport/Step4ImportantMoments';
-import Step5Questions from '../components/YearlyReport/CreateReport/Step5Questions';
-import Step6BestMoments from '../components/YearlyReport/CreateReport/Step6BestMoments';
-import Step7Achievements from '../components/YearlyReport/CreateReport/Step7Achievements';
-import Step8Challenges from '../components/YearlyReport/CreateReport/Step8Challenges';
-import Step9Forgiveness from '../components/YearlyReport/CreateReport/Step9Forgiveness';
-import Step10Summary from '../components/YearlyReport/CreateReport/Step10Summary';
-import Step11Dreams from '../components/YearlyReport/CreateReport/Step11Dreams';
-import Step12FutureGoals from '../components/YearlyReport/CreateReport/Step12FutureGoals';
-import Step13MagicTriples1 from '../components/YearlyReport/CreateReport/Step13MagicTriples1';
-import Step14MagicTriples2 from '../components/YearlyReport/CreateReport/Step14MagicTriples2';
-import Step15Wishes from '../components/YearlyReport/CreateReport/Step15Wishes';
-import Step16WordOfYear from '../components/YearlyReport/CreateReport/Step16WordOfYear';
-import Step17SecretWish from '../components/YearlyReport/CreateReport/Step17SecretWish';
-import Step18Final from '../components/YearlyReport/CreateReport/Step18Final';
+import Step3PersonalLife from '../components/YearlyReport/CreateReport/Step3PersonalLife';
+import Step4Friends from '../components/YearlyReport/CreateReport/Step4Friends';
+import Step5Health from '../components/YearlyReport/CreateReport/Step5Health';
+import Step6Habits from '../components/YearlyReport/CreateReport/Step6Habits';
+import Step7Career from '../components/YearlyReport/CreateReport/Step7Career';
+import Step8Hobbies from '../components/YearlyReport/CreateReport/Step8Hobbies';
+import Step9Psychology from '../components/YearlyReport/CreateReport/Step9Psychology';
+import Step10BetterTomorrow from '../components/YearlyReport/CreateReport/Step10BetterTomorrow';
+import Step11ImportantMoments from '../components/YearlyReport/CreateReport/Step11ImportantMoments';
+import Step12Questions from '../components/YearlyReport/CreateReport/Step12Questions';
+import Step13BestMoments from '../components/YearlyReport/CreateReport/Step13BestMoments';
+import Step14Achievements from '../components/YearlyReport/CreateReport/Step14Achievements';
+import Step15Challenges from '../components/YearlyReport/CreateReport/Step15Challenges';
+import Step16Forgiveness from '../components/YearlyReport/CreateReport/Step16Forgiveness';
+import Step17Summary from '../components/YearlyReport/CreateReport/Step17Summary';
+import Step18Dreams from '../components/YearlyReport/CreateReport/Step18Dreams';
+import Step19PersonalLifeFuture from '../components/YearlyReport/CreateReport/Step19PersonalLifeFuture';
+import Step20FriendsFuture from '../components/YearlyReport/CreateReport/Step20FriendsFuture';
+import Step21HealthFuture from '../components/YearlyReport/CreateReport/Step21HealthFuture';
+import Step22HabitsFuture from '../components/YearlyReport/CreateReport/Step22HabitsFuture';
+import Step23CareerFuture from '../components/YearlyReport/CreateReport/Step23CareerFuture';
+import Step24HobbiesFuture from '../components/YearlyReport/CreateReport/Step24HobbiesFuture';
+import Step25PsychologyFuture from '../components/YearlyReport/CreateReport/Step25PsychologyFuture';
+import Step26BetterTomorrowFuture from '../components/YearlyReport/CreateReport/Step26BetterTomorrowFuture';
+import Step27MagicTriples1 from '../components/YearlyReport/CreateReport/Step27MagicTriples1';
+import Step28MagicTriples2 from '../components/YearlyReport/CreateReport/Step28MagicTriples2';
+import Step29Wishes from '../components/YearlyReport/CreateReport/Step29Wishes';
+import Step30WordOfYear from '../components/YearlyReport/CreateReport/Step30WordOfYear';
+import Step31SecretWish from '../components/YearlyReport/CreateReport/Step31SecretWish';
+import Step32Final from '../components/YearlyReport/CreateReport/Step32Final';
 
 interface YearlyReportPageProps {
   storage: ReturnType<typeof useCloudStorage>;
@@ -134,7 +148,7 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           marginBottom: '32px',
           maxWidth: '300px'
         }}>
-          Проанализируйте прошедший год и спланируйте следующий с помощью YearCompass.
+          Проанализируйте прошедший год и спланируйте следующий.
         </p>
         <button className="tg-button" onClick={closeOnboarding}>
           Понятно
@@ -145,7 +159,7 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
 
   if (isCreating && editingReport) {
     const colors = sectionColors['yearly-report'];
-    const totalSteps = 18;
+    const totalSteps = 32;
 
     return (
       <WizardContainer 
@@ -172,27 +186,166 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 3: Life Areas (Past) */}
+        {/* Step 3-10: Life Areas (Past) */}
         {currentStep >= 2 && (
           <div className={`wizard-slide ${currentStep === 2 ? 'active' : currentStep > 2 ? 'prev' : 'next'}`}>
-            <Step3LifeAreas
-              onNext={(lifeAreas) => {
-                setReportData({ ...reportData, pastYear: { ...reportData.pastYear, lifeAreas } });
+            <Step3PersonalLife
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  pastYear: { 
+                    ...reportData.pastYear, 
+                    lifeAreas: { ...reportData.pastYear.lifeAreas, personal: value } 
+                  } 
+                });
                 setCurrentStep(3);
               }}
               onBack={handleBack}
-              initialData={reportData.pastYear.lifeAreas}
+              initialData={reportData.pastYear.lifeAreas?.personal}
             />
           </div>
         )}
 
-        {/* Step 4: Important Moments */}
         {currentStep >= 3 && (
           <div className={`wizard-slide ${currentStep === 3 ? 'active' : currentStep > 3 ? 'prev' : 'next'}`}>
-            <Step4ImportantMoments
+            <Step4Friends
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  pastYear: { 
+                    ...reportData.pastYear, 
+                    lifeAreas: { ...reportData.pastYear.lifeAreas, friends: value } 
+                  } 
+                });
+                setCurrentStep(4);
+              }}
+              onBack={handleBack}
+              initialData={reportData.pastYear.lifeAreas?.friends}
+            />
+          </div>
+        )}
+
+        {currentStep >= 4 && (
+          <div className={`wizard-slide ${currentStep === 4 ? 'active' : currentStep > 4 ? 'prev' : 'next'}`}>
+            <Step5Health
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  pastYear: { 
+                    ...reportData.pastYear, 
+                    lifeAreas: { ...reportData.pastYear.lifeAreas, health: value } 
+                  } 
+                });
+                setCurrentStep(5);
+              }}
+              onBack={handleBack}
+              initialData={reportData.pastYear.lifeAreas?.health}
+            />
+          </div>
+        )}
+
+        {currentStep >= 5 && (
+          <div className={`wizard-slide ${currentStep === 5 ? 'active' : currentStep > 5 ? 'prev' : 'next'}`}>
+            <Step6Habits
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  pastYear: { 
+                    ...reportData.pastYear, 
+                    lifeAreas: { ...reportData.pastYear.lifeAreas, habits: value } 
+                  } 
+                });
+                setCurrentStep(6);
+              }}
+              onBack={handleBack}
+              initialData={reportData.pastYear.lifeAreas?.habits}
+            />
+          </div>
+        )}
+
+        {currentStep >= 6 && (
+          <div className={`wizard-slide ${currentStep === 6 ? 'active' : currentStep > 6 ? 'prev' : 'next'}`}>
+            <Step7Career
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  pastYear: { 
+                    ...reportData.pastYear, 
+                    lifeAreas: { ...reportData.pastYear.lifeAreas, career: value } 
+                  } 
+                });
+                setCurrentStep(7);
+              }}
+              onBack={handleBack}
+              initialData={reportData.pastYear.lifeAreas?.career}
+            />
+          </div>
+        )}
+
+        {currentStep >= 7 && (
+          <div className={`wizard-slide ${currentStep === 7 ? 'active' : currentStep > 7 ? 'prev' : 'next'}`}>
+            <Step8Hobbies
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  pastYear: { 
+                    ...reportData.pastYear, 
+                    lifeAreas: { ...reportData.pastYear.lifeAreas, hobbies: value } 
+                  } 
+                });
+                setCurrentStep(8);
+              }}
+              onBack={handleBack}
+              initialData={reportData.pastYear.lifeAreas?.hobbies}
+            />
+          </div>
+        )}
+
+        {currentStep >= 8 && (
+          <div className={`wizard-slide ${currentStep === 8 ? 'active' : currentStep > 8 ? 'prev' : 'next'}`}>
+            <Step9Psychology
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  pastYear: { 
+                    ...reportData.pastYear, 
+                    lifeAreas: { ...reportData.pastYear.lifeAreas, psychology: value } 
+                  } 
+                });
+                setCurrentStep(9);
+              }}
+              onBack={handleBack}
+              initialData={reportData.pastYear.lifeAreas?.psychology}
+            />
+          </div>
+        )}
+
+        {currentStep >= 9 && (
+          <div className={`wizard-slide ${currentStep === 9 ? 'active' : currentStep > 9 ? 'prev' : 'next'}`}>
+            <Step10BetterTomorrow
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  pastYear: { 
+                    ...reportData.pastYear, 
+                    lifeAreas: { ...reportData.pastYear.lifeAreas, betterTomorrow: value } 
+                  } 
+                });
+                setCurrentStep(10);
+              }}
+              onBack={handleBack}
+              initialData={reportData.pastYear.lifeAreas?.betterTomorrow}
+            />
+          </div>
+        )}
+
+        {/* Step 11: Important Moments */}
+        {currentStep >= 10 && (
+          <div className={`wizard-slide ${currentStep === 10 ? 'active' : currentStep > 10 ? 'prev' : 'next'}`}>
+            <Step11ImportantMoments
               onNext={(moments) => {
                 setReportData({ ...reportData, pastYear: { ...reportData.pastYear, importantMoments: moments } });
-                setCurrentStep(4);
+                setCurrentStep(11);
               }}
               onBack={handleBack}
               initialData={reportData.pastYear.importantMoments}
@@ -200,13 +353,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 5: Questions */}
-        {currentStep >= 4 && (
-          <div className={`wizard-slide ${currentStep === 4 ? 'active' : currentStep > 4 ? 'prev' : 'next'}`}>
-            <Step5Questions
+        {/* Step 12: Questions */}
+        {currentStep >= 11 && (
+          <div className={`wizard-slide ${currentStep === 11 ? 'active' : currentStep > 11 ? 'prev' : 'next'}`}>
+            <Step12Questions
               onNext={(questions) => {
                 setReportData({ ...reportData, pastYear: { ...reportData.pastYear, questions } });
-                setCurrentStep(5);
+                setCurrentStep(12);
               }}
               onBack={handleBack}
               initialData={reportData.pastYear.questions}
@@ -214,13 +367,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 6: Best Moments */}
-        {currentStep >= 5 && (
-          <div className={`wizard-slide ${currentStep === 5 ? 'active' : currentStep > 5 ? 'prev' : 'next'}`}>
-            <Step6BestMoments
+        {/* Step 13: Best Moments */}
+        {currentStep >= 12 && (
+          <div className={`wizard-slide ${currentStep === 12 ? 'active' : currentStep > 12 ? 'prev' : 'next'}`}>
+            <Step13BestMoments
               onNext={(bestMoments) => {
                 setReportData({ ...reportData, pastYear: { ...reportData.pastYear, bestMoments } });
-                setCurrentStep(6);
+                setCurrentStep(13);
               }}
               onBack={handleBack}
               initialData={reportData.pastYear.bestMoments}
@@ -228,13 +381,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 7: Achievements */}
-        {currentStep >= 6 && (
-          <div className={`wizard-slide ${currentStep === 6 ? 'active' : currentStep > 6 ? 'prev' : 'next'}`}>
-            <Step7Achievements
+        {/* Step 14: Achievements */}
+        {currentStep >= 13 && (
+          <div className={`wizard-slide ${currentStep === 13 ? 'active' : currentStep > 13 ? 'prev' : 'next'}`}>
+            <Step14Achievements
               onNext={(achievements) => {
                 setReportData({ ...reportData, pastYear: { ...reportData.pastYear, achievements } });
-                setCurrentStep(7);
+                setCurrentStep(14);
               }}
               onBack={handleBack}
               initialData={reportData.pastYear.achievements}
@@ -242,13 +395,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 8: Challenges */}
-        {currentStep >= 7 && (
-          <div className={`wizard-slide ${currentStep === 7 ? 'active' : currentStep > 7 ? 'prev' : 'next'}`}>
-            <Step8Challenges
+        {/* Step 15: Challenges */}
+        {currentStep >= 14 && (
+          <div className={`wizard-slide ${currentStep === 14 ? 'active' : currentStep > 14 ? 'prev' : 'next'}`}>
+            <Step15Challenges
               onNext={(challenges) => {
                 setReportData({ ...reportData, pastYear: { ...reportData.pastYear, challenges } });
-                setCurrentStep(8);
+                setCurrentStep(15);
               }}
               onBack={handleBack}
               initialData={reportData.pastYear.challenges}
@@ -256,13 +409,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 9: Forgiveness */}
-        {currentStep >= 8 && (
-          <div className={`wizard-slide ${currentStep === 8 ? 'active' : currentStep > 8 ? 'prev' : 'next'}`}>
-            <Step9Forgiveness
+        {/* Step 16: Forgiveness */}
+        {currentStep >= 15 && (
+          <div className={`wizard-slide ${currentStep === 15 ? 'active' : currentStep > 15 ? 'prev' : 'next'}`}>
+            <Step16Forgiveness
               onNext={(forgiveness) => {
                 setReportData({ ...reportData, pastYear: { ...reportData.pastYear, forgiveness } });
-                setCurrentStep(9);
+                setCurrentStep(16);
               }}
               onBack={handleBack}
               initialData={reportData.pastYear.forgiveness}
@@ -270,13 +423,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 10: Summary */}
-        {currentStep >= 9 && (
-          <div className={`wizard-slide ${currentStep === 9 ? 'active' : currentStep > 9 ? 'prev' : 'next'}`}>
-            <Step10Summary
+        {/* Step 17: Summary */}
+        {currentStep >= 16 && (
+          <div className={`wizard-slide ${currentStep === 16 ? 'active' : currentStep > 16 ? 'prev' : 'next'}`}>
+            <Step17Summary
               onNext={(summary) => {
                 setReportData({ ...reportData, pastYear: { ...reportData.pastYear, summary } });
-                setCurrentStep(10);
+                setCurrentStep(17);
               }}
               onBack={handleBack}
               initialData={reportData.pastYear.summary}
@@ -284,13 +437,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 11: Dreams */}
-        {currentStep >= 10 && (
-          <div className={`wizard-slide ${currentStep === 10 ? 'active' : currentStep > 10 ? 'prev' : 'next'}`}>
-            <Step11Dreams
+        {/* Step 18: Dreams */}
+        {currentStep >= 17 && (
+          <div className={`wizard-slide ${currentStep === 17 ? 'active' : currentStep > 17 ? 'prev' : 'next'}`}>
+            <Step18Dreams
               onNext={(dreams) => {
                 setReportData({ ...reportData, futureYear: { ...reportData.futureYear, dreams } });
-                setCurrentStep(11);
+                setCurrentStep(18);
               }}
               onBack={handleBack}
               initialData={reportData.futureYear.dreams}
@@ -298,27 +451,166 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 12: Future Goals */}
-        {currentStep >= 11 && (
-          <div className={`wizard-slide ${currentStep === 11 ? 'active' : currentStep > 11 ? 'prev' : 'next'}`}>
-            <Step12FutureGoals
-              onNext={(lifeAreas) => {
-                setReportData({ ...reportData, futureYear: { ...reportData.futureYear, lifeAreas } });
-                setCurrentStep(12);
+        {/* Step 19-26: Life Areas (Future) */}
+        {currentStep >= 18 && (
+          <div className={`wizard-slide ${currentStep === 18 ? 'active' : currentStep > 18 ? 'prev' : 'next'}`}>
+            <Step19PersonalLifeFuture
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  futureYear: { 
+                    ...reportData.futureYear, 
+                    lifeAreas: { ...reportData.futureYear.lifeAreas, personal: value } 
+                  } 
+                });
+                setCurrentStep(19);
               }}
               onBack={handleBack}
-              initialData={reportData.futureYear.lifeAreas}
+              initialData={reportData.futureYear.lifeAreas?.personal}
             />
           </div>
         )}
 
-        {/* Step 13: Magic Triples 1 */}
-        {currentStep >= 12 && (
-          <div className={`wizard-slide ${currentStep === 12 ? 'active' : currentStep > 12 ? 'prev' : 'next'}`}>
-            <Step13MagicTriples1
+        {currentStep >= 19 && (
+          <div className={`wizard-slide ${currentStep === 19 ? 'active' : currentStep > 19 ? 'prev' : 'next'}`}>
+            <Step20FriendsFuture
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  futureYear: { 
+                    ...reportData.futureYear, 
+                    lifeAreas: { ...reportData.futureYear.lifeAreas, friends: value } 
+                  } 
+                });
+                setCurrentStep(20);
+              }}
+              onBack={handleBack}
+              initialData={reportData.futureYear.lifeAreas?.friends}
+            />
+          </div>
+        )}
+
+        {currentStep >= 20 && (
+          <div className={`wizard-slide ${currentStep === 20 ? 'active' : currentStep > 20 ? 'prev' : 'next'}`}>
+            <Step21HealthFuture
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  futureYear: { 
+                    ...reportData.futureYear, 
+                    lifeAreas: { ...reportData.futureYear.lifeAreas, health: value } 
+                  } 
+                });
+                setCurrentStep(21);
+              }}
+              onBack={handleBack}
+              initialData={reportData.futureYear.lifeAreas?.health}
+            />
+          </div>
+        )}
+
+        {currentStep >= 21 && (
+          <div className={`wizard-slide ${currentStep === 21 ? 'active' : currentStep > 21 ? 'prev' : 'next'}`}>
+            <Step22HabitsFuture
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  futureYear: { 
+                    ...reportData.futureYear, 
+                    lifeAreas: { ...reportData.futureYear.lifeAreas, habits: value } 
+                  } 
+                });
+                setCurrentStep(22);
+              }}
+              onBack={handleBack}
+              initialData={reportData.futureYear.lifeAreas?.habits}
+            />
+          </div>
+        )}
+
+        {currentStep >= 22 && (
+          <div className={`wizard-slide ${currentStep === 22 ? 'active' : currentStep > 22 ? 'prev' : 'next'}`}>
+            <Step23CareerFuture
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  futureYear: { 
+                    ...reportData.futureYear, 
+                    lifeAreas: { ...reportData.futureYear.lifeAreas, career: value } 
+                  } 
+                });
+                setCurrentStep(23);
+              }}
+              onBack={handleBack}
+              initialData={reportData.futureYear.lifeAreas?.career}
+            />
+          </div>
+        )}
+
+        {currentStep >= 23 && (
+          <div className={`wizard-slide ${currentStep === 23 ? 'active' : currentStep > 23 ? 'prev' : 'next'}`}>
+            <Step24HobbiesFuture
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  futureYear: { 
+                    ...reportData.futureYear, 
+                    lifeAreas: { ...reportData.futureYear.lifeAreas, hobbies: value } 
+                  } 
+                });
+                setCurrentStep(24);
+              }}
+              onBack={handleBack}
+              initialData={reportData.futureYear.lifeAreas?.hobbies}
+            />
+          </div>
+        )}
+
+        {currentStep >= 24 && (
+          <div className={`wizard-slide ${currentStep === 24 ? 'active' : currentStep > 24 ? 'prev' : 'next'}`}>
+            <Step25PsychologyFuture
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  futureYear: { 
+                    ...reportData.futureYear, 
+                    lifeAreas: { ...reportData.futureYear.lifeAreas, psychology: value } 
+                  } 
+                });
+                setCurrentStep(25);
+              }}
+              onBack={handleBack}
+              initialData={reportData.futureYear.lifeAreas?.psychology}
+            />
+          </div>
+        )}
+
+        {currentStep >= 25 && (
+          <div className={`wizard-slide ${currentStep === 25 ? 'active' : currentStep > 25 ? 'prev' : 'next'}`}>
+            <Step26BetterTomorrowFuture
+              onNext={(value) => {
+                setReportData({ 
+                  ...reportData, 
+                  futureYear: { 
+                    ...reportData.futureYear, 
+                    lifeAreas: { ...reportData.futureYear.lifeAreas, betterTomorrow: value } 
+                  } 
+                });
+                setCurrentStep(26);
+              }}
+              onBack={handleBack}
+              initialData={reportData.futureYear.lifeAreas?.betterTomorrow}
+            />
+          </div>
+        )}
+
+        {/* Step 27: Magic Triples 1 */}
+        {currentStep >= 26 && (
+          <div className={`wizard-slide ${currentStep === 26 ? 'active' : currentStep > 26 ? 'prev' : 'next'}`}>
+            <Step27MagicTriples1
               onNext={(triples) => {
                 setReportData({ ...reportData, futureYear: { ...reportData.futureYear, magicTriples1: triples } });
-                setCurrentStep(13);
+                setCurrentStep(27);
               }}
               onBack={handleBack}
               initialData={reportData.futureYear.magicTriples1}
@@ -326,13 +618,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 14: Magic Triples 2 */}
-        {currentStep >= 13 && (
-          <div className={`wizard-slide ${currentStep === 13 ? 'active' : currentStep > 13 ? 'prev' : 'next'}`}>
-            <Step14MagicTriples2
+        {/* Step 28: Magic Triples 2 */}
+        {currentStep >= 27 && (
+          <div className={`wizard-slide ${currentStep === 27 ? 'active' : currentStep > 27 ? 'prev' : 'next'}`}>
+            <Step28MagicTriples2
               onNext={(triples) => {
                 setReportData({ ...reportData, futureYear: { ...reportData.futureYear, magicTriples2: triples } });
-                setCurrentStep(14);
+                setCurrentStep(28);
               }}
               onBack={handleBack}
               initialData={reportData.futureYear.magicTriples2}
@@ -340,13 +632,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 15: Wishes */}
-        {currentStep >= 14 && (
-          <div className={`wizard-slide ${currentStep === 14 ? 'active' : currentStep > 14 ? 'prev' : 'next'}`}>
-            <Step15Wishes
+        {/* Step 29: Wishes */}
+        {currentStep >= 28 && (
+          <div className={`wizard-slide ${currentStep === 28 ? 'active' : currentStep > 28 ? 'prev' : 'next'}`}>
+            <Step29Wishes
               onNext={(wishes) => {
                 setReportData({ ...reportData, futureYear: { ...reportData.futureYear, wishes } });
-                setCurrentStep(15);
+                setCurrentStep(29);
               }}
               onBack={handleBack}
               initialData={reportData.futureYear.wishes}
@@ -354,13 +646,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 16: Word of Year */}
-        {currentStep >= 15 && (
-          <div className={`wizard-slide ${currentStep === 15 ? 'active' : currentStep > 15 ? 'prev' : 'next'}`}>
-            <Step16WordOfYear
+        {/* Step 30: Word of Year */}
+        {currentStep >= 29 && (
+          <div className={`wizard-slide ${currentStep === 29 ? 'active' : currentStep > 29 ? 'prev' : 'next'}`}>
+            <Step30WordOfYear
               onNext={(wordOfYear) => {
                 setReportData({ ...reportData, futureYear: { ...reportData.futureYear, wordOfYear } });
-                setCurrentStep(16);
+                setCurrentStep(30);
               }}
               onBack={handleBack}
               initialData={reportData.futureYear.wordOfYear}
@@ -368,13 +660,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 17: Secret Wish */}
-        {currentStep >= 16 && (
-          <div className={`wizard-slide ${currentStep === 16 ? 'active' : currentStep > 16 ? 'prev' : 'next'}`}>
-            <Step17SecretWish
+        {/* Step 31: Secret Wish */}
+        {currentStep >= 30 && (
+          <div className={`wizard-slide ${currentStep === 30 ? 'active' : currentStep > 30 ? 'prev' : 'next'}`}>
+            <Step31SecretWish
               onNext={(secretWish) => {
                 setReportData({ ...reportData, futureYear: { ...reportData.futureYear, secretWish } });
-                setCurrentStep(17);
+                setCurrentStep(31);
               }}
               onBack={handleBack}
               initialData={reportData.futureYear.secretWish}
@@ -382,10 +674,10 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
           </div>
         )}
 
-        {/* Step 18: Final */}
-        {currentStep >= 17 && (
-          <div className={`wizard-slide ${currentStep === 17 ? 'active' : currentStep > 17 ? 'prev' : 'next'}`}>
-            <Step18Final
+        {/* Step 32: Final */}
+        {currentStep >= 31 && (
+          <div className={`wizard-slide ${currentStep === 31 ? 'active' : currentStep > 31 ? 'prev' : 'next'}`}>
+            <Step32Final
               onComplete={handleStepComplete}
               onBack={handleBack}
               year={editingReport.year}
@@ -533,11 +825,25 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
 
 function calculateProgress(report: YearlyReport): number {
   let completed = 0;
-  let total = 18; // Общее количество шагов
+  let total = 32; // Общее количество шагов
 
-  // Проверяем прошлый год (10 шагов)
+  // Step 1: Welcome (always completed if report exists)
+  completed++;
+  
+  // Step 2: Calendar
   if (report.pastYear.calendarEvents && report.pastYear.calendarEvents.length > 0) completed++;
-  if (report.pastYear.lifeAreas) completed++;
+  
+  // Steps 3-10: Life Areas (Past) - 8 steps
+  if (report.pastYear.lifeAreas?.personal) completed++;
+  if (report.pastYear.lifeAreas?.friends) completed++;
+  if (report.pastYear.lifeAreas?.health) completed++;
+  if (report.pastYear.lifeAreas?.habits) completed++;
+  if (report.pastYear.lifeAreas?.career) completed++;
+  if (report.pastYear.lifeAreas?.hobbies) completed++;
+  if (report.pastYear.lifeAreas?.psychology) completed++;
+  if (report.pastYear.lifeAreas?.betterTomorrow) completed++;
+  
+  // Steps 11-17: Past Year Additional - 7 steps
   if (report.pastYear.importantMoments) completed++;
   if (report.pastYear.questions) completed++;
   if (report.pastYear.bestMoments) completed++;
@@ -546,9 +852,20 @@ function calculateProgress(report: YearlyReport): number {
   if (report.pastYear.forgiveness) completed++;
   if (report.pastYear.summary) completed++;
 
-  // Проверяем будущий год (8 шагов)
+  // Step 18: Dreams
   if (report.futureYear.dreams) completed++;
-  if (report.futureYear.lifeAreas) completed++;
+  
+  // Steps 19-26: Life Areas (Future) - 8 steps
+  if (report.futureYear.lifeAreas?.personal) completed++;
+  if (report.futureYear.lifeAreas?.friends) completed++;
+  if (report.futureYear.lifeAreas?.health) completed++;
+  if (report.futureYear.lifeAreas?.habits) completed++;
+  if (report.futureYear.lifeAreas?.career) completed++;
+  if (report.futureYear.lifeAreas?.hobbies) completed++;
+  if (report.futureYear.lifeAreas?.psychology) completed++;
+  if (report.futureYear.lifeAreas?.betterTomorrow) completed++;
+  
+  // Steps 27-31: Future Year Additional - 5 steps
   if (report.futureYear.magicTriples1) completed++;
   if (report.futureYear.magicTriples2) completed++;
   if (report.futureYear.wishes) completed++;

@@ -2,20 +2,20 @@ import { useState } from 'react';
 import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 
-interface Step16WordOfYearProps {
+interface Step30WordOfYearProps {
   onNext: (wordOfYear: string) => void;
   onBack: () => void;
   initialData?: string;
 }
 
-export default function Step16WordOfYear({ onNext, onBack, initialData }: Step16WordOfYearProps) {
+export default function Step30WordOfYear({ onNext, onBack, initialData }: Step30WordOfYearProps) {
   const [wordOfYear, setWordOfYear] = useState(initialData || '');
 
   return (
     <WizardSlide
       icon="🔤"
-      title="Мое слово для будущего года"
-      description="Подбери слово, которое бы символизировало или определяло твой новый год. Это слово будет для тебя источником второго дыхания, чтобы ты не сдавалась и не отказывалась от своей мечты."
+      title="Слово года"
+      description="Какое слово будет вашим символом года?"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>

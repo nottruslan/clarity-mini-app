@@ -3,13 +3,13 @@ import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 import { type PastYearData } from '../../../utils/storage';
 
-interface Step10SummaryProps {
+interface Step17SummaryProps {
   onNext: (summary: PastYearData['summary']) => void;
   onBack: () => void;
   initialData?: PastYearData['summary'];
 }
 
-export default function Step10Summary({ onNext, onBack, initialData }: Step10SummaryProps) {
+export default function Step17Summary({ onNext, onBack, initialData }: Step17SummaryProps) {
   const [summary, setSummary] = useState({
     threeWords: initialData?.threeWords || ['', '', ''],
     bookTitle: initialData?.bookTitle || '',
@@ -25,8 +25,8 @@ export default function Step10Summary({ onNext, onBack, initialData }: Step10Sum
   return (
     <WizardSlide
       icon="📖"
-      title="Итоговое резюме прошлого года"
-      description="Подведите итоги прошедшего года"
+      title="Итоги года"
+      description="Подведите итоги"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>
@@ -63,7 +63,7 @@ export default function Step10Summary({ onNext, onBack, initialData }: Step10Sum
             Книга моего прошлого года
           </label>
           <p style={{ fontSize: '14px', color: 'var(--tg-theme-hint-color)', marginBottom: '8px' }}>
-            О том, как прошел твой предыдущий год, была написана книга или снят фильм. Как бы ты их назвал(а)?
+            Как бы вы назвали книгу или фильм о вашем году?
           </p>
           <input
             type="text"
@@ -80,7 +80,7 @@ export default function Step10Summary({ onNext, onBack, initialData }: Step10Sum
             До свидания, прошлый год!
           </label>
           <p style={{ fontSize: '14px', color: 'var(--tg-theme-hint-color)', marginBottom: '8px' }}>
-            Если ты хочешь записать что-нибудь ещё, или хочешь с кем-то попрощаться, сделай это сейчас.
+            Запишите что-то еще, если хотите
           </p>
           <textarea
             className="wizard-input"

@@ -9,8 +9,8 @@ export default function Step1Welcome({ onNext }: Step1WelcomeProps) {
   return (
     <WizardSlide
       icon="📅"
-      title="Добро пожаловать в YearCompass"
-      description="Этот буклет поможет вам проанализировать прошедший год и спланировать следующий"
+      title="Годовой отчет"
+      description="Проанализируйте прошедший год и спланируйте следующий"
       actions={
         <GradientButton onClick={onNext}>
           Начать
@@ -20,30 +20,16 @@ export default function Step1Welcome({ onNext }: Step1WelcomeProps) {
       <div style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
-        textAlign: 'left',
+        gap: '12px',
+        textAlign: 'center',
         width: '100%'
       }}>
         <p style={{
           fontSize: '16px',
-          color: 'var(--tg-theme-text-color)',
-          lineHeight: '1.6'
+          color: 'var(--tg-theme-hint-color)',
+          lineHeight: '1.5'
         }}>
-          Подготовьтесь. Соберитесь. Подготовьте всё необходимое и пространство вокруг себя.
-        </p>
-        <p style={{
-          fontSize: '16px',
-          color: 'var(--tg-theme-text-color)',
-          lineHeight: '1.6'
-        }}>
-          Закройте глаза и глубоко вдохните и выдохните пять раз.
-        </p>
-        <p style={{
-          fontSize: '16px',
-          color: 'var(--tg-theme-text-color)',
-          lineHeight: '1.6'
-        }}>
-          Отпустите любые ожидания. Начинайте, когда почувствуете, что готовы.
+          Вспомните важные события и определите цели на будущее
         </p>
       </div>
     </WizardSlide>

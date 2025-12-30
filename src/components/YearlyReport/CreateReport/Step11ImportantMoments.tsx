@@ -3,13 +3,13 @@ import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 import { type PastYearData } from '../../../utils/storage';
 
-interface Step4ImportantMomentsProps {
+interface Step11ImportantMomentsProps {
   onNext: (moments: PastYearData['importantMoments']) => void;
   onBack: () => void;
   initialData?: PastYearData['importantMoments'];
 }
 
-export default function Step4ImportantMoments({ onNext, onBack, initialData }: Step4ImportantMomentsProps) {
+export default function Step11ImportantMoments({ onNext, onBack, initialData }: Step11ImportantMomentsProps) {
   const [moments, setMoments] = useState({
     wisestDecision: initialData?.wisestDecision || '',
     biggestLesson: initialData?.biggestLesson || '',
@@ -31,8 +31,8 @@ export default function Step4ImportantMoments({ onNext, onBack, initialData }: S
   return (
     <WizardSlide
       icon="⭐"
-      title="Шесть важных моментов"
-      description="Заполните эти важные моменты из вашего прошедшего года"
+      title="Важные моменты"
+      description="Вспомните ключевые моменты прошедшего года"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>

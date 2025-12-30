@@ -2,20 +2,20 @@ import { useState } from 'react';
 import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 
-interface Step9ForgivenessProps {
+interface Step16ForgivenessProps {
   onNext: (forgiveness: string) => void;
   onBack: () => void;
   initialData?: string;
 }
 
-export default function Step9Forgiveness({ onNext, onBack, initialData }: Step9ForgivenessProps) {
+export default function Step16Forgiveness({ onNext, onBack, initialData }: Step16ForgivenessProps) {
   const [forgiveness, setForgiveness] = useState(initialData || '');
 
   return (
     <WizardSlide
       icon="🙏"
       title="Прощение"
-      description="Случалось ли в прошлом году что-нибудь такое, за что можно было бы уже простить? Какие-то поступки или слова, которые всё ещё мучают тебя?"
+      description="Что нужно простить и отпустить?"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>
@@ -30,7 +30,7 @@ export default function Step9Forgiveness({ onNext, onBack, initialData }: Step9F
       <div style={{ width: '100%' }}>
         <textarea
           className="wizard-input"
-          placeholder="Запиши это. Будь добра к себе и прости. Обдумай — и отпусти."
+          placeholder="Опишите, что нужно простить..."
           value={forgiveness}
           onChange={(e) => setForgiveness(e.target.value)}
           rows={8}

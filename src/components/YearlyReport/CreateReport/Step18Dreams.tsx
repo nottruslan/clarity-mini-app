@@ -2,20 +2,20 @@ import { useState } from 'react';
 import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 
-interface Step11DreamsProps {
+interface Step18DreamsProps {
   onNext: (dreams: string) => void;
   onBack: () => void;
   initialData?: string;
 }
 
-export default function Step11Dreams({ onNext, onBack, initialData }: Step11DreamsProps) {
+export default function Step18Dreams({ onNext, onBack, initialData }: Step18DreamsProps) {
   const [dreams, setDreams] = useState(initialData || '');
 
   return (
     <WizardSlide
       icon="🌟"
-      title="Мечтай по-крупному"
-      description="Как выглядит твой предстоящий год? Что будет идеальным развитием событий? Почему этот год будет замечательным?"
+      title="Мечты"
+      description="Как вы видите предстоящий год?"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>
@@ -30,7 +30,7 @@ export default function Step11Dreams({ onNext, onBack, initialData }: Step11Drea
       <div style={{ width: '100%' }}>
         <textarea
           className="wizard-input"
-          placeholder="Напиши, нарисуй, освободись от ожиданий и не бойся мечтать"
+          placeholder="Опишите ваши мечты и планы..."
           value={dreams}
           onChange={(e) => setDreams(e.target.value)}
           rows={8}

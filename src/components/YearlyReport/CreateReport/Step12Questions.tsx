@@ -3,13 +3,13 @@ import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 import { type PastYearData } from '../../../utils/storage';
 
-interface Step5QuestionsProps {
+interface Step12QuestionsProps {
   onNext: (questions: PastYearData['questions']) => void;
   onBack: () => void;
   initialData?: PastYearData['questions'];
 }
 
-export default function Step5Questions({ onNext, onBack, initialData }: Step5QuestionsProps) {
+export default function Step12Questions({ onNext, onBack, initialData }: Step12QuestionsProps) {
   const [questions, setQuestions] = useState({
     proudOf: initialData?.proudOf || '',
     threePeopleInfluenced: initialData?.threePeopleInfluenced || ['', '', ''],
@@ -29,8 +29,8 @@ export default function Step5Questions({ onNext, onBack, initialData }: Step5Que
   return (
     <WizardSlide
       icon="❓"
-      title="Шесть вопросов о прошедшем годе"
-      description="Ответьте на эти важные вопросы"
+      title="Вопросы о прошедшем годе"
+      description="Ответьте на вопросы"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>

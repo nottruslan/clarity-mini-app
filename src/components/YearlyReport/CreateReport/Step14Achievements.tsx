@@ -3,13 +3,13 @@ import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 import { type PastYearData } from '../../../utils/storage';
 
-interface Step7AchievementsProps {
+interface Step14AchievementsProps {
   onNext: (achievements: PastYearData['achievements']) => void;
   onBack: () => void;
   initialData?: PastYearData['achievements'];
 }
 
-export default function Step7Achievements({ onNext, onBack, initialData }: Step7AchievementsProps) {
+export default function Step14Achievements({ onNext, onBack, initialData }: Step14AchievementsProps) {
   const defaultAchievements = [
     { achievement: '', howAchieved: '', whoHelped: '' },
     { achievement: '', howAchieved: '', whoHelped: '' },
@@ -28,8 +28,8 @@ export default function Step7Achievements({ onNext, onBack, initialData }: Step7
   return (
     <WizardSlide
       icon="🏆"
-      title="Три самых больших достижения"
-      description="Напишите три своих ключевых достижения прошедшего года"
+      title="Достижения"
+      description="Ваши главные достижения"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>

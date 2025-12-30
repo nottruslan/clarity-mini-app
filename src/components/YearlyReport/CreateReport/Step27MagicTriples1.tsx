@@ -3,20 +3,20 @@ import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 import { type FutureYearData } from '../../../utils/storage';
 
-interface Step14MagicTriples2Props {
-  onNext: (triples: FutureYearData['magicTriples2']) => void;
+interface Step27MagicTriples1Props {
+  onNext: (triples: FutureYearData['magicTriples1']) => void;
   onBack: () => void;
-  initialData?: FutureYearData['magicTriples2'];
+  initialData?: FutureYearData['magicTriples1'];
 }
 
-export default function Step14MagicTriples2({ onNext, onBack, initialData }: Step14MagicTriples2Props) {
+export default function Step27MagicTriples1({ onNext, onBack, initialData }: Step27MagicTriples1Props) {
   const [triples, setTriples] = useState({
-    coziness: initialData?.coziness || ['', '', ''],
-    morning: initialData?.morning || ['', '', ''],
-    treat: initialData?.treat || ['', '', ''],
-    places: initialData?.places || ['', '', ''],
-    relationships: initialData?.relationships || ['', '', ''],
-    gifts: initialData?.gifts || ['', '', '']
+    love: initialData?.love || ['', '', ''],
+    letGo: initialData?.letGo || ['', '', ''],
+    achieve: initialData?.achieve || ['', '', ''],
+    support: initialData?.support || ['', '', ''],
+    try: initialData?.try || ['', '', ''],
+    sayNo: initialData?.sayNo || ['', '', '']
   });
 
   const updateTriple = (key: keyof typeof triples, index: number, value: string) => {
@@ -26,19 +26,19 @@ export default function Step14MagicTriples2({ onNext, onBack, initialData }: Ste
   };
 
   const tripleLabels = [
-    { key: 'coziness' as const, label: 'Этими тремя вещами я создам уют вокруг себя', icon: '🏠' },
-    { key: 'morning' as const, label: 'Эти три вещи я буду делать каждое утро', icon: '🌅' },
-    { key: 'treat' as const, label: 'Три вещи, которыми я буду регулярно баловать себя', icon: '🎁' },
-    { key: 'places' as const, label: 'Я побываю в этих трех местах', icon: '✈️' },
-    { key: 'relationships' as const, label: 'Этими тремя способами я буду налаживать и продолжать отношения с самыми близкими людьми', icon: '💕' },
-    { key: 'gifts' as const, label: 'Этими тремя подарками я отблагодарю себя за успехи', icon: '🎉' }
+    { key: 'love' as const, label: 'Эти три вещи я буду любить в себе', icon: '❤️' },
+    { key: 'letGo' as const, label: 'Эти три вещи я готов(а) отпустить и двигаться дальше', icon: '🕊️' },
+    { key: 'achieve' as const, label: 'Три вещи, которых я хочу добиться больше всего', icon: '🎯' },
+    { key: 'support' as const, label: 'Эти три человека будут моей опорой в тяжёлое время', icon: '🤝' },
+    { key: 'try' as const, label: 'Эти три вещи я решусь попробовать', icon: '🚀' },
+    { key: 'sayNo' as const, label: 'Этим трём вещам я готов(а) сказать "нет"', icon: '✋' }
   ];
 
   return (
     <WizardSlide
       icon="✨"
-      title="Волшебные тройки - часть 2"
-      description="Заполните эти важные тройки для наступающего года"
+      title="Планы на год"
+      description="Определите важные вещи"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>

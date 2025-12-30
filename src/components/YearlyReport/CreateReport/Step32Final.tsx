@@ -1,18 +1,18 @@
 import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 
-interface Step18FinalProps {
+interface Step32FinalProps {
   onComplete: () => void;
   onBack: () => void;
   year: number;
 }
 
-export default function Step18Final({ onComplete, onBack, year }: Step18FinalProps) {
+export default function Step32Final({ onComplete, onBack, year }: Step32FinalProps) {
   return (
     <WizardSlide
       icon="🎉"
       title="Поздравляем!"
-      description={`Ты только что спланировал(а) будущий год ${year}!`}
+      description={`Годовой отчет за ${year} готов!`}
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>
@@ -45,7 +45,7 @@ export default function Step18Final({ onComplete, onBack, year }: Step18FinalPro
           lineHeight: '1.6',
           textAlign: 'center'
         }}>
-          Сделайте снимок и поделитесь с нами, используя хэштег #yearcompass.
+          Все данные сохранены
         </p>
       </div>
     </WizardSlide>

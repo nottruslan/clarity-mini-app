@@ -3,13 +3,13 @@ import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 import { type FutureYearData } from '../../../utils/storage';
 
-interface Step15WishesProps {
+interface Step29WishesProps {
   onNext: (wishes: FutureYearData['wishes']) => void;
   onBack: () => void;
   initialData?: FutureYearData['wishes'];
 }
 
-export default function Step15Wishes({ onNext, onBack, initialData }: Step15WishesProps) {
+export default function Step29Wishes({ onNext, onBack, initialData }: Step29WishesProps) {
   const [wishes, setWishes] = useState({
     notPostpone: initialData?.notPostpone || '',
     energyFrom: initialData?.energyFrom || '',
@@ -31,8 +31,8 @@ export default function Step15Wishes({ onNext, onBack, initialData }: Step15Wish
   return (
     <WizardSlide
       icon="🎋"
-      title="Шесть пожеланий на мой будущий год"
-      description="Заполните эти пожелания для наступающего года"
+      title="Пожелания"
+      description="Ваши пожелания на год"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>
