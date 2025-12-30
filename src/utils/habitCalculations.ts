@@ -97,15 +97,27 @@ export function getHabitValue(habit: Habit, date: string): number | undefined {
 
 /**
  * Рассчитать общий опыт привычки
+ * Пересчитывает опыт с нуля на основе истории
+ * Используется при обновлении истории для точного пересчета
  */
 export function calculateTotalExperience(habit: Habit): number {
-  let totalExp = habit.experience || 0;
+  let totalExp = 0;
   
-  // Пересчитываем опыт на основе истории
+  // Пересчитываем опыт с нуля на основе истории
+  // Для точности пересчета используем только базовый опыт и бонусы за целевое значение
+  // Streak бонусы не учитываются при пересчете, чтобы избежать двойного подсчета
   Object.keys(habit.history).forEach(date => {
     const entry = habit.history[date];
     if (entry?.completed) {
-      totalExp += calculateExperience(habit, date);
+      // Базовый опыт за выполнение
+      let exp = 10;
+      
+      // Бонус за достижение целевого значения
+      if (habit.targetValue && entry.value && entry.value >= habit.targetValue) {
+        exp += 5;
+      }
+      
+      totalExp += exp;
     }
   });
 
