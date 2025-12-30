@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useTelegram } from './hooks/useTelegram';
 import { useCloudStorage } from './hooks/useCloudStorage';
-import SectionSelector, { type Section } from './components/Navigation/SectionSelector';
+import { type Section } from './types/navigation';
+import AppHeader from './components/Navigation/AppHeader';
+import NavigationMenu from './components/Navigation/NavigationMenu';
 import HomePage from './pages/HomePage';
 import TasksPage from './pages/TasksPage';
 import HabitsPage from './pages/HabitsPage';
@@ -13,6 +15,7 @@ function App() {
   const storage = useCloudStorage();
   const [currentSection, setCurrentSection] = useState<Section>('home');
   const [navigationHistory, setNavigationHistory] = useState<Section[]>(['home']);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Обработка кнопки "Назад"
   useEffect(() => {
@@ -91,12 +94,18 @@ function App() {
   return (
     <div className="app">
       {currentSection !== 'home' && (
-        <SectionSelector 
+        <AppHeader 
           currentSection={currentSection} 
-          onSectionChange={handleSectionChange} 
+          onMenuClick={() => setIsMenuOpen(true)}
         />
       )}
       {renderSection()}
+      <NavigationMenu
+        isOpen={isMenuOpen}
+        currentSection={currentSection}
+        onClose={() => setIsMenuOpen(false)}
+        onSectionSelect={handleSectionChange}
+      />
     </div>
   );
 }

@@ -1,0 +1,2 @@
+export type Section = 'home' | 'tasks' | 'habits' | 'finance' | 'languages';
+

@@ -1,4 +1,4 @@
-import { type Section } from '../components/Navigation/SectionSelector';
+import { type Section } from '../types/navigation';
 import LottieAnimation from '../components/LottieAnimation';
 
 interface HomePageProps {
