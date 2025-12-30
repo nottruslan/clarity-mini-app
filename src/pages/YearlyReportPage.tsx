@@ -703,7 +703,15 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
     : null;
 
   if (viewingReport) {
-    return <YearlyReportView report={viewingReport} onClose={handleCloseView} />;
+    return (
+      <YearlyReportView 
+        report={viewingReport} 
+        onClose={handleCloseView}
+        onUpdate={async (updatedReport) => {
+          await storage.updateYearlyReport(updatedReport.id, updatedReport);
+        }}
+      />
+    );
   }
 
   return (

@@ -1,33 +1,80 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { type YearlyReport } from '../../utils/storage';
 import LifeAreaCard from './LifeAreaCard';
+import EditFieldModal from './EditFieldModal';
 
 interface YearlyReportViewProps {
   report: YearlyReport;
   onClose: () => void;
+  onUpdate: (updatedReport: YearlyReport) => Promise<void>;
 }
 
-export default function YearlyReportView({ report, onClose }: YearlyReportViewProps) {
+interface EditingField {
+  path: string[];
+  title: string;
+  value: string;
+  multiline?: boolean;
+  isArray?: boolean;
+}
+
+export default function YearlyReportView({ report, onClose, onUpdate }: YearlyReportViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [editingField, setEditingField] = useState<EditingField | null>(null);
+  const [localReport, setLocalReport] = useState<YearlyReport>(report);
 
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element && scrollRef.current) {
-      const offset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + scrollRef.current.scrollTop - offset;
+  useEffect(() => {
+    setLocalReport(report);
+  }, [report]);
 
-      scrollRef.current.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
+  const handleFieldClick = (path: string[], title: string, value: string, multiline: boolean = true, isArray: boolean = false) => {
+    setEditingField({ path, title, value: value || '', multiline, isArray });
   };
 
-  const sections = [
-    { id: 'past-year', label: 'Прошлый год', icon: '📅' },
-    { id: 'future-year', label: 'Будущий год', icon: '🌟' }
-  ];
+  const handleSaveField = async (newValue: string) => {
+    if (!editingField) return;
+
+    const updatedReport = { ...localReport };
+    let current: any = updatedReport;
+
+    // Навигация по пути и обновление значения
+    for (let i = 0; i < editingField.path.length - 1; i++) {
+      const key = editingField.path[i];
+      if (!current[key]) {
+        current[key] = {};
+      }
+      current = current[key];
+    }
+
+    const lastKey = editingField.path[editingField.path.length - 1];
+    
+    // Если это массив (magicTriples, threeWords, threePeopleInfluenced), разбиваем строку на массив
+    if (editingField.isArray) {
+      // Пробуем разные разделители
+      const separators = [' • ', ', ', ','];
+      let values: string[] = [];
+      for (const sep of separators) {
+        if (newValue.includes(sep)) {
+          values = newValue.split(sep).map(v => v.trim()).filter(v => v);
+          break;
+        }
+      }
+      if (values.length === 0) {
+        values = newValue.split(/\s+/).filter(v => v.trim());
+      }
+      current[lastKey] = values;
+    } else {
+      current[lastKey] = newValue;
+    }
+
+    updatedReport.updatedAt = Date.now();
+    setLocalReport(updatedReport);
+    await onUpdate(updatedReport);
+    setEditingField(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingField(null);
+  };
 
   return (
     <div style={{ 
@@ -64,40 +111,8 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           ←
         </button>
         <h2 style={{ fontSize: '18px', fontWeight: '600', flex: 1 }}>
-          Отчет за {report.year}
+          Отчет за {localReport.year}
         </h2>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              onClick={() => scrollToSection(section.id)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)',
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--tg-theme-button-color)';
-                e.currentTarget.style.color = 'var(--tg-theme-button-text-color)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
-                e.currentTarget.style.color = 'var(--tg-theme-text-color)';
-              }}
-            >
-              <span>{section.icon}</span>
-              <span>{section.label}</span>
-            </button>
-          ))}
-        </div>
       </div>
       <div
         ref={scrollRef}
@@ -107,6 +122,15 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           padding: '16px'
         }}
       >
+        {editingField && (
+          <EditFieldModal
+            title={editingField.title}
+            value={editingField.value}
+            multiline={editingField.multiline}
+            onSave={handleSaveField}
+            onCancel={handleCancelEdit}
+          />
+        )}
         {/* Прошлый год */}
         <section id="past-year" style={{ marginBottom: '32px' }}>
           <h2 style={{
@@ -121,7 +145,7 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           </h2>
 
           {/* Календарь событий */}
-          {report.pastYear.calendarEvents && report.pastYear.calendarEvents.length > 0 && (
+          {localReport.pastYear.calendarEvents && localReport.pastYear.calendarEvents.length > 0 && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 Важные события
@@ -131,7 +155,7 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
                 flexDirection: 'column',
                 gap: '8px'
               }}>
-                {report.pastYear.calendarEvents.map((event, index) => (
+                {localReport.pastYear.calendarEvents.map((event, index) => (
                   <div
                     key={index}
                     style={{
@@ -150,24 +174,64 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Сферы жизни */}
-          {report.pastYear.lifeAreas && (
+          {localReport.pastYear.lifeAreas && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 Сферы жизни
               </h3>
-              <LifeAreaCard icon="👨‍👩‍👧‍👦" title="Личная жизнь, семья" content={report.pastYear.lifeAreas.personal} />
-              <LifeAreaCard icon="👥" title="Друзья, сообщество" content={report.pastYear.lifeAreas.friends} />
-              <LifeAreaCard icon="💪" title="Физическое здоровье, спорт" content={report.pastYear.lifeAreas.health} />
-              <LifeAreaCard icon="🔥" title="Привычки" content={report.pastYear.lifeAreas.habits} />
-              <LifeAreaCard icon="💼" title="Карьера, обучение" content={report.pastYear.lifeAreas.career} />
-              <LifeAreaCard icon="🎨" title="Отдых, хобби, творчество" content={report.pastYear.lifeAreas.hobbies} />
-              <LifeAreaCard icon="🧠" title="Психология, самопознание" content={report.pastYear.lifeAreas.psychology} />
-              <LifeAreaCard icon="🌍" title="Лучшее завтра" content={report.pastYear.lifeAreas.betterTomorrow} />
+              <LifeAreaCard 
+                icon="👨‍👩‍👧‍👦" 
+                title="Личная жизнь, семья" 
+                content={localReport.pastYear.lifeAreas.personal}
+                onClick={() => handleFieldClick(['pastYear', 'lifeAreas', 'personal'], 'Личная жизнь, семья', localReport.pastYear.lifeAreas?.personal || '')}
+              />
+              <LifeAreaCard 
+                icon="👥" 
+                title="Друзья, сообщество" 
+                content={localReport.pastYear.lifeAreas.friends}
+                onClick={() => handleFieldClick(['pastYear', 'lifeAreas', 'friends'], 'Друзья, сообщество', localReport.pastYear.lifeAreas?.friends || '')}
+              />
+              <LifeAreaCard 
+                icon="💪" 
+                title="Физическое здоровье, спорт" 
+                content={localReport.pastYear.lifeAreas.health}
+                onClick={() => handleFieldClick(['pastYear', 'lifeAreas', 'health'], 'Физическое здоровье, спорт', localReport.pastYear.lifeAreas?.health || '')}
+              />
+              <LifeAreaCard 
+                icon="🔥" 
+                title="Привычки" 
+                content={localReport.pastYear.lifeAreas.habits}
+                onClick={() => handleFieldClick(['pastYear', 'lifeAreas', 'habits'], 'Привычки', localReport.pastYear.lifeAreas?.habits || '')}
+              />
+              <LifeAreaCard 
+                icon="💼" 
+                title="Карьера, обучение" 
+                content={localReport.pastYear.lifeAreas.career}
+                onClick={() => handleFieldClick(['pastYear', 'lifeAreas', 'career'], 'Карьера, обучение', localReport.pastYear.lifeAreas?.career || '')}
+              />
+              <LifeAreaCard 
+                icon="🎨" 
+                title="Отдых, хобби, творчество" 
+                content={localReport.pastYear.lifeAreas.hobbies}
+                onClick={() => handleFieldClick(['pastYear', 'lifeAreas', 'hobbies'], 'Отдых, хобби, творчество', localReport.pastYear.lifeAreas?.hobbies || '')}
+              />
+              <LifeAreaCard 
+                icon="🧠" 
+                title="Психология, самопознание" 
+                content={localReport.pastYear.lifeAreas.psychology}
+                onClick={() => handleFieldClick(['pastYear', 'lifeAreas', 'psychology'], 'Психология, самопознание', localReport.pastYear.lifeAreas?.psychology || '')}
+              />
+              <LifeAreaCard 
+                icon="🌍" 
+                title="Лучшее завтра" 
+                content={localReport.pastYear.lifeAreas.betterTomorrow}
+                onClick={() => handleFieldClick(['pastYear', 'lifeAreas', 'betterTomorrow'], 'Лучшее завтра', localReport.pastYear.lifeAreas?.betterTomorrow || '')}
+              />
             </div>
           )}
 
           {/* Важные моменты */}
-          {report.pastYear.importantMoments && (
+          {localReport.pastYear.importantMoments && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 Важные моменты
@@ -177,62 +241,86 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                {report.pastYear.importantMoments.wisestDecision && (
-                  <div className="wizard-card">
+                {localReport.pastYear.importantMoments.wisestDecision && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'importantMoments', 'wisestDecision'], '🧠 Самое мудрое решение', localReport.pastYear.importantMoments?.wisestDecision || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">🧠 Самое мудрое решение</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.importantMoments.wisestDecision}
+                        {localReport.pastYear.importantMoments.wisestDecision}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.importantMoments.biggestLesson && (
-                  <div className="wizard-card">
+                {localReport.pastYear.importantMoments.biggestLesson && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'importantMoments', 'biggestLesson'], '📚 Самый большой урок', localReport.pastYear.importantMoments?.biggestLesson || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">📚 Самый большой урок</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.importantMoments.biggestLesson}
+                        {localReport.pastYear.importantMoments.biggestLesson}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.importantMoments.biggestRisk && (
-                  <div className="wizard-card">
+                {localReport.pastYear.importantMoments.biggestRisk && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'importantMoments', 'biggestRisk'], '🎲 Самый крупный риск', localReport.pastYear.importantMoments?.biggestRisk || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">🎲 Самый крупный риск</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.importantMoments.biggestRisk}
+                        {localReport.pastYear.importantMoments.biggestRisk}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.importantMoments.biggestSurprise && (
-                  <div className="wizard-card">
+                {localReport.pastYear.importantMoments.biggestSurprise && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'importantMoments', 'biggestSurprise'], '🎁 Самый большой сюрприз', localReport.pastYear.importantMoments?.biggestSurprise || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">🎁 Самый большой сюрприз</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.importantMoments.biggestSurprise}
+                        {localReport.pastYear.importantMoments.biggestSurprise}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.importantMoments.importantForOthers && (
-                  <div className="wizard-card">
+                {localReport.pastYear.importantMoments.importantForOthers && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'importantMoments', 'importantForOthers'], '❤️ Самая важная вещь для других', localReport.pastYear.importantMoments?.importantForOthers || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">❤️ Самая важная вещь для других</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.importantMoments.importantForOthers}
+                        {localReport.pastYear.importantMoments.importantForOthers}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.importantMoments.biggestCompletion && (
-                  <div className="wizard-card">
+                {localReport.pastYear.importantMoments.biggestCompletion && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'importantMoments', 'biggestCompletion'], '✅ Самое большое дело', localReport.pastYear.importantMoments?.biggestCompletion || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">✅ Самое большое дело</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.importantMoments.biggestCompletion}
+                        {localReport.pastYear.importantMoments.biggestCompletion}
                       </p>
                     </div>
                   </div>
@@ -242,68 +330,92 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Вопросы */}
-          {report.pastYear.questions && (
+          {localReport.pastYear.questions && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 Вопросы о прошедшем годе
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {report.pastYear.questions.proudOf && (
-                  <div className="wizard-card">
+                {localReport.pastYear.questions.proudOf && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'questions', 'proudOf'], 'Чем ты гордишься больше всего?', localReport.pastYear.questions?.proudOf || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">Чем ты гордишься больше всего?</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.questions.proudOf}
+                        {localReport.pastYear.questions.proudOf}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.questions.threePeopleInfluenced && report.pastYear.questions.threePeopleInfluenced.some(p => p) && (
-                  <div className="wizard-card">
+                {localReport.pastYear.questions.threePeopleInfluenced && localReport.pastYear.questions.threePeopleInfluenced.some(p => p) && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'questions', 'threePeopleInfluenced'], 'Какие три человека оказали на тебя наибольшее влияние?', localReport.pastYear.questions?.threePeopleInfluenced?.filter(p => p).join(', ') || '', false, true)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">Какие три человека оказали на тебя наибольшее влияние?</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.questions.threePeopleInfluenced.filter(p => p).join(', ')}
+                        {localReport.pastYear.questions.threePeopleInfluenced.filter(p => p).join(', ')}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.questions.threePeopleInfluencedBy && report.pastYear.questions.threePeopleInfluencedBy.some(p => p) && (
-                  <div className="wizard-card">
+                {localReport.pastYear.questions.threePeopleInfluencedBy && localReport.pastYear.questions.threePeopleInfluencedBy.some(p => p) && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'questions', 'threePeopleInfluencedBy'], 'На каких трех людей оказывал(а) наибольшее влияние ты?', localReport.pastYear.questions?.threePeopleInfluencedBy?.filter(p => p).join(', ') || '', false, true)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">На каких трех людей оказывал(а) наибольшее влияние ты?</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.questions.threePeopleInfluencedBy.filter(p => p).join(', ')}
+                        {localReport.pastYear.questions.threePeopleInfluencedBy.filter(p => p).join(', ')}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.questions.unfinished && (
-                  <div className="wizard-card">
+                {localReport.pastYear.questions.unfinished && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'questions', 'unfinished'], 'Что у тебя не получилось завершить?', localReport.pastYear.questions?.unfinished || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">Что у тебя не получилось завершить?</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.questions.unfinished}
+                        {localReport.pastYear.questions.unfinished}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.questions.bestDiscovery && (
-                  <div className="wizard-card">
+                {localReport.pastYear.questions.bestDiscovery && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'questions', 'bestDiscovery'], 'Самое лучшее, что ты открыл(а) в себе?', localReport.pastYear.questions?.bestDiscovery || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">Самое лучшее, что ты открыл(а) в себе?</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.questions.bestDiscovery}
+                        {localReport.pastYear.questions.bestDiscovery}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.pastYear.questions.mostGrateful && (
-                  <div className="wizard-card">
+                {localReport.pastYear.questions.mostGrateful && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['pastYear', 'questions', 'mostGrateful'], 'За что ты больше всего благодарен(а)?', localReport.pastYear.questions?.mostGrateful || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">За что ты больше всего благодарен(а)?</div>
                       <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>
-                        {report.pastYear.questions.mostGrateful}
+                        {localReport.pastYear.questions.mostGrateful}
                       </p>
                     </div>
                   </div>
@@ -313,15 +425,19 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Лучшие моменты */}
-          {report.pastYear.bestMoments && (
+          {localReport.pastYear.bestMoments && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 ✨ Лучшие моменты
               </h3>
-              <div className="wizard-card">
+              <div 
+                className="wizard-card"
+                onClick={() => handleFieldClick(['pastYear', 'bestMoments'], '✨ Лучшие моменты', localReport.pastYear.bestMoments || '')}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="wizard-card-content">
                   <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap' }}>
-                    {report.pastYear.bestMoments}
+                    {localReport.pastYear.bestMoments}
                   </p>
                 </div>
               </div>
@@ -329,12 +445,12 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Достижения */}
-          {report.pastYear.achievements && report.pastYear.achievements.length > 0 && (
+          {localReport.pastYear.achievements && localReport.pastYear.achievements.length > 0 && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 🏆 Достижения
               </h3>
-              {report.pastYear.achievements.map((achievement, index) => (
+              {localReport.pastYear.achievements.map((achievement, index) => (
                 <div key={index} className="wizard-card" style={{ marginBottom: '12px' }}>
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">Достижение {index + 1}</div>
@@ -360,12 +476,12 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Испытания */}
-          {report.pastYear.challenges && report.pastYear.challenges.length > 0 && (
+          {localReport.pastYear.challenges && localReport.pastYear.challenges.length > 0 && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 💪 Испытания
               </h3>
-              {report.pastYear.challenges.map((challenge, index) => (
+              {localReport.pastYear.challenges.map((challenge, index) => (
                 <div key={index} className="wizard-card" style={{ marginBottom: '12px' }}>
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">Испытание {index + 1}</div>
@@ -391,15 +507,19 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Прощение */}
-          {report.pastYear.forgiveness && (
+          {localReport.pastYear.forgiveness && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 🙏 Прощение
               </h3>
-              <div className="wizard-card">
+              <div 
+                className="wizard-card"
+                onClick={() => handleFieldClick(['pastYear', 'forgiveness'], '🙏 Прощение', localReport.pastYear.forgiveness || '')}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="wizard-card-content">
                   <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap' }}>
-                    {report.pastYear.forgiveness}
+                    {localReport.pastYear.forgiveness}
                   </p>
                 </div>
               </div>
@@ -407,37 +527,49 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Итоги */}
-          {report.pastYear.summary && (
+          {localReport.pastYear.summary && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 📖 Итоги года
               </h3>
-              {report.pastYear.summary.threeWords && report.pastYear.summary.threeWords.some(w => w) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.pastYear.summary.threeWords && localReport.pastYear.summary.threeWords.some(w => w) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['pastYear', 'summary', 'threeWords'], 'Прошедший год в трёх словах', localReport.pastYear.summary?.threeWords?.filter(w => w).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">Прошедший год в трёх словах</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px', fontSize: '16px', fontWeight: '600' }}>
-                      {report.pastYear.summary.threeWords.filter(w => w).join(' • ')}
+                      {localReport.pastYear.summary.threeWords.filter(w => w).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.pastYear.summary.bookTitle && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.pastYear.summary.bookTitle && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['pastYear', 'summary', 'bookTitle'], 'Книга моего прошлого года', localReport.pastYear.summary?.bookTitle || '', false)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">Книга моего прошлого года</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px', fontSize: '16px', fontWeight: '600' }}>
-                      {report.pastYear.summary.bookTitle}
+                      {localReport.pastYear.summary.bookTitle}
                     </p>
                   </div>
                 </div>
               )}
-              {report.pastYear.summary.goodbye && (
-                <div className="wizard-card">
+              {localReport.pastYear.summary.goodbye && (
+                <div 
+                  className="wizard-card"
+                  onClick={() => handleFieldClick(['pastYear', 'summary', 'goodbye'], 'До свидания, прошлый год!', localReport.pastYear.summary?.goodbye || '')}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">До свидания, прошлый год!</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
-                      {report.pastYear.summary.goodbye}
+                      {localReport.pastYear.summary.goodbye}
                     </p>
                   </div>
                 </div>
@@ -460,15 +592,19 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           </h2>
 
           {/* Мечты */}
-          {report.futureYear.dreams && (
+          {localReport.futureYear.dreams && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 Мечты
               </h3>
-              <div className="wizard-card">
+              <div 
+                className="wizard-card"
+                onClick={() => handleFieldClick(['futureYear', 'dreams'], 'Мечты', localReport.futureYear.dreams || '')}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="wizard-card-content">
                   <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap' }}>
-                    {report.futureYear.dreams}
+                    {localReport.futureYear.dreams}
                   </p>
                 </div>
               </div>
@@ -476,84 +612,148 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Сферы жизни (будущее) */}
-          {report.futureYear.lifeAreas && (
+          {localReport.futureYear.lifeAreas && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 Цели по сферам жизни
               </h3>
-              <LifeAreaCard icon="👨‍👩‍👧‍👦" title="Личная жизнь, семья" content={report.futureYear.lifeAreas.personal} />
-              <LifeAreaCard icon="👥" title="Друзья, сообщество" content={report.futureYear.lifeAreas.friends} />
-              <LifeAreaCard icon="💪" title="Физическое здоровье, спорт" content={report.futureYear.lifeAreas.health} />
-              <LifeAreaCard icon="🔥" title="Привычки" content={report.futureYear.lifeAreas.habits} />
-              <LifeAreaCard icon="💼" title="Карьера, обучение" content={report.futureYear.lifeAreas.career} />
-              <LifeAreaCard icon="🎨" title="Отдых, хобби, творчество" content={report.futureYear.lifeAreas.hobbies} />
-              <LifeAreaCard icon="🧠" title="Психология, самопознание" content={report.futureYear.lifeAreas.psychology} />
-              <LifeAreaCard icon="🌍" title="Лучшее завтра" content={report.futureYear.lifeAreas.betterTomorrow} />
+              <LifeAreaCard 
+                icon="👨‍👩‍👧‍👦" 
+                title="Личная жизнь, семья" 
+                content={localReport.futureYear.lifeAreas.personal}
+                onClick={() => handleFieldClick(['futureYear', 'lifeAreas', 'personal'], 'Личная жизнь, семья', localReport.futureYear.lifeAreas?.personal || '')}
+              />
+              <LifeAreaCard 
+                icon="👥" 
+                title="Друзья, сообщество" 
+                content={localReport.futureYear.lifeAreas.friends}
+                onClick={() => handleFieldClick(['futureYear', 'lifeAreas', 'friends'], 'Друзья, сообщество', localReport.futureYear.lifeAreas?.friends || '')}
+              />
+              <LifeAreaCard 
+                icon="💪" 
+                title="Физическое здоровье, спорт" 
+                content={localReport.futureYear.lifeAreas.health}
+                onClick={() => handleFieldClick(['futureYear', 'lifeAreas', 'health'], 'Физическое здоровье, спорт', localReport.futureYear.lifeAreas?.health || '')}
+              />
+              <LifeAreaCard 
+                icon="🔥" 
+                title="Привычки" 
+                content={localReport.futureYear.lifeAreas.habits}
+                onClick={() => handleFieldClick(['futureYear', 'lifeAreas', 'habits'], 'Привычки', localReport.futureYear.lifeAreas?.habits || '')}
+              />
+              <LifeAreaCard 
+                icon="💼" 
+                title="Карьера, обучение" 
+                content={localReport.futureYear.lifeAreas.career}
+                onClick={() => handleFieldClick(['futureYear', 'lifeAreas', 'career'], 'Карьера, обучение', localReport.futureYear.lifeAreas?.career || '')}
+              />
+              <LifeAreaCard 
+                icon="🎨" 
+                title="Отдых, хобби, творчество" 
+                content={localReport.futureYear.lifeAreas.hobbies}
+                onClick={() => handleFieldClick(['futureYear', 'lifeAreas', 'hobbies'], 'Отдых, хобби, творчество', localReport.futureYear.lifeAreas?.hobbies || '')}
+              />
+              <LifeAreaCard 
+                icon="🧠" 
+                title="Психология, самопознание" 
+                content={localReport.futureYear.lifeAreas.psychology}
+                onClick={() => handleFieldClick(['futureYear', 'lifeAreas', 'psychology'], 'Психология, самопознание', localReport.futureYear.lifeAreas?.psychology || '')}
+              />
+              <LifeAreaCard 
+                icon="🌍" 
+                title="Лучшее завтра" 
+                content={localReport.futureYear.lifeAreas.betterTomorrow}
+                onClick={() => handleFieldClick(['futureYear', 'lifeAreas', 'betterTomorrow'], 'Лучшее завтра', localReport.futureYear.lifeAreas?.betterTomorrow || '')}
+              />
             </div>
           )}
 
           {/* Планы на год - часть 1 */}
-          {report.futureYear.magicTriples1 && (
+          {localReport.futureYear.magicTriples1 && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 Планы на год
               </h3>
-              {report.futureYear.magicTriples1.love && report.futureYear.magicTriples1.love.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples1.love && localReport.futureYear.magicTriples1.love.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples1', 'love'], '❤️ Эти три вещи я буду любить в себе', localReport.futureYear.magicTriples1?.love?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">❤️ Эти три вещи я буду любить в себе</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples1.love.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples1.love.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples1.letGo && report.futureYear.magicTriples1.letGo.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples1.letGo && localReport.futureYear.magicTriples1.letGo.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples1', 'letGo'], '🕊️ Эти три вещи я готов(а) отпустить', localReport.futureYear.magicTriples1?.letGo?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">🕊️ Эти три вещи я готов(а) отпустить</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples1.letGo.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples1.letGo.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples1.achieve && report.futureYear.magicTriples1.achieve.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples1.achieve && localReport.futureYear.magicTriples1.achieve.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples1', 'achieve'], '🎯 Три вещи, которых я хочу добиться больше всего', localReport.futureYear.magicTriples1?.achieve?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">🎯 Три вещи, которых я хочу добиться больше всего</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples1.achieve.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples1.achieve.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples1.support && report.futureYear.magicTriples1.support.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples1.support && localReport.futureYear.magicTriples1.support.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples1', 'support'], '🤝 Эти три человека будут моей опорой', localReport.futureYear.magicTriples1?.support?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">🤝 Эти три человека будут моей опорой</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples1.support.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples1.support.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples1.try && report.futureYear.magicTriples1.try.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples1.try && localReport.futureYear.magicTriples1.try.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples1', 'try'], '🚀 Эти три вещи я решусь попробовать', localReport.futureYear.magicTriples1?.try?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">🚀 Эти три вещи я решусь попробовать</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples1.try.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples1.try.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples1.sayNo && report.futureYear.magicTriples1.sayNo.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples1.sayNo && localReport.futureYear.magicTriples1.sayNo.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples1', 'sayNo'], '✋ Этим трём вещам я готов(а) сказать "нет"', localReport.futureYear.magicTriples1?.sayNo?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">✋ Этим трём вещам я готов(а) сказать "нет"</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples1.sayNo.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples1.sayNo.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
@@ -562,67 +762,91 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Планы на год - часть 2 */}
-          {report.futureYear.magicTriples2 && (
+          {localReport.futureYear.magicTriples2 && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 Планы на год - часть 2
               </h3>
-              {report.futureYear.magicTriples2.coziness && report.futureYear.magicTriples2.coziness.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples2.coziness && localReport.futureYear.magicTriples2.coziness.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples2', 'coziness'], '🏠 Этими тремя вещами я создам уют', localReport.futureYear.magicTriples2?.coziness?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">🏠 Этими тремя вещами я создам уют</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples2.coziness.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples2.coziness.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples2.morning && report.futureYear.magicTriples2.morning.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples2.morning && localReport.futureYear.magicTriples2.morning.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples2', 'morning'], '🌅 Эти три вещи я буду делать каждое утро', localReport.futureYear.magicTriples2?.morning?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">🌅 Эти три вещи я буду делать каждое утро</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples2.morning.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples2.morning.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples2.treat && report.futureYear.magicTriples2.treat.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples2.treat && localReport.futureYear.magicTriples2.treat.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples2', 'treat'], '🎁 Три вещи, которыми я буду баловать себя', localReport.futureYear.magicTriples2?.treat?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">🎁 Три вещи, которыми я буду баловать себя</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples2.treat.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples2.treat.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples2.places && report.futureYear.magicTriples2.places.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples2.places && localReport.futureYear.magicTriples2.places.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples2', 'places'], '✈️ Я побываю в этих трех местах', localReport.futureYear.magicTriples2?.places?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">✈️ Я побываю в этих трех местах</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples2.places.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples2.places.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples2.relationships && report.futureYear.magicTriples2.relationships.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples2.relationships && localReport.futureYear.magicTriples2.relationships.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples2', 'relationships'], '💕 Этими тремя способами я буду налаживать отношения', localReport.futureYear.magicTriples2?.relationships?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">💕 Этими тремя способами я буду налаживать отношения</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples2.relationships.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples2.relationships.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
               )}
-              {report.futureYear.magicTriples2.gifts && report.futureYear.magicTriples2.gifts.some(v => v) && (
-                <div className="wizard-card" style={{ marginBottom: '12px' }}>
+              {localReport.futureYear.magicTriples2.gifts && localReport.futureYear.magicTriples2.gifts.some(v => v) && (
+                <div 
+                  className="wizard-card" 
+                  style={{ marginBottom: '12px', cursor: 'pointer' }}
+                  onClick={() => handleFieldClick(['futureYear', 'magicTriples2', 'gifts'], '🎉 Этими тремя подарками я отблагодарю себя', localReport.futureYear.magicTriples2?.gifts?.filter(v => v).join(' • ') || '', false, true)}
+                >
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">🎉 Этими тремя подарками я отблагодарю себя</div>
                     <p className="wizard-card-description" style={{ marginTop: '8px' }}>
-                      {report.futureYear.magicTriples2.gifts.filter(v => v).join(' • ')}
+                      {localReport.futureYear.magicTriples2.gifts.filter(v => v).join(' • ')}
                     </p>
                   </div>
                 </div>
@@ -631,68 +855,92 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Пожелания */}
-          {report.futureYear.wishes && (
+          {localReport.futureYear.wishes && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 🎋 Пожелания
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {report.futureYear.wishes.notPostpone && (
-                  <div className="wizard-card">
+                {localReport.futureYear.wishes.notPostpone && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['futureYear', 'wishes', 'notPostpone'], '⏰ В этом году я не буду откладывать в долгий ящик...', localReport.futureYear.wishes?.notPostpone || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">⏰ В этом году я не буду откладывать в долгий ящик...</div>
                       <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
-                        {report.futureYear.wishes.notPostpone}
+                        {localReport.futureYear.wishes.notPostpone}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.futureYear.wishes.energyFrom && (
-                  <div className="wizard-card">
+                {localReport.futureYear.wishes.energyFrom && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['futureYear', 'wishes', 'energyFrom'], '⚡ В этом году я буду черпать энергию из...', localReport.futureYear.wishes?.energyFrom || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">⚡ В этом году я буду черпать энергию из...</div>
                       <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
-                        {report.futureYear.wishes.energyFrom}
+                        {localReport.futureYear.wishes.energyFrom}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.futureYear.wishes.bravestWhen && (
-                  <div className="wizard-card">
+                {localReport.futureYear.wishes.bravestWhen && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['futureYear', 'wishes', 'bravestWhen'], '🦁 В этом году я буду самым храбрым, когда...', localReport.futureYear.wishes?.bravestWhen || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">🦁 В этом году я буду самым храбрым, когда...</div>
                       <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
-                        {report.futureYear.wishes.bravestWhen}
+                        {localReport.futureYear.wishes.bravestWhen}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.futureYear.wishes.sayYesWhen && (
-                  <div className="wizard-card">
+                {localReport.futureYear.wishes.sayYesWhen && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['futureYear', 'wishes', 'sayYesWhen'], '✅ В этом году я скажу "да", когда...', localReport.futureYear.wishes?.sayYesWhen || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">✅ В этом году я скажу "да", когда...</div>
                       <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
-                        {report.futureYear.wishes.sayYesWhen}
+                        {localReport.futureYear.wishes.sayYesWhen}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.futureYear.wishes.advice && (
-                  <div className="wizard-card">
+                {localReport.futureYear.wishes.advice && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['futureYear', 'wishes', 'advice'], '💡 В этом году я советую себе...', localReport.futureYear.wishes?.advice || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">💡 В этом году я советую себе...</div>
                       <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
-                        {report.futureYear.wishes.advice}
+                        {localReport.futureYear.wishes.advice}
                       </p>
                     </div>
                   </div>
                 )}
-                {report.futureYear.wishes.specialBecause && (
-                  <div className="wizard-card">
+                {localReport.futureYear.wishes.specialBecause && (
+                  <div 
+                    className="wizard-card"
+                    onClick={() => handleFieldClick(['futureYear', 'wishes', 'specialBecause'], '🌟 Этот год будет для меня особенным, потому что...', localReport.futureYear.wishes?.specialBecause || '')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="wizard-card-content">
                       <div className="wizard-card-title">🌟 Этот год будет для меня особенным, потому что...</div>
                       <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
-                        {report.futureYear.wishes.specialBecause}
+                        {localReport.futureYear.wishes.specialBecause}
                       </p>
                     </div>
                   </div>
@@ -702,15 +950,19 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Слово года */}
-          {report.futureYear.wordOfYear && (
+          {localReport.futureYear.wordOfYear && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 🔤 Слово года
               </h3>
-              <div className="wizard-card">
+              <div 
+                className="wizard-card"
+                onClick={() => handleFieldClick(['futureYear', 'wordOfYear'], '🔤 Слово года', localReport.futureYear.wordOfYear || '', false)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="wizard-card-content">
                   <p className="wizard-card-description" style={{ fontSize: '24px', fontWeight: '600', textAlign: 'center' }}>
-                    {report.futureYear.wordOfYear}
+                    {localReport.futureYear.wordOfYear}
                   </p>
                 </div>
               </div>
@@ -718,15 +970,19 @@ export default function YearlyReportView({ report, onClose }: YearlyReportViewPr
           )}
 
           {/* Секретное желание */}
-          {report.futureYear.secretWish && (
+          {localReport.futureYear.secretWish && (
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                 🔮 Секретное желание
               </h3>
-              <div className="wizard-card">
+              <div 
+                className="wizard-card"
+                onClick={() => handleFieldClick(['futureYear', 'secretWish'], '🔮 Секретное желание', localReport.futureYear.secretWish || '')}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="wizard-card-content">
                   <p className="wizard-card-description" style={{ whiteSpace: 'pre-wrap' }}>
-                    {report.futureYear.secretWish}
+                    {localReport.futureYear.secretWish}
                   </p>
                 </div>
               </div>

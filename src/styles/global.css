@@ -709,6 +709,9 @@ body {
   color: var(--tg-theme-hint-color);
   margin: 0;
   line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Gradient Button */
