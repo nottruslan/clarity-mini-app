@@ -619,10 +619,6 @@ body {
   gap: 12px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: auto;
-  overscroll-behavior: contain;
   align-items: center;
 }
 
