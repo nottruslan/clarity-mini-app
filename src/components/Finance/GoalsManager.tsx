@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Goal, generateId } from '../../utils/storage';
 import GradientButton from '../Wizard/GradientButton';
 
@@ -75,62 +75,96 @@ export default function GoalsManager({
 
   const icons = ['🎯', '💰', '🏠', '🚗', '✈️', '💍', '📱', '💻', '🎓', '🏥', '🎁', '🎮'];
 
+  // Блокируем прокрутку фона при открытии модального окна
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      zIndex: 10000,
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center'
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '500px',
-        backgroundColor: 'var(--tg-theme-bg-color)',
-        borderTopLeftRadius: '20px',
-        borderTopRightRadius: '20px',
-        padding: '20px',
-        paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
-        maxHeight: '80vh',
-        overflowY: 'auto' as const,
-        WebkitOverflowScrolling: 'touch' as any
-      }}>
-        <div style={{
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 10000,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        overflow: 'hidden'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div 
+        style={{
+          width: '100%',
+          maxWidth: '500px',
+          backgroundColor: 'var(--tg-theme-bg-color)',
+          borderTopLeftRadius: '20px',
+          borderTopRightRadius: '20px',
+          maxHeight: '80vh',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px'
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{
+          padding: '20px',
+          paddingBottom: '12px',
+          flexShrink: 0,
+          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
         }}>
-          <h2 style={{
-            fontSize: '24px',
-            fontWeight: '600'
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}>
-            Финансовые цели
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              border: 'none',
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-              fontSize: '20px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            ×
-          </button>
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: '600',
+              margin: 0
+            }}>
+              Финансовые цели
+            </h2>
+            <button
+              onClick={onClose}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                border: 'none',
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                fontSize: '20px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{
+          flex: 1,
+          overflowY: 'auto' as const,
+          WebkitOverflowScrolling: 'touch' as any,
+          padding: '20px',
+          paddingTop: '12px',
+          paddingBottom: 'calc(20px + env(safe-area-inset-bottom))'
+        }}>
         {!showAddForm ? (
           <>
             {goals.length === 0 ? (
@@ -211,9 +245,11 @@ export default function GoalsManager({
                 ))}
               </div>
             )}
-            <GradientButton onClick={() => setShowAddForm(true)}>
-              + Создать цель
-            </GradientButton>
+            <div style={{ marginTop: '16px' }}>
+              <GradientButton onClick={() => setShowAddForm(true)}>
+                + Создать цель
+              </GradientButton>
+            </div>
           </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
