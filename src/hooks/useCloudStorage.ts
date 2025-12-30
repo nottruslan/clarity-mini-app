@@ -17,7 +17,7 @@ import {
 export function useCloudStorage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [finance, setFinance] = useState<FinanceData>({ transactions: [], categories: [], budgets: [] });
+  const [finance, setFinance] = useState<FinanceData>({ transactions: [], categories: [], budgets: [], goals: [] });
   const [onboarding, setOnboarding] = useState<OnboardingFlags>({
     tasks: false,
     habits: false,
@@ -183,6 +183,31 @@ export function useCloudStorage() {
     await updateFinance(newFinance);
   }, [finance, updateFinance]);
 
+  // Goals
+  const addGoal = useCallback(async (goal: FinanceData['goals'][0]) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      goals: [...(finance.goals || []), goal]
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
+  const updateGoal = useCallback(async (id: string, updates: Partial<FinanceData['goals'][0]>) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      goals: (finance.goals || []).map(g => g.id === id ? { ...g, ...updates } : g)
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
+  const deleteGoal = useCallback(async (id: string) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      goals: (finance.goals || []).filter(g => g.id !== id)
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
   // Onboarding
   const markOnboardingShown = useCallback(async (section: keyof OnboardingFlags) => {
     const newOnboarding = { ...onboarding, [section]: true };
@@ -220,6 +245,9 @@ export function useCloudStorage() {
     addBudget,
     updateBudget,
     deleteBudget,
+    addGoal,
+    updateGoal,
+    deleteGoal,
     
     // Onboarding
     markOnboardingShown,

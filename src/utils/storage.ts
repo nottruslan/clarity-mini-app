@@ -46,10 +46,22 @@ export interface Budget {
   period: 'month' | 'year';
 }
 
+export interface Goal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadline?: number; // Optional deadline timestamp
+  createdAt: number;
+  icon?: string;
+  description?: string;
+}
+
 export interface FinanceData {
   transactions: Transaction[];
   categories: Category[];
   budgets: Budget[];
+  goals: Goal[];
 }
 
 export interface Category {
@@ -201,7 +213,8 @@ export async function getFinanceData(): Promise<FinanceData> {
     const defaultData: FinanceData = {
       transactions: [],
       categories: getDefaultCategories(),
-      budgets: []
+      budgets: [],
+      goals: []
     };
     await saveFinanceData(defaultData);
     return defaultData;

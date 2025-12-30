@@ -8,6 +8,7 @@ import TransactionFilters, { type FilterOptions } from '../components/Finance/Tr
 import StatisticsView from '../components/Finance/StatisticsView';
 import BudgetManager from '../components/Finance/BudgetManager';
 import BudgetOverview from '../components/Finance/BudgetOverview';
+import GoalsManager from '../components/Finance/GoalsManager';
 import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Type from '../components/Finance/CreateTransaction/Step1Type';
 import Step2Amount from '../components/Finance/CreateTransaction/Step2Amount';
@@ -31,6 +32,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
+  const [showGoals, setShowGoals] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({ type: 'all' });
   const [createStep, setCreateStep] = useState(0);
   const [period] = useState<Period>('month');
@@ -46,10 +48,10 @@ export default function FinancePage({ storage }: FinancePageProps) {
   const periodFiltered = filterTransactionsByPeriod(storage.finance.transactions, period);
   const filteredTransactions = useFinanceFilters(periodFiltered, filters);
 
-  const handleStartCreate = () => {
+  const handleStartCreate = (type?: 'income' | 'expense') => {
     setIsCreating(true);
     setCreateStep(0);
-    setTransactionData({});
+    setTransactionData(type ? { type } : {});
   };
 
   const handleStep1Complete = (type: 'income' | 'expense') => {
@@ -284,6 +286,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
           padding: '12px 16px',
           borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
           display: 'flex',
+          gap: '12px',
           justifyContent: 'center'
         }}>
           <button
@@ -299,7 +302,22 @@ export default function FinancePage({ storage }: FinancePageProps) {
               cursor: 'pointer'
             }}
           >
-            💰 Управление бюджетом
+            💰 Бюджет
+          </button>
+          <button
+            onClick={() => setShowGoals(true)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '1px solid var(--tg-theme-button-color)',
+              backgroundColor: 'transparent',
+              color: 'var(--tg-theme-button-color)',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            🎯 Цели
           </button>
         </div>
         <StatisticsView finance={storage.finance} period={period} />
@@ -335,13 +353,74 @@ export default function FinancePage({ storage }: FinancePageProps) {
           transactions={filteredTransactions}
           onTransactionClick={handleTransactionClick}
         />
-        <button 
-          className="fab"
-          onClick={handleStartCreate}
-          aria-label="Добавить транзакцию"
-        >
-          +
-        </button>
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(20px + env(safe-area-inset-bottom))',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '12px',
+          zIndex: 100
+        }}>
+          <button 
+            onClick={() => handleStartCreate('income')}
+            style={{
+              padding: '14px 24px',
+              borderRadius: '12px',
+              border: 'none',
+              backgroundColor: '#4caf50',
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              minWidth: '120px',
+              justifyContent: 'center'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>💰</span>
+            <span>Доход</span>
+          </button>
+          <button 
+            onClick={() => handleStartCreate('expense')}
+            style={{
+              padding: '14px 24px',
+              borderRadius: '12px',
+              border: 'none',
+              backgroundColor: '#f44336',
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              minWidth: '120px',
+              justifyContent: 'center'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>💸</span>
+            <span>Расход</span>
+          </button>
+        </div>
       </div>
       {selectedTransaction && (
         <TransactionDetails
@@ -369,6 +448,15 @@ export default function FinancePage({ storage }: FinancePageProps) {
           onBudgetUpdate={(budget) => storage.updateBudget(budget)}
           onBudgetDelete={(categoryId) => storage.deleteBudget(categoryId)}
           onClose={() => setShowBudget(false)}
+        />
+      )}
+      {showGoals && (
+        <GoalsManager
+          goals={storage.finance.goals || []}
+          onAdd={(goal) => storage.addGoal(goal)}
+          onUpdate={(id, updates) => storage.updateGoal(id, updates)}
+          onDelete={(id) => storage.deleteGoal(id)}
+          onClose={() => setShowGoals(false)}
         />
       )}
     </>

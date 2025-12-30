@@ -6,7 +6,7 @@ interface PieChartProps {
   type: 'income' | 'expense';
 }
 
-export default function PieChart({ transactions, categories, type }: PieChartProps) {
+export default function PieChart({ transactions, type }: PieChartProps) {
   const filteredTransactions = transactions.filter(t => t.type === type);
   
   // Группируем по категориям
@@ -49,14 +49,22 @@ export default function PieChart({ transactions, categories, type }: PieChartPro
     }).format(amount);
   };
 
-  const getCategoryColor = (categoryName: string, index: number): string => {
-    const category = categories.find(c => c.name === categoryName);
-    if (category?.color) return category.color;
-    
-    // Дефолтные цвета для круговой диаграммы
+  const getCategoryColor = (_categoryName: string, index: number): string => {
+    // Всегда используем автоматическую палитру для лучшей видимости
+    // Яркие, контрастные цвета для круговой диаграммы
     const colors = [
-      '#3390ec', '#4caf50', '#ff9800', '#9c27b0', 
-      '#f44336', '#00bcd4', '#795548', '#607d8b'
+      '#3390ec', // Синий
+      '#4caf50', // Зеленый
+      '#ff9800', // Оранжевый
+      '#9c27b0', // Фиолетовый
+      '#f44336', // Красный
+      '#00bcd4', // Голубой
+      '#ffc107', // Желтый
+      '#e91e63', // Розовый
+      '#795548', // Коричневый
+      '#607d8b', // Серо-синий
+      '#8bc34a', // Светло-зеленый
+      '#ff5722'  // Темно-оранжевый
     ];
     return colors[index % colors.length];
   };

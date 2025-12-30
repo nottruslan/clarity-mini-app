@@ -12,6 +12,18 @@ export default function TrendsChart({ transactions, period }: TrendsChartProps) 
   // Фильтруем транзакции по периоду
   const periodTransactions = transactions.filter(t => t.date >= start && t.date <= end);
   
+  // Вычисляем средние значения для прогноза
+  const calculateAverage = (type: 'income' | 'expense') => {
+    const filtered = periodTransactions.filter(t => t.type === type);
+    if (filtered.length === 0) return 0;
+    const total = filtered.reduce((sum, t) => sum + t.amount, 0);
+    const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+    return total / days;
+  };
+  
+  const avgIncome = calculateAverage('income');
+  const avgExpense = calculateAverage('expense');
+  
   // Группируем по датам
   const dailyData: Record<string, { income: number; expense: number }> = {};
   
@@ -31,6 +43,9 @@ export default function TrendsChart({ transactions, period }: TrendsChartProps) 
       dailyData[dateKey].expense += t.amount;
     }
   });
+  
+  // Добавляем прогноз на следующий период (если есть данные)
+  const showForecast = periodTransactions.length > 0 && (avgIncome > 0 || avgExpense > 0);
 
   const dates = Object.keys(dailyData).sort((a, b) => {
     return new Date(a).getTime() - new Date(b).getTime();
@@ -134,6 +149,73 @@ export default function TrendsChart({ transactions, period }: TrendsChartProps) 
           </div>
         );
       })}
+      {showForecast && (
+        <div style={{
+          marginTop: '24px',
+          padding: '16px',
+          borderRadius: '12px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          border: '1px dashed var(--tg-theme-hint-color)'
+        }}>
+          <div style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            marginBottom: '12px',
+            color: 'var(--tg-theme-text-color)'
+          }}>
+            📊 Прогноз (средние значения)
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                Средний доход в день:
+              </span>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#4caf50' }}>
+                {formatCurrency(avgIncome)}
+              </span>
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                Средний расход в день:
+              </span>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#f44336' }}>
+                {formatCurrency(avgExpense)}
+              </span>
+            </div>
+            <div style={{
+              marginTop: '8px',
+              paddingTop: '8px',
+              borderTop: '1px solid var(--tg-theme-hint-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '13px', fontWeight: '600' }}>
+                Прогноз баланса:
+              </span>
+              <span style={{
+                fontSize: '14px',
+                fontWeight: '700',
+                color: (avgIncome - avgExpense) >= 0 ? '#4caf50' : '#f44336'
+              }}>
+                {formatCurrency(avgIncome - avgExpense)}/день
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{
         display: 'flex',
         justifyContent: 'center',
