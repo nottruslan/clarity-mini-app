@@ -3,7 +3,7 @@ import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type Transaction, type Category } from '../utils/storage';
 import FinanceOverview from '../components/Finance/FinanceOverview';
 import TransactionList from '../components/Finance/TransactionList';
-import SlideContainer from '../components/Navigation/SlideContainer';
+import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Type from '../components/Finance/CreateTransaction/Step1Type';
 import Step2Amount from '../components/Finance/CreateTransaction/Step2Amount';
 import Step3Category from '../components/Finance/CreateTransaction/Step3Category';
@@ -11,6 +11,7 @@ import Step4Date from '../components/Finance/CreateTransaction/Step4Date';
 import Step5Description from '../components/Finance/CreateTransaction/Step5Description';
 import { useOnboarding } from '../hooks/useOnboarding';
 import LottieAnimation from '../components/LottieAnimation';
+import { sectionColors } from '../utils/sectionColors';
 
 interface FinancePageProps {
   storage: ReturnType<typeof useCloudStorage>;
@@ -124,38 +125,63 @@ export default function FinancePage({ storage }: FinancePageProps) {
   }
 
   if (isCreating) {
+    const colors = sectionColors.finance;
+    
     return (
-      <SlideContainer currentSlide={createStep}>
-        <Step1Type onNext={handleStep1Complete} />
-        <Step2Amount 
-          type={transactionData.type!}
-          onNext={handleStep2Complete}
-          onBack={handleBack}
-        />
-        <Step3Category 
-          type={transactionData.type!}
-          amount={0}
-          categories={storage.finance.categories}
-          onNext={handleStep3Complete}
-          onBack={handleBack}
-          onCreateCategory={handleCreateCategory}
-        />
-        <Step4Date 
-          type={transactionData.type!}
-          amount={transactionData.amount!}
-          category={transactionData.category!}
-          onNext={handleStep4Complete}
-          onBack={handleBack}
-        />
-        <Step5Description 
-          type={transactionData.type!}
-          amount={transactionData.amount!}
-          category={transactionData.category!}
-          date={transactionData.date!}
-          onComplete={handleStep5Complete}
-          onBack={handleBack}
-        />
-      </SlideContainer>
+      <WizardContainer 
+        currentStep={createStep + 1} 
+        totalSteps={5}
+        progressColor={colors.primary}
+      >
+        <div 
+          className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}
+        >
+          <Step1Type onNext={handleStep1Complete} />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 1 ? 'active' : createStep > 1 ? 'prev' : 'next'}`}
+        >
+          <Step2Amount 
+            type={transactionData.type!}
+            onNext={handleStep2Complete}
+            onBack={handleBack}
+          />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 2 ? 'active' : createStep > 2 ? 'prev' : 'next'}`}
+        >
+          <Step3Category 
+            type={transactionData.type!}
+            categories={storage.finance.categories}
+            onNext={handleStep3Complete}
+            onBack={handleBack}
+            onCreateCategory={handleCreateCategory}
+          />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 3 ? 'active' : createStep > 3 ? 'prev' : 'next'}`}
+        >
+          <Step4Date 
+            type={transactionData.type!}
+            amount={transactionData.amount!}
+            category={transactionData.category!}
+            onNext={handleStep4Complete}
+            onBack={handleBack}
+          />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 4 ? 'active' : createStep > 4 ? 'prev' : 'next'}`}
+        >
+          <Step5Description 
+            type={transactionData.type!}
+            amount={transactionData.amount!}
+            category={transactionData.category!}
+            date={transactionData.date!}
+            onComplete={handleStep5Complete}
+            onBack={handleBack}
+          />
+        </div>
+      </WizardContainer>
     );
   }
 

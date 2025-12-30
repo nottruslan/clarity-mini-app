@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type Habit } from '../utils/storage';
 import HabitList from '../components/Habits/HabitList';
-import SlideContainer from '../components/Navigation/SlideContainer';
+import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Name from '../components/Habits/CreateHabit/Step1Name';
 import Step2Icon from '../components/Habits/CreateHabit/Step2Icon';
 import Step3Frequency from '../components/Habits/CreateHabit/Step3Frequency';
 import { useOnboarding } from '../hooks/useOnboarding';
 import LottieAnimation from '../components/LottieAnimation';
+import { sectionColors } from '../utils/sectionColors';
 
 interface HabitsPageProps {
   storage: ReturnType<typeof useCloudStorage>;
@@ -149,21 +150,38 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
   }
 
   if (isCreating) {
+    const colors = sectionColors.habits;
+    
     return (
-      <SlideContainer currentSlide={createStep}>
-        <Step1Name onNext={handleStep1Complete} />
-        <Step2Icon 
-          name={habitData.name!}
-          onNext={handleStep2Complete}
-          onBack={handleBack}
-        />
-        <Step3Frequency 
-          name={habitData.name!}
-          icon={habitData.icon!}
-          onComplete={handleStep3Complete}
-          onBack={handleBack}
-        />
-      </SlideContainer>
+      <WizardContainer 
+        currentStep={createStep + 1} 
+        totalSteps={3}
+        progressColor={colors.primary}
+      >
+        <div 
+          className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}
+        >
+          <Step1Name onNext={handleStep1Complete} />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 1 ? 'active' : createStep > 1 ? 'prev' : 'next'}`}
+        >
+          <Step2Icon 
+            name={habitData.name!}
+            onNext={handleStep2Complete}
+            onBack={handleBack}
+          />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 2 ? 'active' : createStep > 2 ? 'prev' : 'next'}`}
+        >
+          <Step3Frequency 
+            name={habitData.name!}
+            onComplete={handleStep3Complete}
+            onBack={handleBack}
+          />
+        </div>
+      </WizardContainer>
     );
   }
 

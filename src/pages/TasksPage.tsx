@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type Task } from '../utils/storage';
 import TaskList from '../components/Tasks/TaskList';
-import SlideContainer from '../components/Navigation/SlideContainer';
+import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Name from '../components/Tasks/CreateTask/Step1Name';
 import Step2Priority from '../components/Tasks/CreateTask/Step2Priority';
 import Step3Date from '../components/Tasks/CreateTask/Step3Date';
 import { useOnboarding } from '../hooks/useOnboarding';
 import LottieAnimation from '../components/LottieAnimation';
+import { sectionColors } from '../utils/sectionColors';
 
 interface TasksPageProps {
   storage: ReturnType<typeof useCloudStorage>;
@@ -108,22 +109,38 @@ export default function TasksPage({ storage }: TasksPageProps) {
   }
 
   if (isCreating) {
+    const colors = sectionColors.tasks;
+    
     return (
-      <SlideContainer currentSlide={createStep}>
-        <Step1Name 
-          onNext={handleStep1Complete}
-        />
-        <Step2Priority 
-          onNext={handleStep2Complete}
-          onBack={handleBack}
-        />
-        <Step3Date 
-          name={taskData.name!}
-          priority={taskData.priority!}
-          onComplete={handleStep3Complete}
-          onBack={handleBack}
-        />
-      </SlideContainer>
+      <WizardContainer 
+        currentStep={createStep + 1} 
+        totalSteps={3}
+        progressColor={colors.primary}
+      >
+        <div 
+          className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}
+        >
+          <Step1Name 
+            onNext={handleStep1Complete}
+          />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 1 ? 'active' : createStep > 1 ? 'prev' : 'next'}`}
+        >
+          <Step2Priority 
+            onNext={handleStep2Complete}
+            onBack={handleBack}
+          />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 2 ? 'active' : createStep > 2 ? 'prev' : 'next'}`}
+        >
+          <Step3Date 
+            onComplete={handleStep3Complete}
+            onBack={handleBack}
+          />
+        </div>
+      </WizardContainer>
     );
   }
 

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import WizardSlide from '../../Wizard/WizardSlide';
+import GradientButton from '../../Wizard/GradientButton';
 
 interface Step2AmountProps {
   type: 'income' | 'expense';
@@ -17,22 +19,43 @@ export default function Step2Amount({ type, onNext, onBack }: Step2AmountProps) 
   };
 
   const formatAmount = (value: string) => {
-    // Удаляем все кроме цифр и запятой/точки
     const cleaned = value.replace(/[^\d,.]/g, '');
-    // Заменяем запятую на точку
     const normalized = cleaned.replace(',', '.');
     return normalized;
   };
 
   return (
-    <div className="form-slide">
-      <h2 className="form-title">Сумма</h2>
-      <p className="form-subtitle">Введите сумму {type === 'income' ? 'дохода' : 'расхода'}</p>
-      
-      <div style={{ marginBottom: '24px' }}>
+    <WizardSlide
+      icon="💵"
+      title="Сумма"
+      description={`Введите сумму ${type === 'income' ? 'дохода' : 'расхода'}`}
+      actions={
+        <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+          <GradientButton
+            variant="secondary"
+            onClick={onBack}
+          >
+            Назад
+          </GradientButton>
+          <GradientButton
+            onClick={handleNext}
+            disabled={!amount || parseFloat(amount.replace(/\s/g, '').replace(',', '.')) <= 0}
+          >
+            Продолжить
+          </GradientButton>
+        </div>
+      }
+    >
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center',
+        gap: '8px',
+        width: '100%'
+      }}>
         <input
           type="text"
-          className="form-input"
+          className="wizard-input"
           placeholder="0"
           value={amount}
           onChange={(e) => setAmount(formatAmount(e.target.value))}
@@ -43,41 +66,20 @@ export default function Step2Amount({ type, onNext, onBack }: Step2AmountProps) 
           }}
           autoFocus
           style={{
-            fontSize: '32px',
+            fontSize: '48px',
             textAlign: 'center',
-            fontWeight: '600'
+            fontWeight: '600',
+            maxWidth: '300px'
           }}
         />
         <div style={{
-          textAlign: 'center',
-          marginTop: '8px',
-          fontSize: '14px',
-          color: 'var(--tg-theme-hint-color)'
+          fontSize: '18px',
+          color: 'var(--tg-theme-hint-color)',
+          fontWeight: '500'
         }}>
           ₽
         </div>
       </div>
-
-      <div className="form-actions">
-        <button 
-          className="tg-button" 
-          onClick={onBack}
-          style={{ 
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            color: 'var(--tg-theme-text-color)'
-          }}
-        >
-          Назад
-        </button>
-        <button 
-          className="tg-button" 
-          onClick={handleNext}
-          disabled={!amount || parseFloat(amount.replace(/\s/g, '').replace(',', '.')) <= 0}
-        >
-          Далее
-        </button>
-      </div>
-    </div>
+    </WizardSlide>
   );
 }
-

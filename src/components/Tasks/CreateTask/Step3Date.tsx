@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import WizardSlide from '../../Wizard/WizardSlide';
+import WizardCard from '../../Wizard/WizardCard';
+import GradientButton from '../../Wizard/GradientButton';
 
 interface Step3DateProps {
-  name: string;
-  priority: 'low' | 'medium' | 'high';
   onComplete: (dueDate?: number) => void;
   onBack: () => void;
 }
@@ -23,63 +24,46 @@ export default function Step3Date({ onComplete, onBack }: Step3DateProps) {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="form-slide">
-      <h2 className="form-title">Срок выполнения</h2>
-      <p className="form-subtitle">Установите срок выполнения (необязательно)</p>
-      
-      <div style={{ marginBottom: '24px' }}>
-        <button
+    <WizardSlide
+      icon="📅"
+      title="Срок выполнения"
+      description="Установите срок выполнения (необязательно)"
+      actions={
+        <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+          <GradientButton
+            variant="secondary"
+            onClick={onBack}
+          >
+            Назад
+          </GradientButton>
+          <GradientButton
+            onClick={handleComplete}
+          >
+            Создать
+          </GradientButton>
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+        <WizardCard
+          icon={hasDueDate ? '✓' : '📅'}
+          title={hasDueDate ? 'Срок установлен' : 'Установить срок'}
+          description={hasDueDate ? 'Нажмите, чтобы убрать срок' : 'Нажмите, чтобы установить срок выполнения'}
+          selected={hasDueDate}
           onClick={() => setHasDueDate(!hasDueDate)}
-          style={{
-            width: '100%',
-            padding: '16px',
-            borderRadius: '10px',
-            border: `2px solid ${hasDueDate ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)'}`,
-            backgroundColor: hasDueDate 
-              ? 'var(--tg-theme-button-color)' 
-              : 'var(--tg-theme-bg-color)',
-            color: hasDueDate 
-              ? 'var(--tg-theme-button-text-color)' 
-              : 'var(--tg-theme-text-color)',
-            fontSize: '16px',
-            cursor: 'pointer',
-            marginBottom: '16px',
-            minHeight: '56px'
-          }}
-        >
-          {hasDueDate ? '✓ Установить срок' : 'Установить срок'}
-        </button>
-
+        />
+        
         {hasDueDate && (
           <input
             type="date"
-            className="form-input"
+            className="wizard-input"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
             min={today}
+            style={{ marginTop: '8px' }}
           />
         )}
       </div>
-
-      <div className="form-actions">
-        <button 
-          className="tg-button" 
-          onClick={onBack}
-          style={{ 
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            color: 'var(--tg-theme-text-color)'
-          }}
-        >
-          Назад
-        </button>
-        <button 
-          className="tg-button" 
-          onClick={handleComplete}
-        >
-          Создать
-        </button>
-      </div>
-    </div>
+    </WizardSlide>
   );
 }
-

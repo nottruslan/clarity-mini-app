@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import WizardSlide from '../../Wizard/WizardSlide';
+import GradientButton from '../../Wizard/GradientButton';
 
 interface Step4DateProps {
   type: 'income' | 'expense';
@@ -25,60 +27,56 @@ export default function Step4Date({ type, amount, category, onNext, onBack }: St
   };
 
   return (
-    <div className="form-slide">
-      <h2 className="form-title">Дата</h2>
-      <p className="form-subtitle">Выберите дату транзакции</p>
-      
-      <div style={{ marginBottom: '24px' }}>
+    <WizardSlide
+      icon="📅"
+      title="Дата"
+      description="Выберите дату транзакции"
+      actions={
+        <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+          <GradientButton
+            variant="secondary"
+            onClick={onBack}
+          >
+            Назад
+          </GradientButton>
+          <GradientButton
+            onClick={handleNext}
+          >
+            Продолжить
+          </GradientButton>
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
         <input
           type="date"
-          className="form-input"
+          className="wizard-input"
           value={date}
           onChange={(e) => setDate(e.target.value)}
           style={{ fontSize: '18px' }}
         />
-      </div>
 
-      <div style={{
-        padding: '16px',
-        borderRadius: '10px',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        marginBottom: '24px'
-      }}>
-        <div style={{ fontSize: '14px', color: 'var(--tg-theme-hint-color)', marginBottom: '8px' }}>
-          Сводка
-        </div>
-        <div style={{ fontSize: '16px', marginBottom: '4px' }}>
-          <strong>{category}</strong>
-        </div>
-        <div style={{ 
-          fontSize: '20px', 
-          fontWeight: '600',
-          color: type === 'income' ? '#4caf50' : '#f44336'
+        <div style={{
+          padding: '20px',
+          borderRadius: '16px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          marginTop: '8px'
         }}>
-          {type === 'income' ? '+' : '-'}{formatCurrency(amount)}
+          <div style={{ fontSize: '14px', color: 'var(--tg-theme-hint-color)', marginBottom: '12px' }}>
+            Сводка
+          </div>
+          <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
+            {category}
+          </div>
+          <div style={{ 
+            fontSize: '24px', 
+            fontWeight: '700',
+            color: type === 'income' ? '#4caf50' : '#f44336'
+          }}>
+            {type === 'income' ? '+' : '-'}{formatCurrency(amount)}
+          </div>
         </div>
       </div>
-
-      <div className="form-actions">
-        <button 
-          className="tg-button" 
-          onClick={onBack}
-          style={{ 
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            color: 'var(--tg-theme-text-color)'
-          }}
-        >
-          Назад
-        </button>
-        <button 
-          className="tg-button" 
-          onClick={handleNext}
-        >
-          Далее
-        </button>
-      </div>
-    </div>
+    </WizardSlide>
   );
 }
-
