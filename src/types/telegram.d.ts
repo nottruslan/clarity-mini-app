@@ -4,6 +4,14 @@ declare global {
       WebApp: {
         ready: () => void;
         expand: () => void;
+        close: () => void;
+        BackButton?: {
+          show: () => void;
+          hide: () => void;
+          onClick: (callback: () => void) => void;
+          offClick: (callback: () => void) => void;
+          isVisible: boolean;
+        };
         CloudStorage?: {
           getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => void;
           setItem: (key: string, value: string, callback: (error: Error | null) => void) => void;
@@ -20,6 +28,10 @@ declare global {
             photo_url?: string;
           };
         };
+        version: string;
+        platform: string;
+        colorScheme: 'light' | 'dark';
+        themeParams: any;
       };
     };
   }

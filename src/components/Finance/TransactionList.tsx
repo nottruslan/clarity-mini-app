@@ -58,7 +58,12 @@ export default function TransactionList({ transactions }: TransactionListProps) 
   });
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div style={{ 
+      flex: 1, 
+      overflowY: 'auto' as const,
+      paddingTop: '0px',
+      WebkitOverflowScrolling: 'touch' as any
+    }}>
       {sortedDates.map((dateKey) => (
         <div key={dateKey}>
           <div style={{

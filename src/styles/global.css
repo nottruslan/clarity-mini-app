@@ -54,10 +54,11 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  padding-top: var(--safe-area-inset-top);
-  padding-bottom: var(--safe-area-inset-bottom);
+  padding-top: calc(var(--safe-area-inset-top) + 0px);
+  padding-bottom: calc(var(--safe-area-inset-bottom) + 0px);
   padding-left: var(--safe-area-inset-left);
   padding-right: var(--safe-area-inset-right);
+  overflow-x: hidden;
 }
 
 /* Зона комфортного доступа для кнопок */
@@ -178,6 +179,7 @@ body {
   flex: 1;
   position: relative;
   overflow: hidden;
+  padding-top: 0;
 }
 
 .slide {
@@ -235,6 +237,8 @@ body {
   background-color: var(--tg-theme-header-bg-color);
   border-bottom: 1px solid var(--tg-theme-secondary-bg-color);
   z-index: 1000;
+  margin-top: calc(var(--safe-area-inset-top) + 0px);
+  flex-shrink: 0;
 }
 
 .section-selector-button {
@@ -250,6 +254,9 @@ body {
   font-size: 18px;
   font-weight: 500;
   min-height: 56px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .section-selector-dropdown {
@@ -278,6 +285,9 @@ body {
   min-height: 56px;
   display: flex;
   align-items: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .section-option:active {
@@ -355,7 +365,9 @@ body {
   display: flex;
   flex-direction: column;
   padding: 16px;
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .form-title {

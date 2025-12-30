@@ -45,11 +45,18 @@ export default function SectionSelector({
     setIsOpen(false);
   };
 
+  const handleToggle = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="section-selector" ref={dropdownRef}>
       <button 
         className="section-selector-button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
+        onTouchEnd={handleToggle}
       >
         <span>{currentLabel}</span>
         <span style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>
@@ -62,6 +69,10 @@ export default function SectionSelector({
             key={section.id}
             className="section-option"
             onClick={() => handleSelect(section.id)}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              handleSelect(section.id);
+            }}
             style={{
               backgroundColor: currentSection === section.id 
                 ? 'var(--tg-theme-secondary-bg-color)' 

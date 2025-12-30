@@ -18,7 +18,12 @@ export default function TaskList({ tasks, onToggle, onDelete }: TaskListProps) {
   }
 
   return (
-    <div className="list" style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="list" style={{ 
+      flex: 1, 
+      overflowY: 'auto' as const,
+      paddingTop: '0px',
+      WebkitOverflowScrolling: 'touch' as any
+    }}>
       {tasks.map((task) => (
         <TaskItem
           key={task.id}

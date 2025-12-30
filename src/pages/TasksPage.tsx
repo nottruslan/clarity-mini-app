@@ -128,7 +128,14 @@ export default function TasksPage({ storage }: TasksPageProps) {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ 
+      flex: 1, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      position: 'relative',
+      paddingTop: '0px',
+      overflow: 'hidden'
+    }}>
       <TaskList 
         tasks={storage.tasks}
         onToggle={handleToggle}

@@ -160,7 +160,14 @@ export default function FinancePage({ storage }: FinancePageProps) {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ 
+      flex: 1, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      position: 'relative',
+      paddingTop: '0px',
+      overflow: 'hidden'
+    }}>
       <FinanceOverview finance={storage.finance} />
       <TransactionList transactions={storage.finance.transactions} />
       <button 

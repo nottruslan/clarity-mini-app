@@ -17,7 +17,12 @@ export default function HabitList({ habits, onCheck }: HabitListProps) {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div style={{ 
+      flex: 1, 
+      overflowY: 'auto' as const,
+      paddingTop: '0px',
+      WebkitOverflowScrolling: 'touch' as any
+    }}>
       {habits.map((habit) => (
         <HabitItem
           key={habit.id}

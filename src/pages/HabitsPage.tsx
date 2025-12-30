@@ -168,7 +168,14 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ 
+      flex: 1, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      position: 'relative',
+      paddingTop: '0px',
+      overflow: 'hidden'
+    }}>
       <HabitList 
         habits={storage.habits}
         onCheck={handleCheck}
