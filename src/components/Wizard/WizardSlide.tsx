@@ -54,7 +54,10 @@ export default function WizardSlide({
       <div 
         className="wizard-slide-actions"
         style={{ 
-          display: isKeyboardVisible ? 'none' : 'flex'
+          display: isKeyboardVisible ? 'none' : 'flex',
+          background: isKeyboardVisible ? 'transparent' : 'linear-gradient(to top, var(--tg-theme-bg-color) 0%, var(--tg-theme-bg-color) 80%, transparent 100%)',
+          padding: isKeyboardVisible ? 0 : undefined,
+          height: isKeyboardVisible ? 0 : undefined
         }}
       >
         {actions}

@@ -815,33 +815,39 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
                     )}
                     <div style={{
                       display: 'flex',
+                      flexDirection: 'column',
                       gap: '8px'
                     }}>
-                      <button
-                        className="tg-button"
-                        onClick={() => handleView(report)}
-                        style={{
-                          flex: 1
-                        }}
-                      >
-                        Просмотр
-                      </button>
-                      <button
-                        className="tg-button"
-                        onClick={() => handleEdit(report)}
-                        style={{
-                          flex: 1,
-                          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                          color: 'var(--tg-theme-text-color)'
-                        }}
-                      >
-                        Редактировать
-                      </button>
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px'
+                      }}>
+                        <button
+                          className="tg-button"
+                          onClick={() => handleView(report)}
+                          style={{
+                            flex: 1
+                          }}
+                        >
+                          Просмотр
+                        </button>
+                        <button
+                          className="tg-button"
+                          onClick={() => handleEdit(report)}
+                          style={{
+                            flex: 1,
+                            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                            color: 'var(--tg-theme-text-color)'
+                          }}
+                        >
+                          Редактировать
+                        </button>
+                      </div>
                       <button
                         className="tg-button"
                         onClick={() => handleDelete(report.id)}
                         style={{
-                          flex: 1,
+                          width: '100%',
                           backgroundColor: 'transparent',
                           color: 'var(--tg-theme-destructive-text-color)',
                           border: '1px solid var(--tg-theme-destructive-text-color)'
