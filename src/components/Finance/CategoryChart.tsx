@@ -66,7 +66,7 @@ export default function CategoryChart({ transactions, categories, type }: Catego
       flexDirection: 'column',
       gap: '16px'
     }}>
-      {sortedCategories.map(([categoryName, amount], index) => {
+      {sortedCategories.map(([categoryName, amount]) => {
         const percentage = (amount / total) * 100;
         const category = categories.find(c => c.name === categoryName);
         

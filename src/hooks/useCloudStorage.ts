@@ -17,7 +17,7 @@ import {
 export function useCloudStorage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [finance, setFinance] = useState<FinanceData>({ transactions: [], categories: [] });
+  const [finance, setFinance] = useState<FinanceData>({ transactions: [], categories: [], budgets: [] });
   const [onboarding, setOnboarding] = useState<OnboardingFlags>({
     tasks: false,
     habits: false,

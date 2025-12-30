@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 export type Period = 'day' | 'week' | 'month' | 'year';
 
 interface PeriodSelectorProps {

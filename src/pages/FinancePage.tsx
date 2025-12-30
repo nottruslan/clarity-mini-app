@@ -8,7 +8,6 @@ import TransactionFilters, { type FilterOptions } from '../components/Finance/Tr
 import StatisticsView from '../components/Finance/StatisticsView';
 import BudgetManager from '../components/Finance/BudgetManager';
 import BudgetOverview from '../components/Finance/BudgetOverview';
-import { type Budget } from '../utils/storage';
 import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Type from '../components/Finance/CreateTransaction/Step1Type';
 import Step2Amount from '../components/Finance/CreateTransaction/Step2Amount';
@@ -34,7 +33,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
   const [showBudget, setShowBudget] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({ type: 'all' });
   const [createStep, setCreateStep] = useState(0);
-  const [period, setPeriod] = useState<Period>('month');
+  const [period] = useState<Period>('month');
   const [transactionData, setTransactionData] = useState<{
     type?: 'income' | 'expense';
     amount?: number;

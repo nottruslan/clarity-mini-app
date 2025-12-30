@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Budget, Category, Transaction } from '../../utils/storage';
-import { generateId } from '../../utils/storage';
 
 interface BudgetManagerProps {
   budgets: Budget[];

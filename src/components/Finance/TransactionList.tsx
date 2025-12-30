@@ -1,4 +1,3 @@
-import { useState, useRef } from 'react';
 import { Transaction } from '../../utils/storage';
 import EmptyState from '../EmptyState';
 
@@ -84,7 +83,6 @@ export default function TransactionList({ transactions, onTransactionClick }: Tr
               onClick={() => onTransactionClick?.(transaction)}
               onTouchStart={(e) => {
                 const touch = e.touches[0];
-                const target = e.currentTarget;
                 const startX = touch.clientX;
                 const startY = touch.clientY;
                 let moved = false;
