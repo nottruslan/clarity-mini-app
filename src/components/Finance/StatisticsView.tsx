@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { FinanceData } from '../../utils/storage';
-import { Period } from './PeriodSelector';
+import { Period, filterTransactionsByPeriod } from './PeriodSelector';
 import CategoryChart from './CategoryChart';
 import TrendsChart from './TrendsChart';
+import PieChart from './PieChart';
 
 interface StatisticsViewProps {
   finance: FinanceData;
@@ -10,9 +11,11 @@ interface StatisticsViewProps {
 }
 
 export default function StatisticsView({ finance, period }: StatisticsViewProps) {
-  const [activeTab, setActiveTab] = useState<'categories' | 'trends'>('categories');
+  const [activeTab, setActiveTab] = useState<'categories' | 'trends' | 'statistics'>('categories');
+  
+  const periodTransactions = filterTransactionsByPeriod(finance.transactions || [], period);
 
-  const transactions = finance.transactions || [];
+  const transactions = periodTransactions;
   const categories = finance.categories || [];
 
   const incomeTransactions = transactions.filter(t => t.type === 'income');
@@ -26,7 +29,7 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
     }}>
       <div style={{
         display: 'flex',
-        gap: '8px',
+        gap: '6px',
         marginBottom: '20px',
         backgroundColor: 'var(--tg-theme-secondary-bg-color)',
         borderRadius: '12px',
@@ -36,7 +39,7 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
           onClick={() => setActiveTab('categories')}
           style={{
             flex: 1,
-            padding: '10px',
+            padding: '10px 8px',
             borderRadius: '8px',
             border: 'none',
             backgroundColor: activeTab === 'categories'
@@ -45,10 +48,11 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
             color: activeTab === 'categories'
               ? 'var(--tg-theme-button-text-color)'
               : 'var(--tg-theme-text-color)',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: activeTab === 'categories' ? '600' : '500',
             cursor: 'pointer',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            whiteSpace: 'nowrap'
           }}
         >
           По категориям
@@ -57,7 +61,7 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
           onClick={() => setActiveTab('trends')}
           style={{
             flex: 1,
-            padding: '10px',
+            padding: '10px 8px',
             borderRadius: '8px',
             border: 'none',
             backgroundColor: activeTab === 'trends'
@@ -66,13 +70,36 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
             color: activeTab === 'trends'
               ? 'var(--tg-theme-button-text-color)'
               : 'var(--tg-theme-text-color)',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: activeTab === 'trends' ? '600' : '500',
             cursor: 'pointer',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            whiteSpace: 'nowrap'
           }}
         >
           Тренды
+        </button>
+        <button
+          onClick={() => setActiveTab('statistics')}
+          style={{
+            flex: 1,
+            padding: '10px 8px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: activeTab === 'statistics'
+              ? 'var(--tg-theme-button-color)'
+              : 'transparent',
+            color: activeTab === 'statistics'
+              ? 'var(--tg-theme-button-text-color)'
+              : 'var(--tg-theme-text-color)',
+            fontSize: '13px',
+            fontWeight: activeTab === 'statistics' ? '600' : '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Статистика
         </button>
       </div>
 
@@ -130,6 +157,49 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
             transactions={transactions}
             period={period}
           />
+        </div>
+      )}
+
+      {activeTab === 'statistics' && (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '32px'
+        }}>
+          {expenseTransactions.length > 0 && (
+            <div>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                Расходы по категориям
+              </h3>
+              <PieChart
+                transactions={transactions}
+                categories={categories}
+                type="expense"
+              />
+            </div>
+          )}
+          {incomeTransactions.length > 0 && (
+            <div>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                Доходы по категориям
+              </h3>
+              <PieChart
+                transactions={transactions}
+                categories={categories}
+                type="income"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

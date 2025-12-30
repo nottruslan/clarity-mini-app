@@ -10,14 +10,26 @@ interface Step3CategoryProps {
   onNext: (category: string) => void;
   onBack: () => void;
   onCreateCategory: (name: string) => void;
+  onDeleteCategory?: (categoryId: string) => void;
 }
+
+// Дефолтные категории (по именам)
+const DEFAULT_CATEGORY_NAMES = [
+  'Зарплата', 'Подарки', 'Инвестиции', 'Фриланс', 'Прочее',
+  'Еда', 'Транспорт', 'Развлечения', 'Здоровье', 'Покупки', 'Жилье', 'Образование'
+];
+
+const isDefaultCategory = (categoryName: string): boolean => {
+  return DEFAULT_CATEGORY_NAMES.includes(categoryName);
+};
 
 export default function Step3Category({ 
   type, 
   categories, 
   onNext, 
   onBack,
-  onCreateCategory 
+  onCreateCategory,
+  onDeleteCategory
 }: Step3CategoryProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -83,15 +95,78 @@ export default function Step3Category({
     >
       {!showCreateForm ? (
         <>
-          {filteredCategories.map((category) => (
-            <WizardCard
-              key={category.id}
-              icon={getCategoryIcon(category.name)}
-              title={category.name}
-              selected={selectedCategory === category.name}
-              onClick={() => setSelectedCategory(category.name)}
-            />
-          ))}
+          {filteredCategories.map((category) => {
+            const canDelete = !isDefaultCategory(category.name) && onDeleteCategory;
+            
+            return (
+              <div
+                key={category.id}
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '100%'
+                }}
+              >
+                <div style={{ flex: 1, width: '100%' }}>
+                  <WizardCard
+                    icon={getCategoryIcon(category.name)}
+                    title={category.name}
+                    selected={selectedCategory === category.name}
+                    onClick={() => setSelectedCategory(category.name)}
+                  />
+                </div>
+                {canDelete && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Удалить категорию "${category.name}"?`)) {
+                        onDeleteCategory(category.id);
+                      }
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (window.confirm(`Удалить категорию "${category.name}"?`)) {
+                        onDeleteCategory(category.id);
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      border: 'none',
+                      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                      color: 'var(--tg-theme-destructive-text-color)',
+                      fontSize: '18px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 10,
+                      transition: 'all 0.2s',
+                      flexShrink: 0,
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--tg-theme-destructive-text-color)';
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
+                      e.currentTarget.style.color = 'var(--tg-theme-destructive-text-color)';
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            );
+          })}
           
           <WizardCard
             icon="+"

@@ -53,7 +53,8 @@ export default function Step4Date({ type, amount, category, onNext, onBack }: St
         gap: '16px', 
         width: '100%',
         overflowX: 'hidden',
-        touchAction: 'pan-y'
+        touchAction: 'pan-y',
+        alignItems: 'center'
       }}>
         <input
           type="date"
@@ -63,7 +64,7 @@ export default function Step4Date({ type, amount, category, onNext, onBack }: St
           style={{ 
             fontSize: '18px',
             width: '100%',
-            maxWidth: '100%',
+            maxWidth: '280px',
             boxSizing: 'border-box'
           }}
         />

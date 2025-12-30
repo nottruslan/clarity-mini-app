@@ -138,6 +138,25 @@ export function useCloudStorage() {
     await updateFinance(newFinance);
   }, [finance, updateFinance]);
 
+  const deleteCategory = useCallback(async (categoryId: string) => {
+    // Проверяем, используется ли категория в транзакциях
+    const category = finance.categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    const isUsed = finance.transactions.some(t => t.category === category.name);
+    if (isUsed) {
+      // Категория используется, не удаляем
+      return false;
+    }
+
+    const newFinance: FinanceData = {
+      ...finance,
+      categories: finance.categories.filter(c => c.id !== categoryId)
+    };
+    await updateFinance(newFinance);
+    return true;
+  }, [finance, updateFinance]);
+
   const addBudget = useCallback(async (budget: FinanceData['budgets'][0]) => {
     const newFinance: FinanceData = {
       ...finance,
@@ -197,6 +216,7 @@ export function useCloudStorage() {
     updateTransaction,
     deleteTransaction,
     addCategory,
+    deleteCategory,
     addBudget,
     updateBudget,
     deleteBudget,

@@ -147,6 +147,13 @@ export default function FinancePage({ storage }: FinancePageProps) {
     await storage.addCategory(newCategory);
   };
 
+  const handleDeleteCategory = async (categoryId: string) => {
+    const result = await storage.deleteCategory(categoryId);
+    if (!result) {
+      alert('Нельзя удалить категорию, которая используется в транзакциях');
+    }
+  };
+
   const handleBack = () => {
     if (createStep > 0) {
       setCreateStep(createStep - 1);
@@ -223,6 +230,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
               onNext={handleStep3Complete}
               onBack={handleBack}
               onCreateCategory={handleCreateCategory}
+              onDeleteCategory={handleDeleteCategory}
             />
           </div>
         )}
