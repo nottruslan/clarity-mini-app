@@ -10,10 +10,27 @@ export interface TelegramUser {
   photo_url?: string;
 }
 
+export interface TelegramThemeParams {
+  bg_color?: string;
+  text_color?: string;
+  hint_color?: string;
+  link_color?: string;
+  button_color?: string;
+  button_text_color?: string;
+  secondary_bg_color?: string;
+  header_bg_color?: string;
+  accent_text_color?: string;
+  section_bg_color?: string;
+  section_header_text_color?: string;
+  subtitle_text_color?: string;
+  destructive_text_color?: string;
+}
+
 export function useTelegram() {
   const [isReady, setIsReady] = useState(false);
   const [user, setUser] = useState<TelegramUser | null>(null);
   const [webApp, setWebApp] = useState<any>(null);
+  const [themeParams, setThemeParams] = useState<TelegramThemeParams | null>(null);
 
   useEffect(() => {
     // Инициализация Telegram Web App
@@ -36,6 +53,38 @@ export function useTelegram() {
           photo_url: tgUser.photo_url
         });
       }
+
+      // Получаем параметры темы
+      if (tg.themeParams) {
+        setThemeParams(tg.themeParams);
+        
+        // Применяем тему к CSS переменным
+        const root = document.documentElement;
+        if (tg.themeParams.bg_color) {
+          root.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
+        }
+        if (tg.themeParams.text_color) {
+          root.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
+        }
+        if (tg.themeParams.hint_color) {
+          root.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color);
+        }
+        if (tg.themeParams.button_color) {
+          root.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color);
+        }
+        if (tg.themeParams.button_text_color) {
+          root.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color);
+        }
+        if (tg.themeParams.secondary_bg_color) {
+          root.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color);
+        }
+        if (tg.themeParams.section_bg_color) {
+          root.style.setProperty('--tg-theme-section-bg-color', tg.themeParams.section_bg_color);
+        }
+        if (tg.themeParams.destructive_text_color) {
+          root.style.setProperty('--tg-theme-destructive-text-color', tg.themeParams.destructive_text_color);
+        }
+      }
       
       // Предотвращаем закрытие приложения при свайпе вниз
       if (tg.disableVerticalSwipes) {
@@ -51,14 +100,58 @@ export function useTelegram() {
       setTimeout(() => {
         if (tg.setHeaderColor) {
           try {
-            // Устанавливаем белый цвет по умолчанию
-            tg.setHeaderColor('#ffffff');
-            console.log('Initial header color set to white, isExpanded:', tg.isExpanded);
+            // Устанавливаем цвет из темы или белый по умолчанию
+            const headerColor = tg.themeParams?.header_bg_color || '#ffffff';
+            tg.setHeaderColor(headerColor);
+            console.log('Initial header color set to', headerColor, 'isExpanded:', tg.isExpanded);
           } catch (error) {
             console.error('Error setting initial header color:', error);
           }
         }
       }, 200);
+
+      // Периодически проверяем изменения темы (fallback)
+      // Telegram Web App может изменять тему динамически
+      let lastThemeParams = JSON.stringify(tg.themeParams || {});
+      const themeCheckInterval = setInterval(() => {
+        if (tg.themeParams) {
+          const currentParams = JSON.stringify(tg.themeParams);
+          if (currentParams !== lastThemeParams) {
+            lastThemeParams = currentParams;
+            setThemeParams(tg.themeParams);
+            // Обновляем CSS переменные при изменении темы
+            const root = document.documentElement;
+            if (tg.themeParams.bg_color) {
+              root.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
+            }
+            if (tg.themeParams.text_color) {
+              root.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
+            }
+            if (tg.themeParams.hint_color) {
+              root.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color);
+            }
+            if (tg.themeParams.button_color) {
+              root.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color);
+            }
+            if (tg.themeParams.button_text_color) {
+              root.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color);
+            }
+            if (tg.themeParams.secondary_bg_color) {
+              root.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color);
+            }
+            if (tg.themeParams.section_bg_color) {
+              root.style.setProperty('--tg-theme-section-bg-color', tg.themeParams.section_bg_color);
+            }
+            if (tg.themeParams.destructive_text_color) {
+              root.style.setProperty('--tg-theme-destructive-text-color', tg.themeParams.destructive_text_color);
+            }
+          }
+        }
+      }, 1000);
+
+      return () => {
+        clearInterval(themeCheckInterval);
+      };
     }
     
     setIsReady(true);
@@ -68,6 +161,7 @@ export function useTelegram() {
     isReady,
     user,
     webApp,
+    themeParams,
     tg: window.Telegram?.WebApp || null
   };
 }

@@ -22,10 +22,21 @@ export interface Habit {
   id: string;
   name: string;
   icon?: string;
-  frequency: 'daily' | 'weekly';
+  category?: string;
+  frequency: 'daily' | 'weekly' | 'custom' | 'flexible';
+  customDays?: number[]; // массив дней недели (0-6, где 0 = воскресенье)
+  timesPerDay?: number; // количество раз в день
+  timesPerWeek?: number; // количество раз в неделю
+  timesPerMonth?: number; // количество раз в месяц
+  unit?: string; // единица измерения (литры, минуты, разы и т.д.)
+  targetValue?: number; // целевое значение
+  goalDays?: number; // цель по дням (например, 30 дней подряд)
+  level?: number; // текущий уровень
+  experience?: number; // опыт
   createdAt: number;
-  history: { [date: string]: boolean };
+  history: { [date: string]: { completed: boolean; value?: number } };
   streak: number;
+  order?: number; // порядок сортировки для drag & drop
 }
 
 export interface Transaction {

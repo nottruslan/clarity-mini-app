@@ -5,8 +5,12 @@ import HabitList from '../components/Habits/HabitList';
 import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Name from '../components/Habits/CreateHabit/Step1Name';
 import Step2Icon from '../components/Habits/CreateHabit/Step2Icon';
-import Step3Frequency from '../components/Habits/CreateHabit/Step3Frequency';
+import Step3Category from '../components/Habits/CreateHabit/Step3Category';
+import Step4Frequency from '../components/Habits/CreateHabit/Step4Frequency';
+import Step5Unit from '../components/Habits/CreateHabit/Step5Unit';
+import Step6Goal from '../components/Habits/CreateHabit/Step6Goal';
 import { sectionColors } from '../utils/sectionColors';
+import { calculateExperience, calculateLevel, calculateTotalExperience } from '../utils/habitCalculations';
 
 interface HabitsPageProps {
   storage: ReturnType<typeof useCloudStorage>;
@@ -18,8 +22,18 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
   const [habitData, setHabitData] = useState<{
     name?: string;
     icon?: string;
+    category?: string;
+    frequency?: {
+      type: 'daily' | 'weekly' | 'custom' | 'flexible';
+      customDays?: number[];
+      timesPerDay?: number;
+      timesPerWeek?: number;
+      timesPerMonth?: number;
+    };
+    unit?: string;
+    targetValue?: number;
+    goalDays?: number;
   }>({});
-  
 
   const handleStartCreate = () => {
     setIsCreating(true);
@@ -37,15 +51,47 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
     setCreateStep(2);
   };
 
-  const handleStep3Complete = async (frequency: 'daily' | 'weekly') => {
+  const handleStep3Complete = (category: string) => {
+    setHabitData(prev => ({ ...prev, category }));
+    setCreateStep(3);
+  };
+
+  const handleStep4Complete = (frequency: {
+    type: 'daily' | 'weekly' | 'custom' | 'flexible';
+    customDays?: number[];
+    timesPerDay?: number;
+    timesPerWeek?: number;
+    timesPerMonth?: number;
+  }) => {
+    setHabitData(prev => ({ ...prev, frequency }));
+    setCreateStep(4);
+  };
+
+  const handleStep5Complete = (unit: string, targetValue: number | undefined) => {
+    setHabitData(prev => ({ ...prev, unit, targetValue }));
+    setCreateStep(5);
+  };
+
+  const handleStep6Complete = async (goalDays: number | undefined) => {
     const newHabit: Habit = {
       id: generateId(),
       name: habitData.name!,
       icon: habitData.icon || '🔥',
-      frequency,
+      category: habitData.category,
+      frequency: habitData.frequency?.type || 'daily',
+      customDays: habitData.frequency?.customDays,
+      timesPerDay: habitData.frequency?.timesPerDay,
+      timesPerWeek: habitData.frequency?.timesPerWeek,
+      timesPerMonth: habitData.frequency?.timesPerMonth,
+      unit: habitData.unit,
+      targetValue: habitData.targetValue,
+      goalDays: goalDays,
+      level: 1,
+      experience: 0,
       createdAt: Date.now(),
       history: {},
-      streak: 0
+      streak: 0,
+      order: storage.habits.length
     };
 
     await storage.addHabit(newHabit);
@@ -63,12 +109,13 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
     }
   };
 
-  const handleCheck = async (id: string) => {
+  const handleCheck = async (id: string, value?: number) => {
     const habit = storage.habits.find(h => h.id === id);
     if (!habit) return;
 
     const today = new Date().toISOString().split('T')[0];
-    const isAlreadyChecked = habit.history[today];
+    const historyEntry = habit.history[today];
+    const isAlreadyChecked = historyEntry?.completed || false;
 
     if (isAlreadyChecked) {
       // Убираем отметку
@@ -83,17 +130,32 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
         checkDate.setDate(checkDate.getDate() - i);
         const dateKey = checkDate.toISOString().split('T')[0];
         
-        if (newHistory[dateKey]) {
+        if (newHistory[dateKey]?.completed) {
           streak++;
         } else if (i > 0) {
           break;
         }
       }
       
-      await storage.updateHabit(id, { history: newHistory, streak });
+      // Пересчитываем опыт и уровень
+      const totalExp = calculateTotalExperience({ ...habit, history: newHistory, streak });
+      const level = calculateLevel(totalExp);
+      
+      await storage.updateHabit(id, { 
+        history: newHistory, 
+        streak,
+        experience: totalExp,
+        level
+      });
     } else {
       // Добавляем отметку
-      const newHistory = { ...habit.history, [today]: true };
+      const newHistory = { 
+        ...habit.history, 
+        [today]: { 
+          completed: true,
+          value: value
+        }
+      };
       
       // Пересчитываем streak
       let streak = 1;
@@ -103,17 +165,64 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
         checkDate.setDate(checkDate.getDate() - i);
         const dateKey = checkDate.toISOString().split('T')[0];
         
-        if (newHistory[dateKey]) {
+        if (newHistory[dateKey]?.completed) {
           streak++;
         } else {
           break;
         }
       }
       
-      await storage.updateHabit(id, { history: newHistory, streak });
+      // Рассчитываем опыт за сегодня
+      const todayExp = calculateExperience({ ...habit, history: newHistory, streak }, today);
+      const totalExp = (habit.experience || 0) + todayExp;
+      const level = calculateLevel(totalExp);
+      
+      await storage.updateHabit(id, { 
+        history: newHistory, 
+        streak,
+        experience: totalExp,
+        level
+      });
     }
   };
 
+  const handleUpdate = async (id: string, updates: Partial<Habit>) => {
+    await storage.updateHabit(id, updates);
+  };
+
+  const handleHistoryUpdate = async (id: string, history: Habit['history']) => {
+    // Пересчитываем streak после обновления истории
+    let streak = 0;
+    const date = new Date();
+    for (let i = 0; i < 365; i++) {
+      const checkDate = new Date(date);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateKey = checkDate.toISOString().split('T')[0];
+      
+      if (history[dateKey]?.completed) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+    
+    const habit = storage.habits.find(h => h.id === id);
+    if (habit) {
+      const totalExp = calculateTotalExperience({ ...habit, history, streak });
+      const level = calculateLevel(totalExp);
+      
+      await storage.updateHabit(id, { 
+        history, 
+        streak,
+        experience: totalExp,
+        level
+      });
+    }
+  };
+
+  const handleReorder = async (habits: Habit[]) => {
+    await storage.updateHabits(habits);
+  };
 
   if (isCreating) {
     const colors = sectionColors.habits;
@@ -121,7 +230,7 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
     return (
       <WizardContainer 
         currentStep={createStep + 1} 
-        totalSteps={3}
+        totalSteps={6}
         progressColor={colors.primary}
       >
         <div 
@@ -141,9 +250,36 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
         <div 
           className={`wizard-slide ${createStep === 2 ? 'active' : createStep > 2 ? 'prev' : 'next'}`}
         >
-          <Step3Frequency 
+          <Step3Category 
             name={habitData.name!}
-            onComplete={handleStep3Complete}
+            onNext={handleStep3Complete}
+            onBack={handleBack}
+          />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 3 ? 'active' : createStep > 3 ? 'prev' : 'next'}`}
+        >
+          <Step4Frequency 
+            name={habitData.name!}
+            onNext={handleStep4Complete}
+            onBack={handleBack}
+          />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 4 ? 'active' : createStep > 4 ? 'prev' : 'next'}`}
+        >
+          <Step5Unit 
+            name={habitData.name!}
+            onNext={handleStep5Complete}
+            onBack={handleBack}
+          />
+        </div>
+        <div 
+          className={`wizard-slide ${createStep === 5 ? 'active' : createStep > 5 ? 'prev' : 'next'}`}
+        >
+          <Step6Goal 
+            name={habitData.name!}
+            onComplete={handleStep6Complete}
             onBack={handleBack}
           />
         </div>
@@ -163,6 +299,9 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
       <HabitList 
         habits={storage.habits}
         onCheck={handleCheck}
+        onUpdate={handleUpdate}
+        onHistoryUpdate={handleHistoryUpdate}
+        onReorder={handleReorder}
       />
       <button 
         className="fab"
@@ -174,4 +313,3 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
     </div>
   );
 }
-

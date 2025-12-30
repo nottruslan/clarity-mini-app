@@ -84,8 +84,25 @@ export function useCloudStorage() {
 
   // Habits
   const updateHabits = useCallback(async (newHabits: Habit[]) => {
-    setHabits(newHabits);
-    await saveHabits(newHabits);
+    // Миграция старой структуры history (boolean) в новую (объект)
+    const migratedHabits = newHabits.map(habit => {
+      if (habit.history && typeof Object.values(habit.history)[0] === 'boolean') {
+        const newHistory: Habit['history'] = {};
+        Object.keys(habit.history).forEach(date => {
+          const oldValue = habit.history[date];
+          if (typeof oldValue === 'boolean') {
+            newHistory[date] = { completed: oldValue };
+          } else {
+            newHistory[date] = oldValue;
+          }
+        });
+        return { ...habit, history: newHistory };
+      }
+      return habit;
+    });
+    
+    setHabits(migratedHabits);
+    await saveHabits(migratedHabits);
   }, []);
 
   const addHabit = useCallback(async (habit: Habit) => {
