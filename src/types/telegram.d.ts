@@ -21,6 +21,8 @@ declare global {
           setItem: (key: string, value: string, callback: (error: Error | null) => void) => void;
         };
         openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
+        disableVerticalSwipes?: () => void;
+        enableClosingConfirmation?: () => void;
         initDataUnsafe?: {
           user?: {
             id: number;

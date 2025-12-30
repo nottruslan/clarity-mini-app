@@ -578,7 +578,7 @@ body {
   justify-content: center;
   text-align: center;
   min-height: 0;
-  padding: 40px 0;
+  padding: 24px 20px;
   padding-bottom: calc(100px + env(safe-area-inset-bottom));
   width: 100%;
   overflow-y: auto;
@@ -586,23 +586,23 @@ body {
 }
 
 .wizard-slide-icon {
-  font-size: 64px;
+  font-size: 48px;
   line-height: 1;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .wizard-slide-title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--tg-theme-text-color);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   line-height: 1.2;
 }
 
 .wizard-slide-description {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--tg-theme-hint-color);
-  margin-bottom: 32px;
+  margin-bottom: 20px;
   max-width: 300px;
   line-height: 1.5;
 }

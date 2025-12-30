@@ -37,6 +37,15 @@ export function useTelegram() {
         });
       }
       
+      // Предотвращаем закрытие приложения при свайпе вниз
+      if (tg.disableVerticalSwipes) {
+        try {
+          tg.disableVerticalSwipes();
+        } catch (error) {
+          console.error('Error disabling vertical swipes:', error);
+        }
+      }
+
       // Устанавливаем начальный цвет header после небольшой задержки
       // чтобы убедиться, что WebApp полностью инициализирован
       setTimeout(() => {

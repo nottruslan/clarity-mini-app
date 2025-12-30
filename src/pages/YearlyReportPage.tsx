@@ -821,9 +821,7 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
                         className="tg-button"
                         onClick={() => handleView(report)}
                         style={{
-                          flex: 1,
-                          fontSize: '14px',
-                          padding: '10px 16px'
+                          flex: 1
                         }}
                       >
                         Просмотр
@@ -833,8 +831,6 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
                         onClick={() => handleEdit(report)}
                         style={{
                           flex: 1,
-                          fontSize: '14px',
-                          padding: '10px 16px',
                           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
                           color: 'var(--tg-theme-text-color)'
                         }}
@@ -842,15 +838,13 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
                         Редактировать
                       </button>
                       <button
+                        className="tg-button"
                         onClick={() => handleDelete(report.id)}
                         style={{
-                          padding: '10px 16px',
-                          borderRadius: '8px',
-                          border: '1px solid var(--tg-theme-destructive-text-color)',
+                          flex: 1,
                           backgroundColor: 'transparent',
                           color: 'var(--tg-theme-destructive-text-color)',
-                          fontSize: '14px',
-                          cursor: 'pointer'
+                          border: '1px solid var(--tg-theme-destructive-text-color)'
                         }}
                       >
                         Удалить
