@@ -73,6 +73,25 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
     onHistoryUpdate(newHistory);
   };
 
+  const handleCancel = () => {
+    if (selectedDate) {
+      // Проверяем, отмечена ли выбранная дата в истории
+      const historyEntry = habit.history[selectedDate];
+      const isChecked = historyEntry?.completed || false;
+      
+      if (isChecked) {
+        // Если дата отмечена, убираем её из истории
+        const newHistory = { ...habit.history };
+        delete newHistory[selectedDate];
+        onHistoryUpdate(newHistory);
+      }
+      
+      // Сбрасываем выбор даты
+      setSelectedDate('');
+      setInputValue('');
+    }
+  };
+
   const handleDeleteClick = () => {
     if (window.Telegram?.WebApp?.showConfirm) {
       window.Telegram.WebApp.showConfirm(
@@ -296,10 +315,7 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
               </button>
               <button
                 className="tg-button"
-                onClick={() => {
-                  setSelectedDate('');
-                  setInputValue('');
-                }}
+                onClick={handleCancel}
                 style={{
                   background: 'var(--tg-theme-secondary-bg-color)',
                   color: 'var(--tg-theme-text-color)',
