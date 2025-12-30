@@ -16,7 +16,7 @@ export default function GradientButton({
       className={`gradient-button gradient-button-${variant}`}
       onClick={onClick}
       onTouchEnd={(e) => {
-        e.preventDefault();
+        e.stopPropagation();
         if (!disabled) {
           onClick();
         }

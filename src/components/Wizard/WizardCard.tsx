@@ -20,12 +20,7 @@ export default function WizardCard({
   children
 }: WizardCardProps) {
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
     e.stopPropagation();
-    // Предотвращаем автоматический скролл
-    if (e.currentTarget) {
-      e.currentTarget.scrollIntoView({ behavior: 'instant', block: 'nearest' });
-    }
     onClick();
   };
 
