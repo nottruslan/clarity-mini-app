@@ -49,18 +49,24 @@ export default function Step3Category({ name, onNext, onBack }: Step3CategoryPro
         style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(2, 1fr)', 
-          gap: '12px', 
+          gap: '8px', 
           width: '100%',
           maxWidth: '400px',
-          overflow: 'hidden',
-          touchAction: 'none'
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          maxHeight: 'calc(100vh - 300px)',
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch',
+          scrollBehavior: 'auto',
+          overscrollBehavior: 'contain',
+          paddingRight: '4px'
         }}
         onClick={(e) => {
           // Предотвращаем всплытие событий
           e.stopPropagation();
         }}
         onTouchStart={(e) => {
-          // Предотвращаем движение экрана
+          // Разрешаем скролл только внутри этого контейнера
           e.stopPropagation();
         }}
       >
