@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
+import { initMiniApp, initViewport } from '@telegram-apps/sdk-react';
 import { Layout } from './components/Layout';
 import { Welcome } from './components/Welcome';
 import { AppShell } from './components/AppShell';
@@ -15,6 +16,28 @@ export function App() {
   const theme = useTelegramTheme();
   const { isOnboardingComplete, isLoading, completeOnboarding } = useOnboarding();
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isSDKReady, setIsSDKReady] = useState(false);
+
+  // Инициализация Telegram SDK
+  useEffect(() => {
+    try {
+      const [miniApp] = initMiniApp();
+      const [viewport] = initViewport();
+      
+      miniApp.ready();
+      viewport.expand();
+      
+      setIsSDKReady(true);
+      
+      if (import.meta.env.DEV) {
+        console.log('🚀 Clarity Mini App initialized');
+      }
+    } catch (error) {
+      console.error('Failed to initialize SDK:', error);
+      // Продолжаем работу даже если SDK не инициализировался (для разработки в браузере)
+      setIsSDKReady(true);
+    }
+  }, []);
 
   const handleWelcomeComplete = async () => {
     setIsTransitioning(true);
@@ -25,8 +48,8 @@ export function App() {
     }, 300);
   };
 
-  // Показываем загрузку пока проверяем CloudStorage
-  if (isLoading) {
+  // Показываем загрузку пока SDK и CloudStorage инициализируются
+  if (!isSDKReady || isLoading) {
     return (
       <AppRoot appearance={theme}>
         <Layout>

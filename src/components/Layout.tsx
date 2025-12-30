@@ -1,5 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { viewport } from '@telegram-apps/sdk-react';
+import { ReactNode } from 'react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,29 +8,9 @@ interface LayoutProps {
  * Базовый Layout компонент
  * - Fullscreen контейнер (100dvh)
  * - Safe area insets (top/bottom)
- * - Слушает изменения viewport
- * - Адаптируется под compact/fullsize/fullscreen режимы
+ * - Адаптируется под все режимы viewport
  */
 export function Layout({ children }: LayoutProps) {
-  const [viewportHeight, setViewportHeight] = useState(viewport.height);
-  const [isExpanded, setIsExpanded] = useState(viewport.isExpanded);
-
-  useEffect(() => {
-    // Подписка на изменения viewport
-    const unsubscribeHeight = viewport.on('change:height', (height) => {
-      setViewportHeight(height);
-    });
-
-    const unsubscribeExpanded = viewport.on('change:isExpanded', (expanded) => {
-      setIsExpanded(expanded);
-    });
-
-    return () => {
-      unsubscribeHeight();
-      unsubscribeExpanded();
-    };
-  }, []);
-
   return (
     <div
       style={{
@@ -46,8 +25,6 @@ export function Layout({ children }: LayoutProps) {
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
-      data-viewport-height={viewportHeight}
-      data-viewport-expanded={isExpanded}
     >
       {children}
     </div>
