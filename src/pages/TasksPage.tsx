@@ -6,8 +6,6 @@ import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Name from '../components/Tasks/CreateTask/Step1Name';
 import Step2Priority from '../components/Tasks/CreateTask/Step2Priority';
 import Step3Date from '../components/Tasks/CreateTask/Step3Date';
-import { useOnboarding } from '../hooks/useOnboarding';
-import LottieAnimation from '../components/LottieAnimation';
 import { sectionColors } from '../utils/sectionColors';
 
 interface TasksPageProps {
@@ -22,7 +20,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
     priority?: 'low' | 'medium' | 'high';
   }>({});
   
-  const { shouldShow: showOnboarding, handleClose: closeOnboarding } = useOnboarding('tasks');
 
   const handleStartCreate = () => {
     setIsCreating(true);
@@ -76,37 +73,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
     await storage.deleteTask(id);
   };
 
-  if (showOnboarding) {
-    return (
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px 16px',
-        textAlign: 'center'
-      }}>
-        <div style={{ width: '200px', height: '200px', marginBottom: '24px' }}>
-          <LottieAnimation loop={true} autoplay={true} />
-        </div>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px' }}>
-          Задачи
-        </h2>
-        <p style={{ 
-          fontSize: '16px', 
-          color: 'var(--tg-theme-hint-color)',
-          marginBottom: '32px',
-          maxWidth: '300px'
-        }}>
-          Создавайте задачи и отслеживайте их выполнение. Свайпните влево для удаления.
-        </p>
-        <button className="tg-button" onClick={closeOnboarding}>
-          Понятно
-        </button>
-      </div>
-    );
-  }
 
   if (isCreating) {
     const colors = sectionColors.tasks;

@@ -6,8 +6,6 @@ import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Name from '../components/Habits/CreateHabit/Step1Name';
 import Step2Icon from '../components/Habits/CreateHabit/Step2Icon';
 import Step3Frequency from '../components/Habits/CreateHabit/Step3Frequency';
-import { useOnboarding } from '../hooks/useOnboarding';
-import LottieAnimation from '../components/LottieAnimation';
 import { sectionColors } from '../utils/sectionColors';
 
 interface HabitsPageProps {
@@ -22,7 +20,6 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
     icon?: string;
   }>({});
   
-  const { shouldShow: showOnboarding, handleClose: closeOnboarding } = useOnboarding('habits');
 
   const handleStartCreate = () => {
     setIsCreating(true);
@@ -117,37 +114,6 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
     }
   };
 
-  if (showOnboarding) {
-    return (
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px 16px',
-        textAlign: 'center'
-      }}>
-        <div style={{ width: '200px', height: '200px', marginBottom: '24px' }}>
-          <LottieAnimation loop={true} autoplay={true} />
-        </div>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px' }}>
-          Привычки
-        </h2>
-        <p style={{ 
-          fontSize: '16px', 
-          color: 'var(--tg-theme-hint-color)',
-          marginBottom: '32px',
-          maxWidth: '300px'
-        }}>
-          Отслеживайте свои привычки каждый день. Смотрите календарь выполнения и ведите счетчик серий.
-        </p>
-        <button className="tg-button" onClick={closeOnboarding}>
-          Понятно
-        </button>
-      </div>
-    );
-  }
 
   if (isCreating) {
     const colors = sectionColors.habits;

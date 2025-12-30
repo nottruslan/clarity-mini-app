@@ -14,8 +14,6 @@ import Step2Amount from '../components/Finance/CreateTransaction/Step2Amount';
 import Step3Category from '../components/Finance/CreateTransaction/Step3Category';
 import Step4Date from '../components/Finance/CreateTransaction/Step4Date';
 import Step5Description from '../components/Finance/CreateTransaction/Step5Description';
-import { useOnboarding } from '../hooks/useOnboarding';
-import LottieAnimation from '../components/LottieAnimation';
 import { sectionColors } from '../utils/sectionColors';
 import { type Period, filterTransactionsByPeriod } from '../components/Finance/PeriodSelector';
 import { useFinanceFilters } from '../hooks/useFinanceFilters';
@@ -41,7 +39,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
     date?: number;
   }>({});
   
-  const { shouldShow: showOnboarding, handleClose: closeOnboarding } = useOnboarding('finance');
   
   const periodFiltered = filterTransactionsByPeriod(storage.finance.transactions, period);
   const filteredTransactions = useFinanceFilters(periodFiltered, filters);
@@ -163,37 +160,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
     }
   };
 
-  if (showOnboarding) {
-    return (
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px 16px',
-        textAlign: 'center'
-      }}>
-        <div style={{ width: '200px', height: '200px', marginBottom: '24px' }}>
-          <LottieAnimation loop={true} autoplay={true} />
-        </div>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px' }}>
-          Финансы
-        </h2>
-        <p style={{ 
-          fontSize: '16px', 
-          color: 'var(--tg-theme-hint-color)',
-          marginBottom: '32px',
-          maxWidth: '300px'
-        }}>
-          Отслеживайте доходы и расходы. Создавайте категории и анализируйте статистику.
-        </p>
-        <button className="tg-button" onClick={closeOnboarding}>
-          Понятно
-        </button>
-      </div>
-    );
-  }
 
   if (isCreating) {
     const colors = sectionColors.finance;

@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type YearlyReport, type PastYearData, type FutureYearData } from '../utils/storage';
-import { useOnboarding } from '../hooks/useOnboarding';
-import LottieAnimation from '../components/LottieAnimation';
 import WizardContainer from '../components/Wizard/WizardContainer';
 import { sectionColors } from '../utils/sectionColors';
 import Step1Welcome from '../components/YearlyReport/CreateReport/Step1Welcome';
@@ -44,7 +42,6 @@ interface YearlyReportPageProps {
 }
 
 export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
-  const { shouldShow: showOnboarding, handleClose: closeOnboarding } = useOnboarding('yearly-report');
   const [isCreating, setIsCreating] = useState(false);
   const [viewingReportId, setViewingReportId] = useState<string | null>(null);
   const [editingReport, setEditingReport] = useState<YearlyReport | null>(null);
@@ -135,37 +132,6 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
     setViewingReportId(null);
   };
 
-  if (showOnboarding) {
-    return (
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px 16px',
-        textAlign: 'center'
-      }}>
-        <div style={{ width: '200px', height: '200px', marginBottom: '24px' }}>
-          <LottieAnimation loop={true} autoplay={true} />
-        </div>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px' }}>
-          Годовой отчет
-        </h2>
-        <p style={{ 
-          fontSize: '16px', 
-          color: 'var(--tg-theme-hint-color)',
-          marginBottom: '32px',
-          maxWidth: '300px'
-        }}>
-          Проанализируйте прошедший год и спланируйте следующий.
-        </p>
-        <button className="tg-button" onClick={closeOnboarding}>
-          Понятно
-        </button>
-      </div>
-    );
-  }
 
   if (isCreating && editingReport) {
     const colors = sectionColors['yearly-report'];
