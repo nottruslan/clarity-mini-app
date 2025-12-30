@@ -28,13 +28,15 @@ interface HabitListProps {
   onUpdate: (id: string, updates: Partial<Habit>) => void;
   onHistoryUpdate: (id: string, history: Habit['history']) => void;
   onReorder: (habits: Habit[]) => void;
+  onDelete: (id: string) => void;
 }
 
-function SortableHabitItem({ habit, onCheck, onUpdate, onHistoryUpdate }: {
+function SortableHabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, onDelete }: {
   habit: Habit;
   onCheck: (value?: number) => void;
   onUpdate: (updates: Partial<Habit>) => void;
   onHistoryUpdate: (history: Habit['history']) => void;
+  onDelete: () => void;
 }) {
   const {
     attributes,
@@ -81,6 +83,7 @@ function SortableHabitItem({ habit, onCheck, onUpdate, onHistoryUpdate }: {
           onCheck={onCheck}
           onUpdate={onUpdate}
           onHistoryUpdate={onHistoryUpdate}
+          onDelete={onDelete}
         />
       </div>
     </div>
@@ -105,7 +108,8 @@ export default function HabitList({
   onCheck, 
   onUpdate, 
   onHistoryUpdate,
-  onReorder 
+  onReorder,
+  onDelete
 }: HabitListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -164,6 +168,9 @@ export default function HabitList({
       overflow: 'hidden'
     }}>
       <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
         padding: '12px 16px',
         borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
         background: 'var(--tg-theme-bg-color)',
@@ -192,7 +199,9 @@ export default function HabitList({
                 fontSize: '14px',
                 fontWeight: selectedCategory === cat.id ? '600' : '400',
                 cursor: 'pointer',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                touchAction: 'pan-y'
               }}
             >
               {cat.name}
@@ -228,6 +237,7 @@ export default function HabitList({
                   onCheck={(value) => onCheck(habit.id, value)}
                   onUpdate={(updates) => onUpdate(habit.id, updates)}
                   onHistoryUpdate={(history) => onHistoryUpdate(habit.id, history)}
+                  onDelete={() => onDelete(habit.id)}
                 />
               ))}
             </SortableContext>

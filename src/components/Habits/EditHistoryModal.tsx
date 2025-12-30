@@ -1,32 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Habit } from '../../utils/storage';
+import MonthCalendar from './MonthCalendar';
 
 interface EditHistoryModalProps {
   habit: Habit;
   onSave: (history: Habit['history']) => void;
   onClose: () => void;
+  initialDate?: string;
 }
 
-export default function EditHistoryModal({ habit, onSave, onClose }: EditHistoryModalProps) {
-  const [selectedDate, setSelectedDate] = useState<string>('');
+export default function EditHistoryModal({ habit, onSave, onClose, initialDate }: EditHistoryModalProps) {
+  const [selectedDate, setSelectedDate] = useState<string>(initialDate || '');
   const [value, setValue] = useState<string>('');
   const [completed, setCompleted] = useState<boolean>(false);
 
-  // Генерируем список последних 30 дней
-  const getRecentDates = () => {
-    const dates: string[] = [];
-    const today = new Date();
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      dates.push(date.toISOString().split('T')[0]);
+  // Инициализируем значения при открытии модального окна с initialDate
+  useEffect(() => {
+    if (initialDate) {
+      setSelectedDate(initialDate);
+      const historyEntry = habit.history[initialDate];
+      if (historyEntry) {
+        setCompleted(historyEntry.completed);
+        setValue(historyEntry.value?.toString() || '');
+      } else {
+        setCompleted(false);
+        setValue('');
+      }
     }
-    return dates;
-  };
+  }, [initialDate, habit.history]);
 
-  const recentDates = getRecentDates();
-
-  const handleDateSelect = (date: string) => {
+  const handleDateSelect = (date: string, existingValue?: number) => {
     setSelectedDate(date);
     const historyEntry = habit.history[date];
     if (historyEntry) {
@@ -34,7 +37,7 @@ export default function EditHistoryModal({ habit, onSave, onClose }: EditHistory
       setValue(historyEntry.value?.toString() || '');
     } else {
       setCompleted(false);
-      setValue('');
+      setValue(existingValue?.toString() || '');
     }
   };
 
@@ -131,48 +134,10 @@ export default function EditHistoryModal({ habit, onSave, onClose }: EditHistory
             }}>
               Выберите дату
             </label>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: '4px',
-              marginBottom: '12px'
-            }}>
-              {recentDates.map((date) => {
-                const historyEntry = habit.history[date];
-                const isSelected = selectedDate === date;
-                const isCompleted = historyEntry?.completed;
-                const dateObj = new Date(date);
-                
-                return (
-                  <button
-                    key={date}
-                    onClick={() => handleDateSelect(date)}
-                    style={{
-                      aspectRatio: '1',
-                      borderRadius: '8px',
-                      border: `2px solid ${isSelected ? 'var(--tg-theme-button-color)' : isCompleted ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)'}`,
-                      background: isSelected 
-                        ? 'rgba(51, 144, 236, 0.2)'
-                        : isCompleted
-                        ? 'rgba(51, 144, 236, 0.1)'
-                        : 'var(--tg-theme-bg-color)',
-                      fontSize: '12px',
-                      fontWeight: isSelected ? '600' : '400',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '4px'
-                    }}
-                    title={dateObj.toLocaleDateString('ru-RU')}
-                  >
-                    <span>{dateObj.getDate()}</span>
-                    {isCompleted && <span style={{ fontSize: '10px' }}>✓</span>}
-                  </button>
-                );
-              })}
-            </div>
+            <MonthCalendar 
+              habit={habit}
+              onDateClick={handleDateSelect}
+            />
           </div>
 
           {selectedDate && (

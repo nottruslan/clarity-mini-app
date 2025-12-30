@@ -8,47 +8,24 @@ import HabitStats from './HabitStats';
 import { calculateGoalProgress } from '../../utils/habitCalculations';
 import EditHabitModal from './EditHabitModal';
 import EditHistoryModal from './EditHistoryModal';
+import MonthCalendar from './MonthCalendar';
 
 interface HabitItemProps {
   habit: Habit;
   onCheck: (value?: number) => void;
   onUpdate: (updates: Partial<Habit>) => void;
   onHistoryUpdate: (history: Habit['history']) => void;
+  onDelete: () => void;
 }
 
-export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate }: HabitItemProps) {
+export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, onDelete }: HabitItemProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState<string>('');
   const [inputValue, setInputValue] = useState<string>('');
 
-  // Генерируем календарь за последние 30 дней
-  const getCalendarDays = () => {
-    const days = [];
-    const today = new Date();
-    
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateKey = date.toISOString().split('T')[0];
-      const historyEntry = habit.history[dateKey];
-      const isCompleted = historyEntry?.completed || false;
-      const isToday = i === 0;
-      
-      days.push({
-        date: date,
-        dateKey,
-        isCompleted,
-        isToday,
-        value: historyEntry?.value
-      });
-    }
-    
-    return days;
-  };
-
-  const calendarDays = getCalendarDays();
-  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   const goalProgress = calculateGoalProgress(habit);
 
   const handleCheck = () => {
@@ -122,24 +99,62 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate }:
               )}
             </div>
           </div>
-          <button
-            onClick={() => setShowEditModal(true)}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'var(--tg-theme-secondary-bg-color)',
-              fontSize: '16px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            title="Редактировать"
-          >
-            ✏️
-          </button>
+          <div style={{
+            display: 'flex',
+            gap: '4px',
+            alignItems: 'center'
+          }}>
+            <button
+              onClick={() => setShowEditModal(true)}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'var(--tg-theme-secondary-bg-color)',
+                fontSize: '16px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s'
+              }}
+              title="Редактировать"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(51, 144, 236, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--tg-theme-secondary-bg-color)';
+              }}
+            >
+              ✏️
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'var(--tg-theme-secondary-bg-color)',
+                fontSize: '16px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s'
+              }}
+              title="Удалить"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 59, 48, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--tg-theme-secondary-bg-color)';
+              }}
+            >
+              🗑️
+            </button>
+          </div>
         </div>
 
         <LevelIndicator habit={habit} />
@@ -173,42 +188,14 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate }:
           </div>
         )}
 
-        <div style={{ marginTop: '16px', marginBottom: '16px' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: '4px',
-            marginBottom: '8px'
-          }}>
-            {weekDays.map((day) => (
-              <div key={day} style={{
-                textAlign: 'center',
-                fontSize: '12px',
-                color: 'var(--tg-theme-hint-color)',
-                padding: '4px'
-              }}>
-                {day}
-              </div>
-            ))}
-          </div>
-          <div className="habit-calendar">
-            {calendarDays.map((day) => {
-              return (
-                <div
-                  key={day.dateKey}
-                  className={`calendar-day ${day.isCompleted ? 'completed' : ''}`}
-                  style={{
-                    opacity: day.isToday ? 1 : day.isCompleted ? 1 : 0.3,
-                    border: day.isToday ? '2px solid var(--tg-theme-button-color)' : 'none'
-                  }}
-                  title={day.dateKey + (day.value ? `: ${day.value} ${habit.unit || ''}` : '')}
-                >
-                  {day.date.getDate()}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <MonthCalendar 
+          habit={habit}
+          onDateClick={(dateKey, value) => {
+            // При клике на дату открываем модальное окно редактирования истории
+            setSelectedHistoryDate(dateKey);
+            setShowHistoryModal(true);
+          }}
+        />
 
         {habit.unit && habit.targetValue && !isTodayCompleted && (
           <div style={{ marginBottom: '12px' }}>
@@ -262,15 +249,17 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate }:
 
         <button
           onClick={() => setShowDetails(!showDetails)}
+          className="tg-button"
           style={{
             width: '100%',
-            padding: '8px',
-            borderRadius: '8px',
-            border: 'none',
-            background: 'var(--tg-theme-secondary-bg-color)',
-            color: 'var(--tg-theme-text-color)',
-            fontSize: '14px',
-            cursor: 'pointer'
+            background: showDetails 
+              ? 'var(--tg-theme-secondary-bg-color)' 
+              : 'var(--tg-theme-button-color)',
+            color: showDetails 
+              ? 'var(--tg-theme-text-color)' 
+              : 'var(--tg-theme-button-text-color)',
+            fontSize: '15px',
+            fontWeight: '500'
           }}
         >
           {showDetails ? '▼ Скрыть детали' : '▶ Показать детали'}
@@ -298,8 +287,81 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate }:
         <EditHistoryModal
           habit={habit}
           onSave={onHistoryUpdate}
-          onClose={() => setShowHistoryModal(false)}
+          onClose={() => {
+            setShowHistoryModal(false);
+            setSelectedHistoryDate('');
+          }}
+          initialDate={selectedHistoryDate}
         />
+      )}
+
+      {showDeleteConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }} onClick={() => setShowDeleteConfirm(false)}>
+          <div style={{
+            background: 'var(--tg-theme-bg-color)',
+            borderRadius: '16px',
+            padding: '20px',
+            maxWidth: '320px',
+            width: '100%',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              marginBottom: '12px',
+              color: 'var(--tg-theme-text-color)'
+            }}>
+              Удалить привычку?
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              color: 'var(--tg-theme-hint-color)',
+              marginBottom: '20px',
+              lineHeight: '1.5'
+            }}>
+              Вы уверены, что хотите удалить "{habit.name}"? Это действие нельзя отменить.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="tg-button"
+                onClick={() => {
+                  onDelete();
+                  setShowDeleteConfirm(false);
+                }}
+                style={{
+                  flex: 1,
+                  background: 'var(--tg-theme-destructive-text-color)',
+                  color: 'white'
+                }}
+              >
+                Удалить
+              </button>
+              <button
+                className="tg-button"
+                onClick={() => setShowDeleteConfirm(false)}
+                style={{
+                  flex: 1,
+                  background: 'var(--tg-theme-secondary-bg-color)',
+                  color: 'var(--tg-theme-text-color)'
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

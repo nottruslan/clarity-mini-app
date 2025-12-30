@@ -224,6 +224,10 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
     await storage.updateHabits(habits);
   };
 
+  const handleDelete = async (id: string) => {
+    await storage.deleteHabit(id);
+  };
+
   if (isCreating) {
     const colors = sectionColors.habits;
     
@@ -302,6 +306,7 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
         onUpdate={handleUpdate}
         onHistoryUpdate={handleHistoryUpdate}
         onReorder={handleReorder}
+        onDelete={handleDelete}
       />
       <button 
         className="fab"
