@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Habit } from '../../utils/storage';
 import LevelIndicator from './LevelIndicator';
-import HabitHeatmap from './HabitHeatmap';
 import HabitCharts from './HabitCharts';
 import HabitProgressBars from './HabitProgressBars';
 import HabitStats from './HabitStats';
@@ -385,7 +384,6 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
           <div style={{ marginTop: '16px' }}>
             <HabitStats habit={habit} />
             <HabitProgressBars habit={habit} period="week" />
-            <HabitHeatmap habit={habit} days={365} />
             <HabitCharts habit={habit} />
           </div>
         )}

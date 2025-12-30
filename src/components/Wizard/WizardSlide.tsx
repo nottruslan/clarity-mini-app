@@ -71,7 +71,12 @@ export default function WizardSlide({
 
   return (
     <>
-      <div className="wizard-slide-content">
+      <div 
+        className="wizard-slide-content"
+        style={{
+          paddingBottom: isKeyboardVisible ? 0 : undefined
+        }}
+      >
         <div className="wizard-slide-icon">{icon}</div>
         <h2 className="wizard-slide-title">{title}</h2>
         {description && (

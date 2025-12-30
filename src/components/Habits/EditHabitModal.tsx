@@ -32,6 +32,7 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
   const [unit, setUnit] = useState(habit.unit || '');
   const [targetValue, setTargetValue] = useState(habit.targetValue?.toString() || '');
   const [goalDays, setGoalDays] = useState(habit.goalDays?.toString() || '');
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   // Блокируем скролл body при открытии модального окна
   useEffect(() => {
@@ -48,6 +49,22 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
     const originalHeight = window.innerHeight;
     document.documentElement.style.setProperty('--vh', `${originalHeight * 0.01}px`);
 
+    // Отслеживаем открытие клавиатуры
+    let keyboardVisible = false;
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        keyboardVisible = viewportHeight < windowHeight - 150;
+        setIsKeyboardVisible(keyboardVisible);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      handleViewportChange();
+    }
+
     return () => {
       document.body.style.overflow = originalOverflow;
       document.body.style.position = originalPosition;
@@ -55,6 +72,9 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
       document.body.style.top = '';
       window.scrollTo(0, scrollY);
       document.documentElement.style.removeProperty('--vh');
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+      }
     };
   }, []);
 
@@ -164,7 +184,7 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           overscrollBehavior: 'contain',
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y',
-          paddingBottom: 'calc(20px + env(safe-area-inset-bottom))'
+          paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))'
         }} 
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}

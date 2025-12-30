@@ -13,6 +13,7 @@ export default function EditHistoryModal({ habit, onSave, onClose, initialDate }
   const [selectedDate, setSelectedDate] = useState<string>(initialDate || '');
   const [value, setValue] = useState<string>('');
   const [completed, setCompleted] = useState<boolean>(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   // Инициализируем значения при открытии модального окна с initialDate
   useEffect(() => {
@@ -28,6 +29,30 @@ export default function EditHistoryModal({ habit, onSave, onClose, initialDate }
       }
     }
   }, [initialDate, habit.history]);
+
+  // Отслеживаем открытие клавиатуры
+  useEffect(() => {
+    let keyboardVisible = false;
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        keyboardVisible = viewportHeight < windowHeight - 150;
+        setIsKeyboardVisible(keyboardVisible);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      handleViewportChange();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+      }
+    };
+  }, []);
 
   const handleDateSelect = (date: string, existingValue?: number) => {
     setSelectedDate(date);
@@ -86,6 +111,7 @@ export default function EditHistoryModal({ habit, onSave, onClose, initialDate }
         background: 'var(--tg-theme-bg-color)',
         borderRadius: '16px',
         padding: '20px',
+        paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))',
         maxWidth: '400px',
         width: '100%',
         maxHeight: '90vh',

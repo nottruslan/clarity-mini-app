@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Transaction } from '../../utils/storage';
 
 interface TransactionDetailsProps {
@@ -15,6 +16,32 @@ export default function TransactionDetails({
   onDuplicate,
   onClose
 }: TransactionDetailsProps) {
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Отслеживаем открытие клавиатуры (на всякий случай, хотя здесь нет input полей)
+  useEffect(() => {
+    let keyboardVisible = false;
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        keyboardVisible = viewportHeight < windowHeight - 150;
+        setIsKeyboardVisible(keyboardVisible);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      handleViewportChange();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+      }
+    };
+  }, []);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
@@ -53,7 +80,7 @@ export default function TransactionDetails({
         borderTopLeftRadius: '20px',
         borderTopRightRadius: '20px',
         padding: '20px',
-        paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
+        paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))',
         maxHeight: '80vh',
         overflowY: 'auto' as const,
         WebkitOverflowScrolling: 'touch' as any

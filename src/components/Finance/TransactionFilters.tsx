@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Category } from '../../utils/storage';
 
 export interface FilterOptions {
@@ -23,6 +23,31 @@ export default function TransactionFilters({
   onClose
 }: TransactionFiltersProps) {
   const [localFilters, setLocalFilters] = useState<FilterOptions>(filters);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Отслеживаем открытие клавиатуры
+  useEffect(() => {
+    let keyboardVisible = false;
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        keyboardVisible = viewportHeight < windowHeight - 150;
+        setIsKeyboardVisible(keyboardVisible);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      handleViewportChange();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+      }
+    };
+  }, []);
 
   const handleApply = () => {
     onFiltersChange(localFilters);
@@ -62,7 +87,7 @@ export default function TransactionFilters({
         borderTopLeftRadius: '20px',
         borderTopRightRadius: '20px',
         padding: '20px',
-        paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
+        paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))',
         maxHeight: '80vh',
         overflowY: 'auto' as const,
         WebkitOverflowScrolling: 'touch' as any

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Budget, Category, Transaction } from '../../utils/storage';
 
 interface BudgetManagerProps {
@@ -27,6 +27,31 @@ export default function BudgetManager({
     limit: '',
     period: 'month' as 'month' | 'year'
   });
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Отслеживаем открытие клавиатуры
+  useEffect(() => {
+    let keyboardVisible = false;
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        keyboardVisible = viewportHeight < windowHeight - 150;
+        setIsKeyboardVisible(keyboardVisible);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      handleViewportChange();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+      }
+    };
+  }, []);
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
 
@@ -118,7 +143,7 @@ export default function BudgetManager({
         borderTopLeftRadius: '20px',
         borderTopRightRadius: '20px',
         padding: '20px',
-        paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
+        paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))',
         maxHeight: '80vh',
         overflowY: 'auto' as const,
         WebkitOverflowScrolling: 'touch' as any

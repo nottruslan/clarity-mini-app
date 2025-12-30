@@ -13,13 +13,9 @@ export default function HabitStats({ habit }: HabitStatsProps) {
   
   const monthAgo = new Date();
   monthAgo.setMonth(today.getMonth() - 1);
-  
-  const yearAgo = new Date();
-  yearAgo.setFullYear(today.getFullYear() - 1);
 
   const weekStats = getPeriodStats(habit, weekAgo, today);
   const monthStats = getPeriodStats(habit, monthAgo, today);
-  const yearStats = getPeriodStats(habit, yearAgo, today);
   
   const goalProgress = calculateGoalProgress(habit);
 
@@ -35,37 +31,6 @@ export default function HabitStats({ habit }: HabitStatsProps) {
       </h4>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Процент выполнения */}
-        <div>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '8px',
-            fontSize: '12px',
-            color: 'var(--tg-theme-hint-color)'
-          }}>
-            <span>Выполнение за неделю</span>
-            <span style={{ fontWeight: '600', color: 'var(--tg-theme-text-color)' }}>
-              {weekStats.completionRate}%
-            </span>
-          </div>
-          <div style={{
-            width: '100%',
-            height: '8px',
-            background: 'var(--tg-theme-secondary-bg-color)',
-            borderRadius: '4px',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              width: `${weekStats.completionRate}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg, #3390ec 0%, #1e6bc7 100%)',
-              transition: 'width 0.3s ease'
-            }} />
-          </div>
-        </div>
-
         {/* Цель по дням */}
         {habit.goalDays && (
           <div>
@@ -104,7 +69,7 @@ export default function HabitStats({ habit }: HabitStatsProps) {
         {/* Детальная статистика */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(2, 1fr)',
           gap: '12px',
           padding: '12px',
           background: 'var(--tg-theme-secondary-bg-color)',
@@ -124,14 +89,6 @@ export default function HabitStats({ habit }: HabitStatsProps) {
             </div>
             <div style={{ fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginTop: '4px' }}>
               За месяц
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '20px', fontWeight: '600', color: 'var(--tg-theme-text-color)' }}>
-              {yearStats.completedDays}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--tg-theme-hint-color)', marginTop: '4px' }}>
-              За год
             </div>
           </div>
         </div>
