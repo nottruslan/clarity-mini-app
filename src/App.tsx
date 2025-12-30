@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTelegram } from './hooks/useTelegram';
 import { useCloudStorage } from './hooks/useCloudStorage';
 import { type Section } from './types/navigation';
+import { sectionColors } from './utils/sectionColors';
 import AppHeader from './components/Navigation/AppHeader';
 import NavigationMenu from './components/Navigation/NavigationMenu';
 import HomePage from './pages/HomePage';
@@ -57,7 +58,24 @@ function App() {
     if (navigationHistory[navigationHistory.length - 1] !== section) {
       setNavigationHistory([...navigationHistory, section]);
     }
+    
+    // Меняем цвет системного header Telegram
+    if (tg?.setHeaderColor) {
+      const colors = sectionColors[section];
+      tg.setHeaderColor(colors.primary);
+    }
   };
+
+  // Устанавливаем цвет header при монтировании и смене раздела
+  useEffect(() => {
+    if (tg?.setHeaderColor && currentSection !== 'home') {
+      const colors = sectionColors[currentSection];
+      tg.setHeaderColor(colors.primary);
+    } else if (tg?.setHeaderColor && currentSection === 'home') {
+      // На главной странице возвращаем стандартный цвет
+      tg.setHeaderColor('#ffffff');
+    }
+  }, [currentSection, tg]);
 
   if (!isReady || storage.loading) {
     return (

@@ -5,6 +5,7 @@ declare global {
         ready: () => void;
         expand: () => void;
         close: () => void;
+        setHeaderColor: (color: string) => void;
         BackButton?: {
           show: () => void;
           hide: () => void;
