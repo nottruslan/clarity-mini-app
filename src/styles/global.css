@@ -511,6 +511,8 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  scroll-behavior: auto;
+  touch-action: pan-y;
 }
 
 .wizard-progress-bar {
@@ -583,6 +585,8 @@ body {
   width: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
+  overscroll-behavior: contain;
 }
 
 .wizard-slide-icon {
@@ -617,6 +621,8 @@ body {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
+  overscroll-behavior: contain;
 }
 
 .wizard-slide-actions {
@@ -642,17 +648,20 @@ body {
   border-radius: 16px;
   padding: 20px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
   display: flex;
   align-items: flex-start;
   gap: 16px;
   min-height: 80px;
-  touch-action: manipulation;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
+  will-change: border-color, background-color, box-shadow;
+  scroll-margin: 0;
 }
 
 .wizard-card:active {
-  transform: scale(0.98);
+  transform: none;
+  transition: none;
 }
 
 .wizard-card.selected {

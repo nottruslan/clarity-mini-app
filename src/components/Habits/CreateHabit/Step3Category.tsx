@@ -45,13 +45,25 @@ export default function Step3Category({ name, onNext, onBack }: Step3CategoryPro
         </div>
       }
     >
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(2, 1fr)', 
-        gap: '12px', 
-        width: '100%',
-        maxWidth: '400px'
-      }}>
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(2, 1fr)', 
+          gap: '12px', 
+          width: '100%',
+          maxWidth: '400px',
+          overflow: 'hidden',
+          touchAction: 'none'
+        }}
+        onClick={(e) => {
+          // Предотвращаем всплытие событий
+          e.stopPropagation();
+        }}
+        onTouchStart={(e) => {
+          // Предотвращаем движение экрана
+          e.stopPropagation();
+        }}
+      >
         {categories.map((category) => (
           <WizardCard
             key={category.id}

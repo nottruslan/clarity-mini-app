@@ -19,14 +19,33 @@ export default function WizardCard({
   onClick,
   children
 }: WizardCardProps) {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Предотвращаем автоматический скролл
+    if (e.currentTarget) {
+      e.currentTarget.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+    }
+    onClick();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    // Предотвращаем движение экрана при touch
+    e.preventDefault();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClick();
+  };
+
   return (
     <div
       className={`wizard-card ${selected ? 'selected' : ''}`}
-      onClick={onClick}
-      onTouchEnd={(e) => {
-        e.preventDefault();
-        onClick();
-      }}
+      onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {icon && (
         <div className="wizard-card-icon">{icon}</div>

@@ -18,12 +18,24 @@ export default function WizardSlide({
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
+    // Фиксируем viewport при монтировании
+    const originalHeight = window.innerHeight;
+    document.documentElement.style.setProperty('--vh', `${originalHeight * 0.01}px`);
+    
+    let keyboardVisible = false;
+    
     const handleViewportChange = () => {
       if (window.visualViewport) {
         const viewportHeight = window.visualViewport.height;
         const windowHeight = window.innerHeight;
         // Если viewport меньше окна более чем на 150px, считаем что клавиатура открыта
-        setIsKeyboardVisible(viewportHeight < windowHeight - 150);
+        keyboardVisible = viewportHeight < windowHeight - 150;
+        setIsKeyboardVisible(keyboardVisible);
+        
+        // Предотвращаем движение экрана - фиксируем высоту только если клавиатура не видна
+        if (!keyboardVisible) {
+          document.documentElement.style.setProperty('--vh', `${originalHeight * 0.01}px`);
+        }
       }
     };
 
@@ -32,10 +44,28 @@ export default function WizardSlide({
       handleViewportChange(); // Проверяем при монтировании
     }
 
+    // Предотвращаем движение при взаимодействии с карточками категорий
+    const preventScroll = (e: TouchEvent) => {
+      // Разрешаем скролл только внутри wizard-slide-content, но не на карточках
+      const target = e.target as HTMLElement;
+      const isCard = target.closest('.wizard-card');
+      const isScrollableContent = target.closest('.wizard-slide-content');
+      
+      // Если это карточка или не скроллируемый контент - предотвращаем движение
+      if (isCard || !isScrollableContent) {
+        e.preventDefault();
+      }
+    };
+
+    // Добавляем обработчик для предотвращения движения экрана
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleViewportChange);
       }
+      document.removeEventListener('touchmove', preventScroll);
+      document.documentElement.style.removeProperty('--vh');
     };
   }, []);
 
