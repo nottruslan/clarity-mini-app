@@ -1,16 +1,35 @@
 import { useState } from 'react';
 import { Tabbar } from '@telegram-apps/telegram-ui';
-import { Placeholder } from '@telegram-apps/telegram-ui/dist/components/Blocks/Placeholder/Placeholder';
-
-type Tab = 'tasks' | 'habits' | 'finance' | 'languages';
+import { SlideNavigator } from './SlideNavigator';
+import { TasksScreen } from './screens/TasksScreen';
+import { HabitsScreen } from './screens/HabitsScreen';
+import { FinanceScreen } from './screens/FinanceScreen';
+import { LanguagesScreen } from './screens/LanguagesScreen';
 
 /**
  * AppShell — основной контейнер приложения
- * Содержит нижний Tabbar и переключение между 4 секциями
+ * Использует SlideNavigator для полноэкранной навигации с поддержкой swipe
  * Без page routing, только состояние (useState)
  */
 export function AppShell() {
-  const [activeTab, setActiveTab] = useState<Tab>('tasks');
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const screens = [
+    <TasksScreen />,
+    <HabitsScreen />,
+    <FinanceScreen />,
+    <LanguagesScreen />,
+  ];
+
+  const handleTabClick = (tab: 'tasks' | 'habits' | 'finance' | 'languages') => {
+    const indexMap = {
+      tasks: 0,
+      habits: 1,
+      finance: 2,
+      languages: 3,
+    };
+    setActiveIndex(indexMap[tab]);
+  };
 
   return (
     <div
@@ -22,105 +41,61 @@ export function AppShell() {
         overflow: 'hidden',
       }}
     >
-      {/* Content Area */}
+      {/* Slide Navigator с полноэкранными экранами */}
       <div
         style={{
           flex: 1,
-          overflow: 'auto',
-          padding: '16px',
+          overflow: 'hidden',
+          position: 'relative',
         }}
       >
-        {activeTab === 'tasks' && <TasksSection />}
-        {activeTab === 'habits' && <HabitsSection />}
-        {activeTab === 'finance' && <FinanceSection />}
-        {activeTab === 'languages' && <LanguagesSection />}
+        <SlideNavigator
+          screens={screens}
+          activeIndex={activeIndex}
+          onIndexChange={setActiveIndex}
+        />
       </div>
 
       {/* Bottom Navigation (Tabbar) */}
       <Tabbar
         style={{
           borderTop: '1px solid var(--tg-theme-hint-color, rgba(0,0,0,0.1))',
+          flexShrink: 0,
         }}
       >
         <Tabbar.Item
           text="Задачи"
-          selected={activeTab === 'tasks'}
-          onClick={() => setActiveTab('tasks')}
+          selected={activeIndex === 0}
+          onClick={() => handleTabClick('tasks')}
         >
           <span style={{ fontSize: '24px' }}>✓</span>
         </Tabbar.Item>
 
         <Tabbar.Item
           text="Привычки"
-          selected={activeTab === 'habits'}
-          onClick={() => setActiveTab('habits')}
+          selected={activeIndex === 1}
+          onClick={() => handleTabClick('habits')}
         >
           <span style={{ fontSize: '24px' }}>🔄</span>
         </Tabbar.Item>
 
         <Tabbar.Item
           text="Финансы"
-          selected={activeTab === 'finance'}
-          onClick={() => setActiveTab('finance')}
+          selected={activeIndex === 2}
+          onClick={() => handleTabClick('finance')}
         >
           <span style={{ fontSize: '24px' }}>💰</span>
         </Tabbar.Item>
 
         <Tabbar.Item
           text="Языки"
-          selected={activeTab === 'languages'}
-          onClick={() => setActiveTab('languages')}
+          selected={activeIndex === 3}
+          onClick={() => handleTabClick('languages')}
         >
           <span style={{ fontSize: '24px' }}>🌍</span>
         </Tabbar.Item>
       </Tabbar>
     </div>
-  );
-}
-
-// Заглушки для секций (будут заменены на реальные компоненты)
-
-function TasksSection() {
-  return (
-    <Placeholder
-      header="Задачи"
-      description="Здесь будет список твоих задач"
-    >
-      <span style={{ fontSize: '48px' }}>✓</span>
-    </Placeholder>
-  );
-}
-
-function HabitsSection() {
-  return (
-    <Placeholder
-      header="Привычки"
-      description="Здесь будет трекер привычек"
-    >
-      <span style={{ fontSize: '48px' }}>🔄</span>
-    </Placeholder>
-  );
-}
-
-function FinanceSection() {
-  return (
-    <Placeholder
-      header="Финансы"
-      description="Здесь будут доходы и расходы"
-    >
-      <span style={{ fontSize: '48px' }}>💰</span>
-    </Placeholder>
-  );
-}
-
-function LanguagesSection() {
-  return (
-    <Placeholder
-      header="Языки"
-      description="Здесь будет переход к изучению языков"
-    >
-      <span style={{ fontSize: '48px' }}>🌍</span>
-    </Placeholder>
   );
 }
 
