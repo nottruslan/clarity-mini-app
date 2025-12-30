@@ -8,7 +8,6 @@ import TransactionFilters, { type FilterOptions } from '../components/Finance/Tr
 import StatisticsView from '../components/Finance/StatisticsView';
 import BudgetManager from '../components/Finance/BudgetManager';
 import BudgetOverview from '../components/Finance/BudgetOverview';
-import GoalsManager from '../components/Finance/GoalsManager';
 import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Type from '../components/Finance/CreateTransaction/Step1Type';
 import Step2Amount from '../components/Finance/CreateTransaction/Step2Amount';
@@ -32,7 +31,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
-  const [showGoals, setShowGoals] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({ type: 'all' });
   const [createStep, setCreateStep] = useState(0);
   const [period] = useState<Period>('month');
@@ -302,22 +300,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
               cursor: 'pointer'
             }}
           >
-            💰 Бюджет
-          </button>
-          <button
-            onClick={() => setShowGoals(true)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: '1px solid var(--tg-theme-button-color)',
-              backgroundColor: 'transparent',
-              color: 'var(--tg-theme-button-color)',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            🎯 Цели
+            💰 Управление бюджетом
           </button>
         </div>
         <StatisticsView finance={storage.finance} period={period} />
@@ -448,15 +431,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
           onBudgetUpdate={(budget) => storage.updateBudget(budget)}
           onBudgetDelete={(categoryId) => storage.deleteBudget(categoryId)}
           onClose={() => setShowBudget(false)}
-        />
-      )}
-      {showGoals && (
-        <GoalsManager
-          goals={storage.finance.goals || []}
-          onAdd={(goal) => storage.addGoal(goal)}
-          onUpdate={(id, updates) => storage.updateGoal(id, updates)}
-          onDelete={(id) => storage.deleteGoal(id)}
-          onClose={() => setShowGoals(false)}
         />
       )}
     </>
