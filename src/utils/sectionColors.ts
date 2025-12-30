@@ -37,6 +37,12 @@ export const sectionColors: Record<Section, SectionColor> = {
     secondary: '#f3e5f5',
     text: '#ffffff',
     icon: '🌍'
+  },
+  'yearly-report': {
+    primary: '#ff9800',
+    secondary: '#fff3e0',
+    text: '#ffffff',
+    icon: '📅'
   }
 };
 
@@ -45,6 +51,7 @@ export const sectionLabels: Record<Section, string> = {
   tasks: 'Задачи',
   habits: 'Привычки',
   finance: 'Финансы',
-  languages: 'Языки'
+  languages: 'Языки',
+  'yearly-report': 'Годовой отчет'
 };
 

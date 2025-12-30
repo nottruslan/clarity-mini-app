@@ -8,10 +8,13 @@ import {
   saveFinanceData,
   getOnboardingFlags,
   saveOnboardingFlags,
+  getYearlyReports,
+  saveYearlyReports,
   type Task,
   type Habit,
   type FinanceData,
-  type OnboardingFlags
+  type OnboardingFlags,
+  type YearlyReport
 } from '../utils/storage';
 
 export function useCloudStorage() {
@@ -22,8 +25,10 @@ export function useCloudStorage() {
     tasks: false,
     habits: false,
     finance: false,
-    languages: false
+    languages: false,
+    'yearly-report': false
   });
+  const [yearlyReports, setYearlyReports] = useState<YearlyReport[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Загрузка данных при монтировании
@@ -34,17 +39,19 @@ export function useCloudStorage() {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [tasksData, habitsData, financeData, onboardingData] = await Promise.all([
+      const [tasksData, habitsData, financeData, onboardingData, reportsData] = await Promise.all([
         getTasks(),
         getHabits(),
         getFinanceData(),
-        getOnboardingFlags()
+        getOnboardingFlags(),
+        getYearlyReports()
       ]);
       
       setTasks(tasksData);
       setHabits(habitsData);
       setFinance(financeData);
       setOnboarding(onboardingData);
+      setYearlyReports(reportsData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -190,12 +197,36 @@ export function useCloudStorage() {
     await saveOnboardingFlags(newOnboarding);
   }, [onboarding]);
 
+  // Yearly Reports
+  const updateYearlyReports = useCallback(async (newReports: YearlyReport[]) => {
+    setYearlyReports(newReports);
+    await saveYearlyReports(newReports);
+  }, []);
+
+  const addYearlyReport = useCallback(async (report: YearlyReport) => {
+    const newReports = [...yearlyReports, report];
+    await updateYearlyReports(newReports);
+  }, [yearlyReports, updateYearlyReports]);
+
+  const updateYearlyReport = useCallback(async (id: string, updates: Partial<YearlyReport>) => {
+    const newReports = yearlyReports.map(report => 
+      report.id === id ? { ...report, ...updates, updatedAt: Date.now() } : report
+    );
+    await updateYearlyReports(newReports);
+  }, [yearlyReports, updateYearlyReports]);
+
+  const deleteYearlyReport = useCallback(async (id: string) => {
+    const newReports = yearlyReports.filter(report => report.id !== id);
+    await updateYearlyReports(newReports);
+  }, [yearlyReports, updateYearlyReports]);
+
   return {
     // Data
     tasks,
     habits,
     finance,
     onboarding,
+    yearlyReports,
     loading,
     
     // Tasks
@@ -223,6 +254,12 @@ export function useCloudStorage() {
     
     // Onboarding
     markOnboardingShown,
+    
+    // Yearly Reports
+    updateYearlyReports,
+    addYearlyReport,
+    updateYearlyReport,
+    deleteYearlyReport,
     
     // Reload
     reload: loadAllData

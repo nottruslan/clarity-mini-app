@@ -64,13 +64,111 @@ export interface OnboardingFlags {
   habits: boolean;
   finance: boolean;
   languages: boolean;
+  'yearly-report'?: boolean;
+}
+
+export interface PastYearData {
+  calendarEvents?: string[]; // Важные события из календаря
+  lifeAreas?: {
+    personal?: string;
+    friends?: string;
+    health?: string;
+    habits?: string;
+    career?: string;
+    hobbies?: string;
+    psychology?: string;
+    betterTomorrow?: string;
+  };
+  importantMoments?: {
+    wisestDecision?: string;
+    biggestLesson?: string;
+    biggestRisk?: string;
+    biggestSurprise?: string;
+    importantForOthers?: string;
+    biggestCompletion?: string;
+  };
+  questions?: {
+    proudOf?: string;
+    threePeopleInfluenced?: string[];
+    threePeopleInfluencedBy?: string[];
+    unfinished?: string;
+    bestDiscovery?: string;
+    mostGrateful?: string;
+  };
+  bestMoments?: string; // Текст или описание лучших моментов
+  achievements?: Array<{
+    achievement: string;
+    howAchieved: string;
+    whoHelped: string;
+  }>;
+  challenges?: Array<{
+    challenge: string;
+    whoHelped: string;
+    whatLearned: string;
+  }>;
+  forgiveness?: string; // Что нужно простить
+  summary?: {
+    threeWords?: string[];
+    bookTitle?: string;
+    goodbye?: string;
+  };
+}
+
+export interface FutureYearData {
+  dreams?: string; // Видение идеального года
+  lifeAreas?: {
+    personal?: string;
+    friends?: string;
+    health?: string;
+    habits?: string;
+    career?: string;
+    hobbies?: string;
+    psychology?: string;
+    betterTomorrow?: string;
+  };
+  magicTriples1?: {
+    love?: string[];
+    letGo?: string[];
+    achieve?: string[];
+    support?: string[];
+    try?: string[];
+    sayNo?: string[];
+  };
+  magicTriples2?: {
+    coziness?: string[];
+    morning?: string[];
+    treat?: string[];
+    places?: string[];
+    relationships?: string[];
+    gifts?: string[];
+  };
+  wishes?: {
+    notPostpone?: string;
+    energyFrom?: string;
+    bravestWhen?: string;
+    sayYesWhen?: string;
+    advice?: string;
+    specialBecause?: string;
+  };
+  wordOfYear?: string;
+  secretWish?: string;
+}
+
+export interface YearlyReport {
+  id: string;
+  year: number;
+  pastYear: PastYearData;
+  futureYear: FutureYearData;
+  createdAt: number;
+  updatedAt: number;
 }
 
 const STORAGE_KEYS = {
   TASKS: 'tasks',
   HABITS: 'habits',
   FINANCE: 'finance',
-  ONBOARDING: 'onboarding'
+  ONBOARDING: 'onboarding',
+  YEARLY_REPORTS: 'yearly-reports'
 } as const;
 
 /**
@@ -235,7 +333,8 @@ export async function getOnboardingFlags(): Promise<OnboardingFlags> {
     tasks: false,
     habits: false,
     finance: false,
-    languages: false
+    languages: false,
+    'yearly-report': false
   };
 }
 
@@ -244,6 +343,29 @@ export async function getOnboardingFlags(): Promise<OnboardingFlags> {
  */
 export async function saveOnboardingFlags(flags: OnboardingFlags): Promise<void> {
   await setStorageData(STORAGE_KEYS.ONBOARDING, flags);
+}
+
+/**
+ * Получить все годовые отчеты
+ */
+export async function getYearlyReports(): Promise<YearlyReport[]> {
+  const reports = await getStorageData<YearlyReport[]>(STORAGE_KEYS.YEARLY_REPORTS);
+  return reports || [];
+}
+
+/**
+ * Сохранить годовые отчеты
+ */
+export async function saveYearlyReports(reports: YearlyReport[]): Promise<void> {
+  await setStorageData(STORAGE_KEYS.YEARLY_REPORTS, reports);
+}
+
+/**
+ * Получить отчет по году
+ */
+export async function getYearlyReport(year: number): Promise<YearlyReport | null> {
+  const reports = await getYearlyReports();
+  return reports.find(r => r.year === year) || null;
 }
 
 /**

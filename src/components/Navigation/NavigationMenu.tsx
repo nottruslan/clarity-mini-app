@@ -11,7 +11,7 @@ interface NavigationMenuProps {
   onSectionSelect: (section: Section) => void;
 }
 
-const sections: Section[] = ['home', 'tasks', 'habits', 'finance', 'languages'];
+const sections: Section[] = ['home', 'tasks', 'habits', 'finance', 'languages', 'yearly-report'];
 
 export default function NavigationMenu({ 
   isOpen, 

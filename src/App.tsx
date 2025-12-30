@@ -10,6 +10,7 @@ import TasksPage from './pages/TasksPage';
 import HabitsPage from './pages/HabitsPage';
 import FinancePage from './pages/FinancePage';
 import LanguagesPage from './pages/LanguagesPage';
+import YearlyReportPage from './pages/YearlyReportPage';
 
 function App() {
   const { isReady, tg } = useTelegram();
@@ -124,6 +125,8 @@ function App() {
         return <FinancePage storage={storage} />;
       case 'languages':
         return <LanguagesPage />;
+      case 'yearly-report':
+        return <YearlyReportPage storage={storage} />;
       default:
         return <HomePage onSectionChange={handleSectionChange} />;
     }

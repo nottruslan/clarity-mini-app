@@ -30,6 +30,12 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
       label: 'Языки', 
       icon: '🌍',
       description: 'Изучайте языки'
+    },
+    { 
+      id: 'yearly-report', 
+      label: 'Годовой отчет', 
+      icon: '📅',
+      description: 'Проанализируйте год и спланируйте следующий'
     }
   ];
 
@@ -39,13 +45,15 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
       display: 'flex', 
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: '32px 16px'
+      justifyContent: 'flex-start',
+      padding: '16px 16px',
+      overflow: 'hidden',
+      height: '100%'
     }}>
       <div style={{ 
         width: '100%', 
-        maxWidth: '300px', 
-        marginBottom: '32px' 
+        maxWidth: '150px', 
+        marginBottom: '12px' 
       }}>
         <LottieAnimation loop={true} autoplay={true} />
       </div>
@@ -73,7 +81,7 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
         maxWidth: '400px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px'
+        gap: '8px'
       }}>
         {sections.map((section) => (
           <button
