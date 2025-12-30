@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import Lottie from 'lottie-react';
-import { mainButton } from '@telegram-apps/sdk-react';
+import { initMainButton } from '@telegram-apps/sdk-react';
 import animationData from '../assets/welcome-animation.json';
 
 interface WelcomeProps {
@@ -14,25 +14,31 @@ interface WelcomeProps {
  */
 export function Welcome({ onComplete }: WelcomeProps) {
   useEffect(() => {
-    // Настройка MainButton
-    mainButton.setText('Начать');
-    mainButton.setBackgroundColor('#007AFF');
-    mainButton.setTextColor('#FFFFFF');
-    mainButton.enable();
-    mainButton.show();
+    try {
+      const [mainButton] = initMainButton();
+      
+      // Настройка MainButton
+      mainButton.setText('Начать');
+      mainButton.setBackgroundColor('#007AFF');
+      mainButton.setTextColor('#FFFFFF');
+      mainButton.enable();
+      mainButton.show();
 
-    // Обработчик нажатия
-    const handleClick = () => {
-      onComplete();
-    };
+      // Обработчик нажатия
+      const handleClick = () => {
+        onComplete();
+      };
 
-    mainButton.on('click', handleClick);
+      mainButton.on('click', handleClick);
 
-    // Cleanup при размонтировании
-    return () => {
-      mainButton.off('click', handleClick);
-      mainButton.hide();
-    };
+      // Cleanup при размонтировании
+      return () => {
+        mainButton.off('click', handleClick);
+        mainButton.hide();
+      };
+    } catch (error) {
+      console.error('Failed to initialize MainButton:', error);
+    }
   }, [onComplete]);
 
   return (

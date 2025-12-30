@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { cloudStorage } from '@telegram-apps/sdk-react';
+import { initCloudStorage } from '@telegram-apps/sdk-react';
 
 const ONBOARDING_KEY = 'onboarding_complete';
 
@@ -18,6 +18,7 @@ export function useOnboarding() {
 
   const checkOnboardingStatus = async () => {
     try {
+      const [cloudStorage] = initCloudStorage();
       const value = await cloudStorage.get(ONBOARDING_KEY);
       setIsOnboardingComplete(value === 'true');
     } catch (error) {
@@ -31,6 +32,7 @@ export function useOnboarding() {
 
   const completeOnboarding = async () => {
     try {
+      const [cloudStorage] = initCloudStorage();
       await cloudStorage.set(ONBOARDING_KEY, 'true');
       setIsOnboardingComplete(true);
     } catch (error) {
@@ -40,6 +42,7 @@ export function useOnboarding() {
 
   const resetOnboarding = async () => {
     try {
+      const [cloudStorage] = initCloudStorage();
       await cloudStorage.delete(ONBOARDING_KEY);
       setIsOnboardingComplete(false);
     } catch (error) {

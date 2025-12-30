@@ -1,31 +1,45 @@
 import { useEffect, useState } from 'react';
-import { themeParams } from '@telegram-apps/sdk-react';
+import { initThemeParams } from '@telegram-apps/sdk-react';
 
 export type TelegramTheme = 'light' | 'dark';
+
+let themeParamsInstance: ReturnType<typeof initThemeParams>[0] | null = null;
 
 /**
  * Hook для синхронизации темы с Telegram
  * Автоматически подписывается на изменения темы и обновляет CSS переменные
  */
 export function useTelegramTheme(): TelegramTheme {
-  const [theme, setTheme] = useState<TelegramTheme>(
-    themeParams.isDark() ? 'dark' : 'light'
-  );
+  const [theme, setTheme] = useState<TelegramTheme>('light');
 
   useEffect(() => {
-    // Инициализация CSS переменных
-    updateCSSVariables();
+    try {
+      if (!themeParamsInstance) {
+        const [params] = initThemeParams();
+        themeParamsInstance = params;
+      }
 
-    // Подписка на изменения темы
-    const unsubscribe = themeParams.on('change', () => {
-      const newTheme = themeParams.isDark() ? 'dark' : 'light';
-      setTheme(newTheme);
-      updateCSSVariables();
-    });
+      const themeParams = themeParamsInstance;
+      
+      // Устанавливаем начальную тему
+      setTheme(themeParams.isDark() ? 'dark' : 'light');
+      
+      // Инициализация CSS переменных
+      updateCSSVariables(themeParams);
 
-    return () => {
-      unsubscribe();
-    };
+      // Подписка на изменения темы
+      const unsubscribe = themeParams.on('change', () => {
+        const newTheme = themeParams.isDark() ? 'dark' : 'light';
+        setTheme(newTheme);
+        updateCSSVariables(themeParams);
+      });
+
+      return () => {
+        unsubscribe();
+      };
+    } catch (error) {
+      console.error('Failed to initialize theme:', error);
+    }
   }, []);
 
   return theme;
@@ -34,7 +48,7 @@ export function useTelegramTheme(): TelegramTheme {
 /**
  * Обновляет CSS переменные на основе текущей темы Telegram
  */
-function updateCSSVariables() {
+function updateCSSVariables(themeParams: ReturnType<typeof initThemeParams>[0]) {
   const root = document.documentElement;
 
   // Основные цвета темы
