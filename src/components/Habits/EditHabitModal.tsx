@@ -121,13 +121,14 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
         bottom: 0,
         background: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
         zIndex: 10000,
-        padding: '20px',
+        paddingTop: 'env(safe-area-inset-top)',
         scrollBehavior: 'auto',
         overscrollBehavior: 'contain',
-        touchAction: 'pan-y'
+        touchAction: 'pan-y',
+        overflow: 'hidden'
       }} 
       onClick={onClose}
       onTouchStart={(e) => {
@@ -137,23 +138,40 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           e.preventDefault();
         }
       }}
+      onTouchMove={(e) => {
+        // Предотвращаем горизонтальное движение
+        const target = e.target as HTMLElement;
+        if (target === e.currentTarget) {
+          e.preventDefault();
+        }
+      }}
     >
       <div 
         style={{
           background: 'var(--tg-theme-bg-color)',
-          borderRadius: '16px',
+          borderTopLeftRadius: '20px',
+          borderTopRightRadius: '20px',
           padding: '20px',
-          maxWidth: '400px',
           width: '100%',
-          maxHeight: '90vh',
+          maxWidth: '500px',
+          maxHeight: window.visualViewport 
+            ? `${Math.min(window.visualViewport.height * 0.85, window.innerHeight * 0.85)}px`
+            : '85vh',
           overflowY: 'auto',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+          overflowX: 'hidden',
+          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.3)',
           scrollBehavior: 'auto',
           overscrollBehavior: 'contain',
-          WebkitOverflowScrolling: 'touch'
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y',
+          paddingBottom: 'calc(20px + env(safe-area-inset-bottom))'
         }} 
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => {
+          // Разрешаем только вертикальный скролл
+          e.stopPropagation();
+        }}
       >
         <div style={{
           display: 'flex',
