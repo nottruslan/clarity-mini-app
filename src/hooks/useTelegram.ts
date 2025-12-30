@@ -149,12 +149,17 @@ export function useTelegram() {
         }
       }, 1000);
 
+      setIsReady(true);
+      
       return () => {
         clearInterval(themeCheckInterval);
       };
+    } else {
+      // Если Telegram WebApp недоступен (например, при разработке или тестировании),
+      // все равно помечаем как готовый, чтобы приложение загрузилось
+      console.warn('Telegram WebApp not available, running in fallback mode');
+      setIsReady(true);
     }
-    
-    setIsReady(true);
   }, []);
 
   return {

@@ -40,18 +40,58 @@ export function useCloudStorage() {
     try {
       setLoading(true);
       const [tasksData, habitsData, financeData, onboardingData, reportsData] = await Promise.all([
-        getTasks(),
-        getHabits(),
-        getFinanceData(),
-        getOnboardingFlags(),
-        getYearlyReports()
+        getTasks().catch(err => {
+          console.error('Error loading tasks:', err);
+          return [];
+        }),
+        getHabits().catch(err => {
+          console.error('Error loading habits:', err);
+          return [];
+        }),
+        getFinanceData().catch(err => {
+          console.error('Error loading finance:', err);
+          return { transactions: [], categories: [], budgets: [] };
+        }),
+        getOnboardingFlags().catch(err => {
+          console.error('Error loading onboarding:', err);
+          return { tasks: false, habits: false, finance: false, languages: false, 'yearly-report': false };
+        }),
+        getYearlyReports().catch(err => {
+          console.error('Error loading reports:', err);
+          return [];
+        })
       ]);
       
+      // Миграция привычек при загрузке
+      const migratedHabits = habitsData.map(habit => {
+        if (habit.history && Object.keys(habit.history).length > 0) {
+          const firstValue = Object.values(habit.history)[0];
+          if (typeof firstValue === 'boolean') {
+            const newHistory: Habit['history'] = {};
+            Object.keys(habit.history).forEach(date => {
+              const oldValue = habit.history[date];
+              if (typeof oldValue === 'boolean') {
+                newHistory[date] = { completed: oldValue };
+              } else {
+                newHistory[date] = oldValue;
+              }
+            });
+            return { ...habit, history: newHistory };
+          }
+        }
+        return habit;
+      });
+      
       setTasks(tasksData);
-      setHabits(habitsData);
+      setHabits(migratedHabits);
       setFinance(financeData);
       setOnboarding(onboardingData);
       setYearlyReports(reportsData);
+      
+      // Сохраняем мигрированные данные, если была миграция
+      if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
+        await saveHabits(migratedHabits);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -86,17 +126,24 @@ export function useCloudStorage() {
   const updateHabits = useCallback(async (newHabits: Habit[]) => {
     // Миграция старой структуры history (boolean) в новую (объект)
     const migratedHabits = newHabits.map(habit => {
-      if (habit.history && typeof Object.values(habit.history)[0] === 'boolean') {
-        const newHistory: Habit['history'] = {};
-        Object.keys(habit.history).forEach(date => {
-          const oldValue = habit.history[date];
-          if (typeof oldValue === 'boolean') {
-            newHistory[date] = { completed: oldValue };
-          } else {
-            newHistory[date] = oldValue;
-          }
-        });
-        return { ...habit, history: newHistory };
+      if (habit.history && Object.keys(habit.history).length > 0) {
+        const firstValue = Object.values(habit.history)[0];
+        if (typeof firstValue === 'boolean') {
+          const newHistory: Habit['history'] = {};
+          Object.keys(habit.history).forEach(date => {
+            const oldValue = habit.history[date];
+            if (typeof oldValue === 'boolean') {
+              newHistory[date] = { completed: oldValue };
+            } else {
+              newHistory[date] = oldValue;
+            }
+          });
+          return { ...habit, history: newHistory };
+        }
+      }
+      // Убеждаемся, что history всегда объект с правильной структурой
+      if (!habit.history) {
+        return { ...habit, history: {} };
       }
       return habit;
     });
