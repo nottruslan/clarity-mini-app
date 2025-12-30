@@ -280,30 +280,11 @@ export default function FinancePage({ storage }: FinancePageProps) {
           budgets={storage.finance.budgets || []}
           transactions={storage.finance.transactions}
         />
-        <div style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-          display: 'flex',
-          gap: '12px',
-          justifyContent: 'center'
-        }}>
-          <button
-            onClick={() => setShowBudget(true)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: '1px solid var(--tg-theme-button-color)',
-              backgroundColor: 'transparent',
-              color: 'var(--tg-theme-button-color)',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            💰 Управление бюджетом
-          </button>
-        </div>
-        <StatisticsView finance={storage.finance} period={period} />
+        <StatisticsView 
+          finance={storage.finance} 
+          period={period}
+          onBudgetClick={() => setShowBudget(true)}
+        />
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
