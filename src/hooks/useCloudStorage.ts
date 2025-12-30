@@ -1,0 +1,162 @@
+import { useState, useEffect, useCallback } from 'react';
+import {
+  getTasks,
+  saveTasks,
+  getHabits,
+  saveHabits,
+  getFinanceData,
+  saveFinanceData,
+  getOnboardingFlags,
+  saveOnboardingFlags,
+  type Task,
+  type Habit,
+  type FinanceData,
+  type OnboardingFlags
+} from '../utils/storage';
+
+export function useCloudStorage() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [finance, setFinance] = useState<FinanceData>({ transactions: [], categories: [] });
+  const [onboarding, setOnboarding] = useState<OnboardingFlags>({
+    tasks: false,
+    habits: false,
+    finance: false,
+    languages: false
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Загрузка данных при монтировании
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      const [tasksData, habitsData, financeData, onboardingData] = await Promise.all([
+        getTasks(),
+        getHabits(),
+        getFinanceData(),
+        getOnboardingFlags()
+      ]);
+      
+      setTasks(tasksData);
+      setHabits(habitsData);
+      setFinance(financeData);
+      setOnboarding(onboardingData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Tasks
+  const updateTasks = useCallback(async (newTasks: Task[]) => {
+    setTasks(newTasks);
+    await saveTasks(newTasks);
+  }, []);
+
+  const addTask = useCallback(async (task: Task) => {
+    const newTasks = [...tasks, task];
+    await updateTasks(newTasks);
+  }, [tasks, updateTasks]);
+
+  const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
+    const newTasks = tasks.map(task => 
+      task.id === id ? { ...task, ...updates } : task
+    );
+    await updateTasks(newTasks);
+  }, [tasks, updateTasks]);
+
+  const deleteTask = useCallback(async (id: string) => {
+    const newTasks = tasks.filter(task => task.id !== id);
+    await updateTasks(newTasks);
+  }, [tasks, updateTasks]);
+
+  // Habits
+  const updateHabits = useCallback(async (newHabits: Habit[]) => {
+    setHabits(newHabits);
+    await saveHabits(newHabits);
+  }, []);
+
+  const addHabit = useCallback(async (habit: Habit) => {
+    const newHabits = [...habits, habit];
+    await updateHabits(newHabits);
+  }, [habits, updateHabits]);
+
+  const updateHabit = useCallback(async (id: string, updates: Partial<Habit>) => {
+    const newHabits = habits.map(habit => 
+      habit.id === id ? { ...habit, ...updates } : habit
+    );
+    await updateHabits(newHabits);
+  }, [habits, updateHabits]);
+
+  const deleteHabit = useCallback(async (id: string) => {
+    const newHabits = habits.filter(habit => habit.id !== id);
+    await updateHabits(newHabits);
+  }, [habits, updateHabits]);
+
+  // Finance
+  const updateFinance = useCallback(async (newFinance: FinanceData) => {
+    setFinance(newFinance);
+    await saveFinanceData(newFinance);
+  }, []);
+
+  const addTransaction = useCallback(async (transaction: FinanceData['transactions'][0]) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      transactions: [...finance.transactions, transaction]
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
+  const addCategory = useCallback(async (category: FinanceData['categories'][0]) => {
+    const newFinance: FinanceData = {
+      ...finance,
+      categories: [...finance.categories, category]
+    };
+    await updateFinance(newFinance);
+  }, [finance, updateFinance]);
+
+  // Onboarding
+  const markOnboardingShown = useCallback(async (section: keyof OnboardingFlags) => {
+    const newOnboarding = { ...onboarding, [section]: true };
+    setOnboarding(newOnboarding);
+    await saveOnboardingFlags(newOnboarding);
+  }, [onboarding]);
+
+  return {
+    // Data
+    tasks,
+    habits,
+    finance,
+    onboarding,
+    loading,
+    
+    // Tasks
+    updateTasks,
+    addTask,
+    updateTask,
+    deleteTask,
+    
+    // Habits
+    updateHabits,
+    addHabit,
+    updateHabit,
+    deleteHabit,
+    
+    // Finance
+    updateFinance,
+    addTransaction,
+    addCategory,
+    
+    // Onboarding
+    markOnboardingShown,
+    
+    // Reload
+    reload: loadAllData
+  };
+}
+

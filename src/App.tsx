@@ -1,126 +1,61 @@
-import { useState, useEffect } from 'react';
-import { AppRoot } from '@telegram-apps/telegram-ui';
-import { initMiniApp, initViewport } from '@telegram-apps/sdk-react';
-import { Layout } from './components/Layout';
-import { Welcome } from './components/Welcome';
-import { AppShell } from './components/AppShell';
-import { useTelegramTheme } from './hooks/useTelegramTheme';
-import { useOnboarding } from './hooks/useOnboarding';
+import { useState } from 'react';
+import { useTelegram } from './hooks/useTelegram';
+import { useCloudStorage } from './hooks/useCloudStorage';
+import SectionSelector, { type Section } from './components/Navigation/SectionSelector';
+import SlideContainer from './components/Navigation/SlideContainer';
+import HomePage from './pages/HomePage';
+import TasksPage from './pages/TasksPage';
+import HabitsPage from './pages/HabitsPage';
+import FinancePage from './pages/FinancePage';
+import LanguagesPage from './pages/LanguagesPage';
 
-/**
- * Главный компонент приложения
- * Управляет переключением между Welcome экраном и основным AppShell
- * Использует CloudStorage для определения первого запуска
- */
-export function App() {
-  const theme = useTelegramTheme();
-  const { isOnboardingComplete, isLoading, completeOnboarding } = useOnboarding();
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isSDKReady, setIsSDKReady] = useState(false);
+function App() {
+  const { isReady } = useTelegram();
+  const storage = useCloudStorage();
+  const [currentSection, setCurrentSection] = useState<Section>('home');
 
-  // Отладка: отслеживаем изменения isOnboardingComplete
-  useEffect(() => {
-    console.log('isOnboardingComplete changed:', isOnboardingComplete);
-    console.log('isLoading:', isLoading);
-  }, [isOnboardingComplete, isLoading]);
-
-  // Инициализация Telegram SDK
-  useEffect(() => {
-    const initSDK = async () => {
-      try {
-        const [miniApp] = initMiniApp();
-        miniApp.ready();
-        
-        // Инициализируем viewport (может быть Promise)
-        try {
-          const [viewportPromise] = initViewport();
-          if (viewportPromise instanceof Promise) {
-            const viewport = await viewportPromise;
-            if (viewport && typeof viewport.expand === 'function') {
-              viewport.expand();
-            }
-          }
-        } catch (viewportError) {
-          // Viewport expand не критичен
-          console.warn('Viewport expand failed:', viewportError);
-        }
-        
-        setIsSDKReady(true);
-        
-        if (import.meta.env.DEV) {
-          console.log('🚀 Clarity Mini App initialized');
-        }
-      } catch (error) {
-        console.error('Failed to initialize SDK:', error);
-        // Продолжаем работу даже если SDK не инициализировался (для разработки в браузере)
-        setIsSDKReady(true);
-      }
-    };
-    
-    initSDK();
-  }, []);
-
-  const handleWelcomeComplete = async () => {
-    console.log('handleWelcomeComplete called');
-    setIsTransitioning(true);
-    // Сначала сохраняем в CloudStorage
-    console.log('Calling completeOnboarding...');
-    await completeOnboarding();
-    console.log('completeOnboarding finished');
-    // Даем время на анимацию fade out перед переключением
-    setTimeout(() => {
-      setIsTransitioning(false);
-    }, 300);
-  };
-
-  // Показываем загрузку пока SDK и CloudStorage инициализируются
-  if (!isSDKReady || isLoading) {
+  if (!isReady || storage.loading) {
     return (
-      <AppRoot appearance={theme}>
-        <Layout>
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '48px',
-                opacity: 0.5,
-              }}
-            >
-              ⏳
-            </div>
-          </div>
-        </Layout>
-      </AppRoot>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh' 
+      }}>
+        Загрузка...
+      </div>
     );
   }
 
+  const renderSection = () => {
+    switch (currentSection) {
+      case 'home':
+        return <HomePage onSectionChange={setCurrentSection} />;
+      case 'tasks':
+        return <TasksPage storage={storage} />;
+      case 'habits':
+        return <HabitsPage storage={storage} />;
+      case 'finance':
+        return <FinancePage storage={storage} />;
+      case 'languages':
+        return <LanguagesPage />;
+      default:
+        return <HomePage onSectionChange={setCurrentSection} />;
+    }
+  };
+
   return (
-    <AppRoot appearance={theme}>
-      <Layout>
-        <div
-          className={isTransitioning ? 'fade-slide-exit-active' : ''}
-          style={{
-            width: '100%',
-            height: '100%',
-          }}
-        >
-          {!isOnboardingComplete ? (
-            <Welcome onComplete={handleWelcomeComplete} />
-          ) : (
-            <div className={isTransitioning ? '' : 'fade-slide-enter-active'}>
-              <AppShell />
-            </div>
-          )}
-        </div>
-      </Layout>
-    </AppRoot>
+    <div className="app">
+      {currentSection !== 'home' && (
+        <SectionSelector 
+          currentSection={currentSection} 
+          onSectionChange={setCurrentSection} 
+        />
+      )}
+      {renderSection()}
+    </div>
   );
 }
+
+export default App;
 
