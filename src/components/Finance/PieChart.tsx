@@ -144,31 +144,6 @@ export default function PieChart({ transactions, type }: PieChartProps) {
             );
           })}
         </svg>
-        
-        {/* Центральный текст с общей суммой */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          textAlign: 'center',
-          pointerEvents: 'none'
-        }}>
-          <div style={{
-            fontSize: '24px',
-            fontWeight: '700',
-            color: type === 'income' ? '#4caf50' : '#f44336'
-          }}>
-            {formatCurrency(total)}
-          </div>
-          <div style={{
-            fontSize: '12px',
-            color: 'var(--tg-theme-hint-color)',
-            marginTop: '4px'
-          }}>
-            Всего
-          </div>
-        </div>
       </div>
 
       {/* Легенда */}
