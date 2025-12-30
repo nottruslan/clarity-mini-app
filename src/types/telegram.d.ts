@@ -5,7 +5,10 @@ declare global {
         ready: () => void;
         expand: () => void;
         close: () => void;
-        setHeaderColor: (color: string) => void;
+        setHeaderColor: (color: string | 'bg_color' | 'secondary_bg_color') => void;
+        viewportHeight: number;
+        viewportStableHeight: number;
+        isExpanded: boolean;
         BackButton?: {
           show: () => void;
           hide: () => void;

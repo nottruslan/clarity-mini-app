@@ -58,24 +58,38 @@ function App() {
     if (navigationHistory[navigationHistory.length - 1] !== section) {
       setNavigationHistory([...navigationHistory, section]);
     }
-    
-    // Меняем цвет системного header Telegram
-    if (tg?.setHeaderColor) {
-      const colors = sectionColors[section];
-      tg.setHeaderColor(colors.primary);
-    }
   };
 
   // Устанавливаем цвет header при монтировании и смене раздела
   useEffect(() => {
-    if (tg?.setHeaderColor && currentSection !== 'home') {
-      const colors = sectionColors[currentSection];
-      tg.setHeaderColor(colors.primary);
-    } else if (tg?.setHeaderColor && currentSection === 'home') {
-      // На главной странице возвращаем стандартный цвет
-      tg.setHeaderColor('#ffffff');
-    }
-  }, [currentSection, tg]);
+    if (!tg?.setHeaderColor || !isReady) return;
+    
+    // Проверяем, что WebApp полностью инициализирован
+    const updateHeaderColor = () => {
+      try {
+        if (currentSection !== 'home') {
+          const colors = sectionColors[currentSection];
+          // Пробуем разные форматы цвета
+          tg.setHeaderColor(colors.primary);
+          // Также пробуем без #
+          if (colors.primary.startsWith('#')) {
+            tg.setHeaderColor(colors.primary.substring(1));
+          }
+        } else {
+          // На главной странице возвращаем стандартный цвет
+          tg.setHeaderColor('#ffffff');
+          tg.setHeaderColor('ffffff');
+        }
+      } catch (error) {
+        console.error('Error setting header color:', error);
+      }
+    };
+
+    // Используем небольшую задержку для гарантии готовности
+    const timeoutId = setTimeout(updateHeaderColor, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentSection, tg, isReady]);
 
   if (!isReady || storage.loading) {
     return (

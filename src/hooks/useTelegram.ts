@@ -36,6 +36,20 @@ export function useTelegram() {
           photo_url: tgUser.photo_url
         });
       }
+      
+      // Устанавливаем начальный цвет header после небольшой задержки
+      // чтобы убедиться, что WebApp полностью инициализирован
+      setTimeout(() => {
+        if (tg.setHeaderColor) {
+          try {
+            // Устанавливаем белый цвет по умолчанию
+            tg.setHeaderColor('#ffffff');
+            console.log('Initial header color set to white, isExpanded:', tg.isExpanded);
+          } catch (error) {
+            console.error('Error setting initial header color:', error);
+          }
+        }
+      }, 200);
     }
     
     setIsReady(true);
