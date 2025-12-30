@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Habit } from '../../utils/storage';
 
 interface EditHabitModalProps {
@@ -33,6 +33,31 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
   const [targetValue, setTargetValue] = useState(habit.targetValue?.toString() || '');
   const [goalDays, setGoalDays] = useState(habit.goalDays?.toString() || '');
 
+  // Блокируем скролл body при открытии модального окна
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const scrollY = window.scrollY;
+    
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.top = `-${scrollY}px`;
+    
+    // Фиксируем viewport
+    const originalHeight = window.innerHeight;
+    document.documentElement.style.setProperty('--vh', `${originalHeight * 0.01}px`);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.width = '';
+      document.body.style.top = '';
+      window.scrollTo(0, scrollY);
+      document.documentElement.style.removeProperty('--vh');
+    };
+  }, []);
+
   const handleSave = () => {
     const updates: Partial<Habit> = {
       name,
@@ -46,30 +71,90 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
     onClose();
   };
 
+  const handleIconClick = (ic: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Предотвращаем автоматический скролл
+    if (e.currentTarget) {
+      e.currentTarget.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+    }
+    setIcon(ic);
+  };
+
+  const handleIconTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+  };
+
+  const handleIconTouchEnd = (ic: string, e: React.TouchEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIcon(ic);
+  };
+
+  const handleCategoryClick = (catId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Предотвращаем автоматический скролл
+    if (e.currentTarget) {
+      e.currentTarget.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+    }
+    setCategory(catId);
+  };
+
+  const handleCategoryTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+  };
+
+  const handleCategoryTouchEnd = (catId: string, e: React.TouchEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCategory(catId);
+  };
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10000,
-      padding: '20px'
-    }} onClick={onClose}>
-      <div style={{
-        background: 'var(--tg-theme-bg-color)',
-        borderRadius: '16px',
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10000,
         padding: '20px',
-        maxWidth: '400px',
-        width: '100%',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-      }} onClick={(e) => e.stopPropagation()}>
+        scrollBehavior: 'auto',
+        overscrollBehavior: 'contain',
+        touchAction: 'pan-y'
+      }} 
+      onClick={onClose}
+      onTouchStart={(e) => {
+        // Предотвращаем движение при touch на фоне
+        const target = e.target as HTMLElement;
+        if (target === e.currentTarget) {
+          e.preventDefault();
+        }
+      }}
+    >
+      <div 
+        style={{
+          background: 'var(--tg-theme-bg-color)',
+          borderRadius: '16px',
+          padding: '20px',
+          maxWidth: '400px',
+          width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+          scrollBehavior: 'auto',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch'
+        }} 
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+      >
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -102,7 +187,16 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div 
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '16px',
+            overscrollBehavior: 'contain',
+            scrollBehavior: 'auto'
+          }}
+          onTouchStart={(e) => e.stopPropagation()}
+        >
           <div>
             <label style={{
               fontSize: '14px',
@@ -129,15 +223,22 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
             }}>
               Иконка
             </label>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(6, 1fr)',
-              gap: '8px'
-            }}>
+            <div 
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(6, 1fr)',
+                gap: '8px',
+                touchAction: 'none'
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
               {icons.map((ic) => (
                 <button
                   key={ic}
-                  onClick={() => setIcon(ic)}
+                  onClick={(e) => handleIconClick(ic, e)}
+                  onTouchStart={handleIconTouchStart}
+                  onTouchEnd={(e) => handleIconTouchEnd(ic, e)}
                   style={{
                     aspectRatio: '1',
                     borderRadius: '8px',
@@ -146,7 +247,9 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
                       ? 'rgba(51, 144, 236, 0.1)' 
                       : 'var(--tg-theme-bg-color)',
                     fontSize: '24px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    touchAction: 'none',
+                    WebkitTapHighlightColor: 'transparent'
                   }}
                 >
                   {ic}
@@ -164,15 +267,22 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
             }}>
               Категория
             </label>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '8px'
-            }}>
+            <div 
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                touchAction: 'none'
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
               {categories.map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => setCategory(cat.id)}
+                  onClick={(e) => handleCategoryClick(cat.id, e)}
+                  onTouchStart={handleCategoryTouchStart}
+                  onTouchEnd={(e) => handleCategoryTouchEnd(cat.id, e)}
                   style={{
                     padding: '12px',
                     borderRadius: '8px',
@@ -186,7 +296,9 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '4px',
+                    touchAction: 'none',
+                    WebkitTapHighlightColor: 'transparent'
                   }}
                 >
                   <span>{cat.icon}</span>
