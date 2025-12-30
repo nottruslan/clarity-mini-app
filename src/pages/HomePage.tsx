@@ -39,13 +39,15 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
       display: 'flex', 
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: '32px 16px'
+      justifyContent: 'flex-start',
+      padding: '20px 16px',
+      overflow: 'hidden',
+      height: '100%'
     }}>
       <div style={{ 
         width: '100%', 
-        maxWidth: '300px', 
-        marginBottom: '32px' 
+        maxWidth: '200px', 
+        marginBottom: '16px' 
       }}>
         <LottieAnimation loop={true} autoplay={true} />
       </div>
@@ -53,7 +55,7 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
       <h1 style={{ 
         fontSize: '28px', 
         fontWeight: '600', 
-        marginBottom: '8px',
+        marginBottom: '4px',
         textAlign: 'center'
       }}>
         Clarity
@@ -62,7 +64,7 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
       <p style={{ 
         fontSize: '16px', 
         color: 'var(--tg-theme-hint-color)',
-        marginBottom: '32px',
+        marginBottom: '16px',
         textAlign: 'center'
       }}>
         Инструменты для личной эффективности
@@ -73,7 +75,7 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
         maxWidth: '400px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px'
+        gap: '8px'
       }}>
         {sections.map((section) => (
           <button
