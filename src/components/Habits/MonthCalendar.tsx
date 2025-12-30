@@ -3,10 +3,11 @@ import { Habit } from '../../utils/storage';
 
 interface MonthCalendarProps {
   habit: Habit;
+  selectedDate?: string;
   onDateClick: (date: string, value?: number) => void;
 }
 
-export default function MonthCalendar({ habit, onDateClick }: MonthCalendarProps) {
+export default function MonthCalendar({ habit, selectedDate, onDateClick }: MonthCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
@@ -221,6 +222,7 @@ export default function MonthCalendar({ habit, onDateClick }: MonthCalendarProps
 
           const isPastDate = day.date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
           const isFutureDate = day.date > new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const isSelected = selectedDate === day.dateKey;
 
           return (
             <button
@@ -230,15 +232,21 @@ export default function MonthCalendar({ habit, onDateClick }: MonthCalendarProps
               style={{
                 aspectRatio: '1',
                 borderRadius: '4px',
-                border: day.isToday ? '2px solid var(--tg-theme-button-color)' : 'none',
-                background: day.isCompleted 
+                border: isSelected 
+                  ? '2px solid var(--tg-theme-accent-text-color)' 
+                  : day.isToday 
+                  ? '2px solid var(--tg-theme-button-color)' 
+                  : 'none',
+                background: isSelected
+                  ? 'rgba(51, 144, 236, 0.2)'
+                  : day.isCompleted 
                   ? 'var(--tg-theme-button-color)' 
                   : 'var(--tg-theme-secondary-bg-color)',
                 color: day.isCompleted 
                   ? 'var(--tg-theme-button-text-color)' 
                   : 'var(--tg-theme-text-color)',
                 fontSize: '12px',
-                fontWeight: day.isToday ? '600' : '400',
+                fontWeight: (isSelected || day.isToday) ? '600' : '400',
                 cursor: isFutureDate ? 'not-allowed' : 'pointer',
                 opacity: isFutureDate ? 0.3 : 1,
                 display: 'flex',

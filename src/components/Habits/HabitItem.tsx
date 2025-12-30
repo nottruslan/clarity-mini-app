@@ -22,25 +22,78 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
   const [showDetails, setShowDetails] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedHistoryDate, setSelectedHistoryDate] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [inputValue, setInputValue] = useState<string>('');
 
   const goalProgress = calculateGoalProgress(habit);
 
   const handleCheck = () => {
-    if (habit.unit && habit.targetValue) {
-      // Если есть единица измерения, нужно ввести значение
-      const value = inputValue ? parseFloat(inputValue) : undefined;
-      onCheck(value);
+    if (selectedDate) {
+      // Если выбрана дата, отмечаем её
+      const value = habit.unit && habit.targetValue && inputValue ? parseFloat(inputValue) : undefined;
+      // Вызываем onCheck с выбранной датой через специальный обработчик
+      handleDateCheck(selectedDate, value);
+      setSelectedDate('');
       setInputValue('');
     } else {
-      onCheck();
+      // Обычная логика для сегодня
+      if (habit.unit && habit.targetValue) {
+        const value = inputValue ? parseFloat(inputValue) : undefined;
+        onCheck(value);
+        setInputValue('');
+      } else {
+        onCheck();
+      }
+    }
+  };
+
+  const handleDateCheck = (dateKey: string, value?: number) => {
+    // Создаем новую историю с отметкой на выбранную дату
+    const historyEntry = habit.history[dateKey];
+    const isAlreadyChecked = historyEntry?.completed || false;
+
+    let newHistory: Habit['history'];
+    
+    if (isAlreadyChecked) {
+      // Убираем отметку
+      newHistory = { ...habit.history };
+      delete newHistory[dateKey];
+    } else {
+      // Добавляем отметку
+      newHistory = {
+        ...habit.history,
+        [dateKey]: {
+          completed: true,
+          value: value
+        }
+      };
+    }
+    
+    onHistoryUpdate(newHistory);
+  };
+
+  const handleDeleteClick = () => {
+    if (window.Telegram?.WebApp?.showConfirm) {
+      window.Telegram.WebApp.showConfirm(
+        `Удалить "${habit.name}"?`,
+        (confirmed: boolean) => {
+          if (confirmed) {
+            onDelete();
+          }
+        }
+      );
+    } else {
+      // Fallback на обычный confirm
+      if (window.confirm(`Удалить "${habit.name}"?`)) {
+        onDelete();
+      }
     }
   };
 
   const today = new Date().toISOString().split('T')[0];
   const isTodayCompleted = habit.history[today]?.completed || false;
+  const isSelectedDateCompleted = selectedDate ? habit.history[selectedDate]?.completed || false : false;
 
   return (
     <>
@@ -130,7 +183,7 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
               ✏️
             </button>
             <button
-              onClick={() => setShowDeleteConfirm(true)}
+              onClick={handleDeleteClick}
               style={{
                 width: '32px',
                 height: '32px',
@@ -190,14 +243,21 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
 
         <MonthCalendar 
           habit={habit}
+          selectedDate={selectedDate}
           onDateClick={(dateKey, value) => {
-            // При клике на дату открываем модальное окно редактирования истории
-            setSelectedHistoryDate(dateKey);
-            setShowHistoryModal(true);
+            // При клике на дату просто выбираем её
+            if (selectedDate === dateKey) {
+              // Если кликнули на уже выбранную дату - снимаем выбор
+              setSelectedDate('');
+            } else {
+              setSelectedDate(dateKey);
+            }
           }}
         />
 
-        {habit.unit && habit.targetValue && !isTodayCompleted && (
+        {habit.unit && habit.targetValue && (
+          (selectedDate && !isSelectedDateCompleted) || (!selectedDate && !isTodayCompleted)
+        ) && (
           <div style={{ marginBottom: '12px' }}>
             <label style={{
               fontSize: '14px',
@@ -221,29 +281,69 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
         )}
 
         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          {selectedDate ? (
+            <>
+              <button
+                className="tg-button"
+                onClick={handleCheck}
+                style={{ flex: 1 }}
+                disabled={isSelectedDateCompleted}
+              >
+                {isSelectedDateCompleted 
+                  ? `✓ Выполнено ${new Date(selectedDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
+                  : `Отметить ${new Date(selectedDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
+                }
+              </button>
+              <button
+                className="tg-button"
+                onClick={() => {
+                  setSelectedDate('');
+                  setInputValue('');
+                }}
+                style={{
+                  background: 'var(--tg-theme-secondary-bg-color)',
+                  color: 'var(--tg-theme-text-color)',
+                  minWidth: '100px'
+                }}
+              >
+                Отменить
+              </button>
+            </>
+          ) : (
+            <button
+              className="tg-button"
+              onClick={handleCheck}
+              style={{ flex: 1 }}
+              disabled={isTodayCompleted}
+            >
+              {isTodayCompleted ? '✓ Выполнено сегодня' : 'Отметить сегодня'}
+            </button>
+          )}
           <button
-            className="tg-button"
-            onClick={handleCheck}
-            style={{ flex: 1 }}
-            disabled={isTodayCompleted}
-          >
-            {isTodayCompleted ? '✓ Выполнено сегодня' : 'Отметить сегодня'}
-          </button>
-          <button
-            onClick={() => setShowHistoryModal(true)}
+            onClick={handleDeleteClick}
             style={{
               padding: '12px',
               borderRadius: '10px',
               border: 'none',
               background: 'var(--tg-theme-secondary-bg-color)',
-              color: 'var(--tg-theme-text-color)',
-              fontSize: '14px',
+              color: 'var(--tg-theme-destructive-text-color)',
+              fontSize: '18px',
               cursor: 'pointer',
-              minWidth: '44px'
+              minWidth: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.2s'
             }}
-            title="Редактировать историю"
+            title="Удалить привычку"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 59, 48, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--tg-theme-secondary-bg-color)';
+            }}
           >
-            📅
+            ✕
           </button>
         </div>
 
@@ -295,74 +395,6 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
         />
       )}
 
-      {showDeleteConfirm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
-        }} onClick={() => setShowDeleteConfirm(false)}>
-          <div style={{
-            background: 'var(--tg-theme-bg-color)',
-            borderRadius: '16px',
-            padding: '20px',
-            maxWidth: '320px',
-            width: '100%',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-          }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              marginBottom: '12px',
-              color: 'var(--tg-theme-text-color)'
-            }}>
-              Удалить привычку?
-            </h3>
-            <p style={{
-              fontSize: '14px',
-              color: 'var(--tg-theme-hint-color)',
-              marginBottom: '20px',
-              lineHeight: '1.5'
-            }}>
-              Вы уверены, что хотите удалить "{habit.name}"? Это действие нельзя отменить.
-            </p>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                className="tg-button"
-                onClick={() => {
-                  onDelete();
-                  setShowDeleteConfirm(false);
-                }}
-                style={{
-                  flex: 1,
-                  background: 'var(--tg-theme-destructive-text-color)',
-                  color: 'white'
-                }}
-              >
-                Удалить
-              </button>
-              <button
-                className="tg-button"
-                onClick={() => setShowDeleteConfirm(false)}
-                style={{
-                  flex: 1,
-                  background: 'var(--tg-theme-secondary-bg-color)',
-                  color: 'var(--tg-theme-text-color)'
-                }}
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
