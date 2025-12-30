@@ -137,7 +137,7 @@ export default function HabitList({
       
       // Обновляем order для всех привычек
       const updatedHabits = habits.map(habit => {
-        const newIndex = newHabits.findIndex(h => h.id === habit.id);
+        const newIndex = newHabits.findIndex((h: Habit) => h.id === habit.id);
         if (newIndex !== -1) {
           return { ...habit, order: newIndex };
         }
