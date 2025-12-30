@@ -850,6 +850,7 @@ body {
   margin-top: 16px;
   min-height: 56px;
   transition: border-color 0.2s;
+  touch-action: pan-y;
 }
 
 .wizard-input:focus {
