@@ -18,6 +18,12 @@ export function App() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSDKReady, setIsSDKReady] = useState(false);
 
+  // Отладка: отслеживаем изменения isOnboardingComplete
+  useEffect(() => {
+    console.log('isOnboardingComplete changed:', isOnboardingComplete);
+    console.log('isLoading:', isLoading);
+  }, [isOnboardingComplete, isLoading]);
+
   // Инициализация Telegram SDK
   useEffect(() => {
     const initSDK = async () => {
@@ -55,10 +61,14 @@ export function App() {
   }, []);
 
   const handleWelcomeComplete = async () => {
+    console.log('handleWelcomeComplete called');
     setIsTransitioning(true);
-    // Даем время на анимацию fade out
-    setTimeout(async () => {
-      await completeOnboarding();
+    // Сначала сохраняем в CloudStorage
+    console.log('Calling completeOnboarding...');
+    await completeOnboarding();
+    console.log('completeOnboarding finished');
+    // Даем время на анимацию fade out перед переключением
+    setTimeout(() => {
       setIsTransitioning(false);
     }, 300);
   };

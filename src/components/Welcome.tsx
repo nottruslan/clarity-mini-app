@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Lottie from 'lottie-react';
 import { initMainButton } from '@telegram-apps/sdk-react';
-import animationData from '../assets/welcome-animation.json';
+// Временно используем заглушку, пока не будет добавлена реальная анимация с персонажем
+// import animationData from '../assets/welcome-animation.json';
 
 interface WelcomeProps {
   onComplete: () => void;
@@ -13,30 +14,65 @@ interface WelcomeProps {
  * Использует Telegram MainButton для CTA
  */
 export function Welcome({ onComplete }: WelcomeProps) {
+  const [animationData, setAnimationData] = useState<any>(null);
+
+  // Загружаем анимацию с персонажем
   useEffect(() => {
-    try {
-      const [mainButton] = initMainButton();
-      
-      // Настройка MainButton
-      mainButton.setText('Начать');
-      mainButton.enable();
-      mainButton.show();
+    // Вариант 1: Загрузка по URL (раскомментируй и укажи ссылку на Lottie JSON)
+    // Пример: https://lottie.host/embed/abc123.json
+    // fetch('https://lottie.host/embed/...')
+    //   .then(res => res.json())
+    //   .then(data => setAnimationData(data))
+    //   .catch(() => {
+    //     console.warn('Failed to load animation from URL');
+    //   });
 
-      // Обработчик нажатия
-      const handleClick = () => {
-        onComplete();
-      };
+    // Вариант 2: Локальный файл (добавь файл welcome-animation.json в src/assets/)
+    // Файл должен содержать Lottie анимацию с персонажем в Telegram стиле
+    // См. ANIMATION_INSTRUCTIONS.md для инструкций
+    const loadAnimation = async () => {
+      try {
+        const module = await import('../assets/welcome-animation.json');
+        setAnimationData(module.default);
+      } catch (error) {
+        console.warn('Animation file not found. Add welcome-animation.json to src/assets/');
+        console.warn('See ANIMATION_INSTRUCTIONS.md for details');
+      }
+    };
+    loadAnimation();
+  }, []);
 
-      mainButton.on('click', handleClick);
+  useEffect(() => {
+    const setupMainButton = async () => {
+      try {
+        const result = initMainButton();
+        const [mainButton] = result instanceof Promise ? await result : result;
+        
+        // Настройка MainButton
+        mainButton.setText('Начать');
+        mainButton.enable();
+        mainButton.show();
 
-      // Cleanup при размонтировании
-      return () => {
-        mainButton.off('click', handleClick);
-        mainButton.hide();
-      };
-    } catch (error) {
-      console.error('Failed to initialize MainButton:', error);
-    }
+        // Обработчик нажатия
+        const handleClick = () => {
+          console.log('MainButton clicked, calling onComplete');
+          onComplete();
+        };
+
+        mainButton.on('click', handleClick);
+
+        // Cleanup при размонтировании
+        return () => {
+          mainButton.off('click', handleClick);
+          mainButton.hide();
+        };
+      } catch (error) {
+        console.error('Failed to initialize MainButton:', error);
+        // Fallback: добавляем обычную кнопку если MainButton не работает
+      }
+    };
+    
+    setupMainButton();
   }, [onComplete]);
 
   return (
@@ -53,20 +89,36 @@ export function Welcome({ onComplete }: WelcomeProps) {
         gap: '32px',
       }}
     >
-      {/* Lottie Animation */}
+      {/* Lottie Animation с персонажем */}
       <div
         style={{
-          width: '200px',
-          height: '200px',
+          width: '280px',
+          height: '280px',
           marginBottom: '20px',
         }}
       >
-        <Lottie
-          animationData={animationData}
-          loop={true}
-          autoplay={true}
-          style={{ width: '100%', height: '100%' }}
-        />
+        {animationData ? (
+          <Lottie
+            animationData={animationData}
+            loop={true}
+            autoplay={true}
+            style={{ width: '100%', height: '100%' }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--tg-theme-hint-color)',
+              fontSize: '14px',
+            }}
+          >
+            Загрузка...
+          </div>
+        )}
       </div>
 
       {/* Title */}
@@ -111,6 +163,24 @@ export function Welcome({ onComplete }: WelcomeProps) {
         <FeatureItem icon="💰" text="Фиксируй доходы и расходы" />
         <FeatureItem icon="🌍" text="Изучай языки" />
       </div>
+
+      {/* Fallback кнопка (если MainButton не работает) */}
+      <button
+        onClick={onComplete}
+        style={{
+          marginTop: '20px',
+          padding: '12px 24px',
+          backgroundColor: 'var(--tg-theme-button-color, #007AFF)',
+          color: 'var(--tg-theme-button-text-color, #FFFFFF)',
+          borderRadius: '12px',
+          fontSize: '16px',
+          fontWeight: '600',
+          border: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        Начать
+      </button>
 
       {/* Spacer для MainButton */}
       <div style={{ height: '80px' }} />

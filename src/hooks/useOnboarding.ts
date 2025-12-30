@@ -33,12 +33,18 @@ export function useOnboarding() {
 
   const completeOnboarding = async () => {
     try {
+      console.log('Starting completeOnboarding...');
       const result = initCloudStorage();
       const [cloudStorage] = result instanceof Promise ? await result : result;
+      console.log('CloudStorage initialized, saving flag...');
       await cloudStorage.set(ONBOARDING_KEY, 'true');
+      console.log('Onboarding flag saved, updating state...');
       setIsOnboardingComplete(true);
+      console.log('Onboarding completed successfully');
     } catch (error) {
       console.error('Error saving onboarding status:', error);
+      // Даже при ошибке обновляем состояние, чтобы пользователь мог продолжить
+      setIsOnboardingComplete(true);
     }
   };
 
