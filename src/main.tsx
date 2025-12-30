@@ -41,9 +41,9 @@ if (import.meta.env.DEV) {
   console.log('📱 Platform:', miniApp.platform());
   console.log('🎨 Theme:', themeParams.isDark() ? 'dark' : 'light');
   console.log('📐 Viewport:', {
-    width: viewport.width(),
-    height: viewport.height(),
-    isExpanded: viewport.isExpanded(),
+    width: viewport.width,
+    height: viewport.height,
+    isExpanded: viewport.isExpanded,
   });
   console.log('☁️ CloudStorage available:', !!cloudStorage);
 }

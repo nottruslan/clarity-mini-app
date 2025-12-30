@@ -13,8 +13,8 @@ interface LayoutProps {
  * - Адаптируется под compact/fullsize/fullscreen режимы
  */
 export function Layout({ children }: LayoutProps) {
-  const [viewportHeight, setViewportHeight] = useState(viewport.height());
-  const [isExpanded, setIsExpanded] = useState(viewport.isExpanded());
+  const [viewportHeight, setViewportHeight] = useState(viewport.height);
+  const [isExpanded, setIsExpanded] = useState(viewport.isExpanded);
 
   useEffect(() => {
     // Подписка на изменения viewport
