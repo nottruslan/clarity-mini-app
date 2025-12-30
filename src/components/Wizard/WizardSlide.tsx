@@ -44,27 +44,10 @@ export default function WizardSlide({
       handleViewportChange(); // Проверяем при монтировании
     }
 
-    // Предотвращаем движение при взаимодействии с карточками категорий
-    const preventScroll = (e: TouchEvent) => {
-      const target = e.target as HTMLElement;
-      const isCard = target.closest('.wizard-card');
-      
-      // Блокируем скролл только на карточках, чтобы они не двигались при клике
-      // Разрешаем скролл везде внутри wizard-slide-content и его дочерних элементов
-      if (isCard) {
-        e.preventDefault();
-      }
-      // Для всех остальных элементов - разрешаем скролл (не вызываем preventDefault)
-    };
-
-    // Добавляем обработчик для предотвращения движения экрана
-    document.addEventListener('touchmove', preventScroll, { passive: false });
-
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleViewportChange);
       }
-      document.removeEventListener('touchmove', preventScroll);
       document.documentElement.style.removeProperty('--vh');
     };
   }, []);

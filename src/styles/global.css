@@ -512,7 +512,6 @@ body {
   flex-direction: column;
   overflow: hidden;
   scroll-behavior: auto;
-  touch-action: pan-y;
 }
 
 .wizard-progress-bar {
@@ -586,6 +585,7 @@ body {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .wizard-slide-icon {
@@ -650,7 +650,7 @@ body {
   justify-content: center;
   gap: 8px;
   min-height: 60px;
-  touch-action: none;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   will-change: border-color, background-color, box-shadow;
   scroll-margin: 0;

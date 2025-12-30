@@ -30,12 +30,12 @@ export default function WizardCard({
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    // Предотвращаем движение экрана при touch
-    e.preventDefault();
+    // Разрешаем скролл, только предотвращаем всплытие события
+    e.stopPropagation();
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    e.preventDefault();
+    // Разрешаем скролл, только предотвращаем всплытие события
     e.stopPropagation();
     onClick();
   };
