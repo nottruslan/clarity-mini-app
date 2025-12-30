@@ -649,7 +649,7 @@ body {
   justify-content: center;
   gap: 8px;
   min-height: 60px;
-  touch-action: none;
+  touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
   will-change: border-color, background-color, box-shadow;
   scroll-margin: 0;

@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useRef } from 'react';
 
 interface WizardCardProps {
   icon?: string;
@@ -19,6 +19,9 @@ export default function WizardCard({
   onClick,
   children
 }: WizardCardProps) {
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const movedRef = useRef(false);
+
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -30,14 +33,34 @@ export default function WizardCard({
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    // Предотвращаем движение экрана при touch
-    e.preventDefault();
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    movedRef.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current) return;
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    
+    // Если движение больше 10px, считаем это скроллом
+    if (deltaX > 10 || deltaY > 10) {
+      movedRef.current = true;
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onClick();
+    // Обрабатываем клик только если не было движения (тап)
+    if (!movedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick();
+    }
+    
+    touchStartRef.current = null;
+    movedRef.current = false;
   };
 
   return (
@@ -45,6 +68,7 @@ export default function WizardCard({
       className={`wizard-card ${selected ? 'selected' : ''}`}
       onClick={handleClick}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {icon && (
