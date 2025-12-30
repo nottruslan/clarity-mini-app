@@ -844,5 +844,15 @@ body {
   color: var(--tg-theme-hint-color);
 }
 
+/* Скрытие скроллбаров везде */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE и Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 /* Старые стили форм удалены - теперь используется Wizard стиль */
 

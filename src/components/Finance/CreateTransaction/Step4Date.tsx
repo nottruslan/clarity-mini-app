@@ -47,13 +47,25 @@ export default function Step4Date({ type, amount, category, onNext, onBack }: St
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '16px', 
+        width: '100%',
+        overflowX: 'hidden',
+        touchAction: 'pan-y'
+      }}>
         <input
           type="date"
           className="wizard-input"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          style={{ fontSize: '18px' }}
+          style={{ 
+            fontSize: '18px',
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}
         />
 
         <div style={{

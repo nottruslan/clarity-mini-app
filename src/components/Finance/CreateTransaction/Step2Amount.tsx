@@ -30,7 +30,8 @@ export default function Step2Amount({ type, onNext, onBack }: Step2AmountProps) 
 
   const handleQuickAmount = (value: number) => {
     setAmount(value.toString());
-    inputRef.current?.focus();
+    // Не открываем клавиатуру при быстром выборе суммы
+    inputRef.current?.blur();
   };
 
   return (
