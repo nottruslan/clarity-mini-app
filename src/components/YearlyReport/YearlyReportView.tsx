@@ -15,6 +15,7 @@ interface EditingField {
   value: string;
   multiline?: boolean;
   isArray?: boolean;
+  arrayIndex?: number; // Индекс элемента в массиве для редактирования
 }
 
 export default function YearlyReportView({ report, onClose, onUpdate }: YearlyReportViewProps) {
@@ -26,8 +27,8 @@ export default function YearlyReportView({ report, onClose, onUpdate }: YearlyRe
     setLocalReport(report);
   }, [report]);
 
-  const handleFieldClick = (path: string[], title: string, value: string, multiline: boolean = true, isArray: boolean = false) => {
-    setEditingField({ path, title, value: value || '', multiline, isArray });
+  const handleFieldClick = (path: string[], title: string, value: string, multiline: boolean = true, isArray: boolean = false, arrayIndex?: number) => {
+    setEditingField({ path, title, value: value || '', multiline, isArray, arrayIndex });
   };
 
   const handleSaveField = async (newValue: string) => {
@@ -39,16 +40,48 @@ export default function YearlyReportView({ report, onClose, onUpdate }: YearlyRe
     // Навигация по пути и обновление значения
     for (let i = 0; i < editingField.path.length - 1; i++) {
       const key = editingField.path[i];
-      if (!current[key]) {
-        current[key] = {};
+      // Если ключ - это число, значит это индекс массива
+      const numKey = parseInt(key, 10);
+      if (!isNaN(numKey)) {
+        if (!Array.isArray(current)) {
+          current = [];
+        }
+        if (!current[numKey]) {
+          current[numKey] = {};
+        }
+        current = current[numKey];
+      } else {
+        if (!current[key]) {
+          // Если следующий ключ - число, создаем массив, иначе объект
+          const nextKey = editingField.path[i + 1];
+          const nextNumKey = parseInt(nextKey, 10);
+          current[key] = !isNaN(nextNumKey) ? [] : {};
+        }
+        current = current[key];
       }
-      current = current[key];
     }
 
     const lastKey = editingField.path[editingField.path.length - 1];
+    const lastNumKey = parseInt(lastKey, 10);
     
+    // Если редактируем элемент массива по индексу (для calendarEvents)
+    if (editingField.arrayIndex !== undefined) {
+      if (!Array.isArray(current[lastKey])) {
+        current[lastKey] = [];
+      }
+      current[lastKey][editingField.arrayIndex] = newValue;
+    }
+    // Если последний ключ - это число (индекс в массиве достижений/испытаний)
+    else if (!isNaN(lastNumKey)) {
+      if (!Array.isArray(current)) {
+        current = [];
+      }
+      // Это означает что мы редактируем поле внутри объекта в массиве
+      // Но это не должно произойти, так как мы уже навигировались до объекта
+      current[lastNumKey] = newValue;
+    }
     // Если это массив (magicTriples, threeWords, threePeopleInfluenced), разбиваем строку на массив
-    if (editingField.isArray) {
+    else if (editingField.isArray) {
       // Пробуем разные разделители
       const separators = [' • ', ', ', ','];
       let values: string[] = [];
@@ -158,12 +191,16 @@ export default function YearlyReportView({ report, onClose, onUpdate }: YearlyRe
                 {localReport.pastYear.calendarEvents.map((event, index) => (
                   <div
                     key={index}
+                    onClick={() => handleFieldClick(['pastYear', 'calendarEvents'], `Важное событие ${index + 1}`, event, false, false, index)}
                     style={{
                       padding: '12px',
                       backgroundColor: 'var(--tg-theme-secondary-bg-color)',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      animation: `fadeIn 0.3s ease-in ${index * 0.05}s both`
+                      animation: `fadeIn 0.3s ease-in ${index * 0.05}s both`,
+                      cursor: 'pointer',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word'
                     }}
                   >
                     {event}
@@ -455,17 +492,38 @@ export default function YearlyReportView({ report, onClose, onUpdate }: YearlyRe
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">Достижение {index + 1}</div>
                     {achievement.achievement && (
-                      <p className="wizard-card-description" style={{ marginTop: '8px', fontWeight: '600' }}>
+                      <p 
+                        className="wizard-card-description" 
+                        style={{ marginTop: '8px', fontWeight: '600', cursor: 'pointer', wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFieldClick(['pastYear', 'achievements', index.toString(), 'achievement'], `Достижение ${index + 1}: Достижение`, achievement.achievement || '', true);
+                        }}
+                      >
                         {achievement.achievement}
                       </p>
                     )}
                     {achievement.howAchieved && (
-                      <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
+                      <p 
+                        className="wizard-card-description" 
+                        style={{ marginTop: '8px', whiteSpace: 'pre-wrap', cursor: 'pointer', wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFieldClick(['pastYear', 'achievements', index.toString(), 'howAchieved'], `Достижение ${index + 1}: Как достигнуто`, achievement.howAchieved || '', true);
+                        }}
+                      >
                         Как достигнуто: {achievement.howAchieved}
                       </p>
                     )}
                     {achievement.whoHelped && (
-                      <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
+                      <p 
+                        className="wizard-card-description" 
+                        style={{ marginTop: '8px', whiteSpace: 'pre-wrap', cursor: 'pointer', wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFieldClick(['pastYear', 'achievements', index.toString(), 'whoHelped'], `Достижение ${index + 1}: Кто помог`, achievement.whoHelped || '', true);
+                        }}
+                      >
                         Кто помог: {achievement.whoHelped}
                       </p>
                     )}
@@ -486,17 +544,38 @@ export default function YearlyReportView({ report, onClose, onUpdate }: YearlyRe
                   <div className="wizard-card-content">
                     <div className="wizard-card-title">Испытание {index + 1}</div>
                     {challenge.challenge && (
-                      <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
+                      <p 
+                        className="wizard-card-description" 
+                        style={{ marginTop: '8px', whiteSpace: 'pre-wrap', cursor: 'pointer', wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFieldClick(['pastYear', 'challenges', index.toString(), 'challenge'], `Испытание ${index + 1}: Испытание`, challenge.challenge || '', true);
+                        }}
+                      >
                         {challenge.challenge}
                       </p>
                     )}
                     {challenge.whoHelped && (
-                      <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
+                      <p 
+                        className="wizard-card-description" 
+                        style={{ marginTop: '8px', whiteSpace: 'pre-wrap', cursor: 'pointer', wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFieldClick(['pastYear', 'challenges', index.toString(), 'whoHelped'], `Испытание ${index + 1}: Кто помог`, challenge.whoHelped || '', true);
+                        }}
+                      >
                         Кто помог: {challenge.whoHelped}
                       </p>
                     )}
                     {challenge.whatLearned && (
-                      <p className="wizard-card-description" style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
+                      <p 
+                        className="wizard-card-description" 
+                        style={{ marginTop: '8px', whiteSpace: 'pre-wrap', cursor: 'pointer', wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFieldClick(['pastYear', 'challenges', index.toString(), 'whatLearned'], `Испытание ${index + 1}: Что узнал(а)`, challenge.whatLearned || '', true);
+                        }}
+                      >
                         Что узнал(а): {challenge.whatLearned}
                       </p>
                     )}

@@ -17,7 +17,9 @@ export default function EditFieldModal({
   multiline = true 
 }: EditFieldModalProps) {
   const [editedValue, setEditedValue] = useState(value);
+  const [modalStyle, setModalStyle] = useState<React.CSSProperties>({});
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Фокусируемся на поле ввода при открытии
@@ -28,6 +30,33 @@ export default function EditFieldModal({
         editedValue.length
       );
     }
+
+    // Обработка visualViewport для корректного позиционирования при открытии клавиатуры
+    const updateModalPosition = () => {
+      if (window.visualViewport && modalRef.current) {
+        const viewport = window.visualViewport;
+        setModalStyle({
+          position: 'fixed',
+          top: `${viewport.offsetTop}px`,
+          left: `${viewport.offsetLeft}px`,
+          width: `${viewport.width}px`,
+          height: `${viewport.height}px`,
+        });
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('scroll', updateModalPosition);
+      window.visualViewport.addEventListener('resize', updateModalPosition);
+      updateModalPosition();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('scroll', updateModalPosition);
+        window.visualViewport.removeEventListener('resize', updateModalPosition);
+      }
+    };
   }, []);
 
   const handleSave = () => {
@@ -43,19 +72,20 @@ export default function EditFieldModal({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10000,
-      padding: '16px'
-    }}>
+    <div 
+      ref={modalRef}
+      style={{
+        ...modalStyle,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10000,
+        padding: '16px',
+        boxSizing: 'border-box',
+        overflow: 'auto'
+      }}
+    >
       <div style={{
         backgroundColor: 'var(--tg-theme-bg-color)',
         borderRadius: '16px',
@@ -65,8 +95,10 @@ export default function EditFieldModal({
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        maxHeight: '80vh',
-        overflow: 'hidden'
+        maxHeight: window.visualViewport ? `${Math.min(window.visualViewport.height * 0.8, 600)}px` : '80vh',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        flexShrink: 0
       }}>
         <h3 style={{
           fontSize: '18px',
