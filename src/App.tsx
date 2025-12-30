@@ -85,8 +85,14 @@ function App() {
       }
     };
 
-    // Используем небольшую задержку для гарантии готовности
-    const timeoutId = setTimeout(updateHeaderColor, 100);
+    // Используем задержку для гарантии готовности WebApp
+    // В fullscreen режиме header может не отображаться, но попробуем установить цвет
+    const timeoutId = setTimeout(updateHeaderColor, 200);
+    
+    // Также пробуем установить сразу, если WebApp уже готов
+    if (tg.isExpanded) {
+      updateHeaderColor();
+    }
 
     return () => clearTimeout(timeoutId);
   }, [currentSection, tg, isReady]);
