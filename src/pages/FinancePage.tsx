@@ -45,7 +45,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
 
   const handleStartCreate = (type?: 'income' | 'expense') => {
     setIsCreating(true);
-    setCreateStep(0);
+    setCreateStep(type ? 1 : 0);  // Пропускаем Step1 если тип уже выбран
     setTransactionData(type ? { type } : {});
   };
 
