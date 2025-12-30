@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "deploy": "git add . && (git diff-index --quiet HEAD || git commit -m \"Update: $(date +'%Y-%m-%d %H:%M')\") && git push"
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "react": "^18.2.0",
