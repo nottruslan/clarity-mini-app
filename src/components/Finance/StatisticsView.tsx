@@ -8,10 +8,9 @@ import PieChart from './PieChart';
 interface StatisticsViewProps {
   finance: FinanceData;
   period: Period;
-  onBudgetClick?: () => void;
 }
 
-export default function StatisticsView({ finance, period, onBudgetClick }: StatisticsViewProps) {
+export default function StatisticsView({ finance, period }: StatisticsViewProps) {
   const [activeTab, setActiveTab] = useState<'categories' | 'trends' | 'statistics'>('categories');
   
   const periodTransactions = filterTransactionsByPeriod(finance.transactions || [], period);
@@ -102,26 +101,6 @@ export default function StatisticsView({ finance, period, onBudgetClick }: Stati
         >
           Статистика
         </button>
-        {onBudgetClick && (
-          <button
-            onClick={onBudgetClick}
-            style={{
-              flex: 1,
-              padding: '10px 8px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: 'var(--tg-theme-text-color)',
-              fontSize: '13px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            💰 Управление бюджетом
-          </button>
-        )}
       </div>
 
       {activeTab === 'categories' && (
