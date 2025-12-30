@@ -46,15 +46,15 @@ export default function WizardSlide({
 
     // Предотвращаем движение при взаимодействии с карточками категорий
     const preventScroll = (e: TouchEvent) => {
-      // Разрешаем скролл только внутри wizard-slide-content, но не на карточках
       const target = e.target as HTMLElement;
       const isCard = target.closest('.wizard-card');
-      const isScrollableContent = target.closest('.wizard-slide-content');
       
-      // Если это карточка или не скроллируемый контент - предотвращаем движение
-      if (isCard || !isScrollableContent) {
+      // Блокируем скролл только на карточках, чтобы они не двигались при клике
+      // Разрешаем скролл везде внутри wizard-slide-content и его дочерних элементов
+      if (isCard) {
         e.preventDefault();
       }
+      // Для всех остальных элементов - разрешаем скролл (не вызываем preventDefault)
     };
 
     // Добавляем обработчик для предотвращения движения экрана
