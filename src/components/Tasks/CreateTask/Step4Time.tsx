@@ -3,7 +3,7 @@ import WizardSlide from '../../Wizard/WizardSlide';
 import GradientButton from '../../Wizard/GradientButton';
 
 interface Step4TimeProps {
-  onNext: (startTime: number, duration: number) => void;
+  onNext: (startTime: number | undefined, duration: number | undefined) => void;
   onBack: () => void;
   initialStartTime?: number;
   initialDuration?: number;
@@ -29,7 +29,8 @@ export default function Step4Time({ onNext, onBack, initialStartTime, initialDur
       const durationMinutes = parseInt(duration);
       onNext(startMinutes, durationMinutes);
     } else {
-      onNext(0, 0);
+      // Передаем undefined при удалении времени
+      onNext(undefined, undefined);
     }
   };
 

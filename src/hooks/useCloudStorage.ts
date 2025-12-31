@@ -172,12 +172,36 @@ export function useCloudStorage() {
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     try {
+      // НЕ фильтруем undefined значения, так как они могут означать явное удаление полей
+      // Контроль того, какие поля передавать, осуществляется в вызывающем коде через modifiedFields
+      // undefined значения применяются для явного удаления полей (например, удаление категории, описания)
+      
+      console.log('Updating task:', id, 'with updates:', updates);
+      
       setTasks(prevTasks => {
+        const taskIndex = prevTasks.findIndex(task => task.id === id);
+        if (taskIndex === -1) {
+          console.warn('Task not found:', id);
+          return prevTasks;
+        }
+        
+        const originalTask = prevTasks[taskIndex];
+        // Применяем обновления: undefined значения перезапишут существующие поля
+        const updatedTask = { ...originalTask, ...updates };
+        
+        console.log('Original task:', originalTask);
+        console.log('Updated task:', updatedTask);
+        
         const newTasks = prevTasks.map(task => 
-          task.id === id ? { ...task, ...updates } : task
+          task.id === id ? updatedTask : task
         );
+        
         // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
-        saveTasksToStorage(newTasks).catch(err => console.error('Error saving task:', err));
+        saveTasksToStorage(newTasks).catch(err => {
+          console.error('Error saving task:', err);
+          // В случае ошибки можно попробовать восстановить состояние
+        });
+        
         return newTasks;
       });
     } catch (error) {

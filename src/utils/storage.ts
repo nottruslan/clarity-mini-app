@@ -567,53 +567,167 @@ export async function saveInBoxNotes(notes: InBoxNote[]): Promise<void> {
 }
 
 /**
- * Удалить данные из Cloud Storage
+ * Создать резервную копию всех пользовательских данных
  */
-async function deleteStorageData(key: string): Promise<void> {
-  // Удаляем из localStorage
+export async function createBackup(): Promise<string | null> {
   try {
-    localStorage.removeItem(key);
-  } catch (error) {
-    console.error(`Error removing ${key} from localStorage:`, error);
-  }
-
-  // Удаляем из Cloud Storage, если доступно
-  if (window.Telegram?.WebApp?.CloudStorage) {
-    return new Promise((resolve) => {
-      // Cloud Storage не имеет метода удаления, поэтому устанавливаем пустую строку
-      window.Telegram!.WebApp!.CloudStorage!.setItem(key, '', (error) => {
-        if (error) {
-          console.error(`Error removing ${key} from Cloud Storage:`, error);
+    const backup: any = {};
+    const userDataKeys = [
+      STORAGE_KEYS.TASKS,
+      STORAGE_KEYS.HABITS,
+      STORAGE_KEYS.FINANCE,
+      STORAGE_KEYS.YEARLY_REPORTS,
+      STORAGE_KEYS.TASK_CATEGORIES,
+      STORAGE_KEYS.TASK_TAGS,
+      STORAGE_KEYS.INBOX_NOTES
+    ];
+    
+    for (const key of userDataKeys) {
+      try {
+        const data = await getStorageData(key);
+        if (data !== null && data !== undefined) {
+          backup[key] = data;
         }
-        resolve();
-      });
-    });
+      } catch (error) {
+        console.error(`Error backing up ${key}:`, error);
+      }
+    }
+    
+    return JSON.stringify(backup);
+  } catch (error) {
+    console.error('Error creating backup:', error);
+    return null;
   }
 }
 
 /**
- * Очистить все данные приложения (localStorage и Cloud Storage)
- * Используйте эту функцию для полной очистки кэша
+ * Восстановить данные из резервной копии
  */
-export async function clearAllStorageData(): Promise<void> {
-  console.log('🧹 Начинаю очистку всех данных приложения...');
-  
-  const keys = Object.values(STORAGE_KEYS);
-  const deletePromises = keys.map(key => deleteStorageData(key));
-  
-  await Promise.all(deletePromises);
-  
-  // Также очищаем весь localStorage на случай других данных
+export async function restoreFromBackup(backupJson: string): Promise<void> {
   try {
-    localStorage.clear();
-    console.log('✅ localStorage полностью очищен');
+    const backup = JSON.parse(backupJson);
+    const keys = Object.keys(backup);
+    
+    for (const key of keys) {
+      if (Object.values(STORAGE_KEYS).includes(key as any)) {
+        try {
+          await setStorageData(key, backup[key]);
+          console.log(`✅ Восстановлено: ${key}`);
+        } catch (error) {
+          console.error(`❌ Ошибка восстановления ${key}:`, error);
+        }
+      }
+    }
+    console.log('✅ Все данные восстановлены из резервной копии');
   } catch (error) {
-    console.error('❌ Ошибка при очистке localStorage:', error);
+    console.error('❌ Ошибка восстановления из резервной копии:', error);
+  }
+}
+
+/**
+ * Очистить только технический кэш (не пользовательские данные)
+ * Очищает только onboarding флаги и другие технические данные
+ */
+async function clearTechnicalCache(): Promise<void> {
+  // Очищаем только технические данные
+  try {
+    await setStorageData(STORAGE_KEYS.ONBOARDING, {
+      tasks: false,
+      habits: false,
+      finance: false,
+      languages: false,
+      'yearly-report': false
+    });
+    console.log('✅ Технический кэш очищен');
+  } catch (error) {
+    console.error('❌ Ошибка очистки технического кэша:', error);
+  }
+}
+
+/**
+ * Проверить доступность sessionStorage
+ */
+function isSessionStorageAvailable(): boolean {
+  try {
+    const test = '__sessionStorage_test__';
+    sessionStorage.setItem(test, test);
+    sessionStorage.removeItem(test);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Очистить кэш с сохранением пользовательских данных
+ * Создает резервную копию, очищает localStorage, затем восстанавливает данные
+ */
+export async function clearCacheWithBackup(): Promise<void> {
+  // Проверяем доступность sessionStorage
+  if (!isSessionStorageAvailable()) {
+    console.error('❌ sessionStorage недоступен! Операция отменена.');
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.showAlert('sessionStorage недоступен. Очистка кэша невозможна.');
+    } else {
+      alert('sessionStorage недоступен. Очистка кэша невозможна.');
+    }
+    return;
   }
   
-  console.log('✅ Все данные приложения очищены!');
+  console.log('💾 Создаю резервную копию данных...');
+  const backup = await createBackup();
   
-  // Перезагружаем страницу
+  if (!backup) {
+    console.error('❌ Не удалось создать резервную копию! Операция отменена.');
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.showAlert('Не удалось создать резервную копию. Операция отменена.');
+    } else {
+      alert('Не удалось создать резервную копию. Операция отменена.');
+    }
+    return;
+  }
+  
+  // Сохраняем резервную копию в sessionStorage (не удаляется при очистке localStorage)
+  try {
+    sessionStorage.setItem('clarity_backup', backup);
+    // Очищаем флаги восстановления
+    sessionStorage.removeItem('clarity_restored');
+    sessionStorage.removeItem('clarity_restoring');
+    console.log('✅ Резервная копия создана и сохранена');
+  } catch (error) {
+    console.error('❌ Ошибка сохранения резервной копии:', error);
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.showAlert('Ошибка сохранения резервной копии. Операция отменена.');
+    } else {
+      alert('Ошибка сохранения резервной копии. Операция отменена.');
+    }
+    return;
+  }
+  
+  console.log('🧹 Очищаю кэш...');
+  
+  // Очищаем только технический кэш
+  await clearTechnicalCache();
+  
+  // Очищаем весь localStorage (данные восстановятся из резервной копии)
+  try {
+    localStorage.clear();
+    console.log('✅ localStorage очищен');
+  } catch (error) {
+    console.error('❌ Ошибка очистки localStorage:', error);
+  }
+  
+  console.log('🔄 Перезагружаю страницу...');
+  // Перезагружаем страницу - данные восстановятся автоматически
   window.location.reload();
+}
+
+/**
+ * Принудительная перезагрузка страницы с обходом кэша
+ */
+export function forceReload(): void {
+  const url = new URL(window.location.href);
+  url.searchParams.set('_t', Date.now().toString());
+  window.location.href = url.toString();
 }
 

@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTelegram } from './hooks/useTelegram';
 import { useCloudStorage } from './hooks/useCloudStorage';
 import { type Section } from './types/navigation';
 import { sectionColors } from './utils/sectionColors';
-import { clearAllStorageData } from './utils/storage';
+import { clearCacheWithBackup, forceReload, restoreFromBackup } from './utils/storage';
 import AppHeader from './components/Navigation/AppHeader';
 import NavigationMenu from './components/Navigation/NavigationMenu';
 import HomePage from './pages/HomePage';
@@ -19,9 +19,43 @@ function App() {
   const [currentSection, setCurrentSection] = useState<Section>('home');
   const [navigationHistory, setNavigationHistory] = useState<Section[]>(['home']);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showClearDialog, setShowClearDialog] = useState(false);
-  const clickCountRef = useRef(0);
-  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showCacheDialog, setShowCacheDialog] = useState(false);
+
+  // Восстановление данных из резервной копии после перезагрузки
+  useEffect(() => {
+    const backup = sessionStorage.getItem('clarity_backup');
+    const restored = sessionStorage.getItem('clarity_restored');
+    
+    // Восстанавливаем только если есть резервная копия и еще не восстанавливали
+    if (backup && !restored && isReady && !storage.loading) {
+      // Помечаем, что начали восстановление
+      sessionStorage.setItem('clarity_restoring', 'true');
+      
+      restoreFromBackup(backup).then(() => {
+        // Удаляем резервную копию и помечаем как восстановленное
+        sessionStorage.removeItem('clarity_backup');
+        sessionStorage.setItem('clarity_restored', 'true');
+        sessionStorage.removeItem('clarity_restoring');
+        
+        // Перезагружаем данные через storage.reload() вместо перезагрузки страницы
+        // Это быстрее и не требует полной перезагрузки
+        setTimeout(() => {
+          storage.reload();
+        }, 500);
+      }).catch((error) => {
+        console.error('Ошибка восстановления данных:', error);
+        sessionStorage.removeItem('clarity_restoring');
+        // Удаляем резервную копию даже при ошибке, чтобы не зациклиться
+        sessionStorage.removeItem('clarity_backup');
+      });
+    }
+    
+    // Очищаем флаг восстановления при следующей нормальной загрузке (не после восстановления)
+    if (!backup && restored) {
+      sessionStorage.removeItem('clarity_restored');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, storage.loading]);
 
   // Обработка кнопки "Назад"
   useEffect(() => {
@@ -105,46 +139,63 @@ function App() {
   if (!isReady || storage.loading) {
     return (
       <>
-        <div 
-          onClick={() => {
-            clickCountRef.current += 1;
-            
-            // Сбрасываем таймер при каждом клике
-            if (clickTimeoutRef.current) {
-              clearTimeout(clickTimeoutRef.current);
-            }
-            
-            // Если 5 кликов за 2 секунды - показываем диалог
-            if (clickCountRef.current >= 5) {
-              clickCountRef.current = 0;
-              setShowClearDialog(true);
-            } else {
-              // Сбрасываем счетчик через 2 секунды
-              clickTimeoutRef.current = setTimeout(() => {
-                clickCountRef.current = 0;
-              }, 2000);
-            }
-          }}
-          style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            height: '100vh',
-            paddingTop: 'env(safe-area-inset-top)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-            cursor: 'pointer',
-            userSelect: 'none'
-          }}
-        >
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '100vh',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          padding: '20px',
+          gap: '16px'
+        }}>
           <div style={{ fontSize: '18px', marginBottom: '8px' }}>Загрузка...</div>
-          <div style={{ fontSize: '12px', color: '#999', opacity: 0.5 }}>
-            (Нажмите 5 раз для очистки данных)
+          
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            width: '100%',
+            maxWidth: '300px',
+            marginTop: '24px'
+          }}>
+            <button
+              onClick={forceReload}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+                color: 'var(--tg-theme-button-text-color, #ffffff)',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 Обновить страницу
+            </button>
+            
+            <button
+              onClick={() => setShowCacheDialog(true)}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '8px',
+                border: '1px solid var(--tg-theme-button-color, #3390ec)',
+                backgroundColor: 'transparent',
+                color: 'var(--tg-theme-button-color, #3390ec)',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              🧹 Очистить кэш
+            </button>
           </div>
         </div>
 
-        {/* Диалог очистки данных */}
-        {showClearDialog && (
+        {/* Диалог очистки кэша */}
+        {showCacheDialog && (
           <div style={{
             position: 'fixed',
             top: 0,
@@ -158,7 +209,7 @@ function App() {
             zIndex: 10000,
             padding: '20px'
           }}
-          onClick={() => setShowClearDialog(false)}
+          onClick={() => setShowCacheDialog(false)}
           >
             <div 
               style={{
@@ -177,7 +228,7 @@ function App() {
                 marginBottom: '12px',
                 color: 'var(--tg-theme-text-color, #000000)'
               }}>
-                Очистить все данные?
+                Очистить кэш?
               </h2>
               <p style={{
                 fontSize: '14px',
@@ -185,7 +236,7 @@ function App() {
                 marginBottom: '24px',
                 lineHeight: '1.5'
               }}>
-                Это действие удалит все ваши задачи, привычки, финансовые данные и другие сохраненные данные. Это действие нельзя отменить.
+                Все ваши данные будут сохранены в резервной копию и автоматически восстановлены после очистки. Это поможет решить проблемы с загрузкой приложения.
               </p>
               <div style={{
                 display: 'flex',
@@ -193,7 +244,7 @@ function App() {
                 justifyContent: 'flex-end'
               }}>
                 <button
-                  onClick={() => setShowClearDialog(false)}
+                  onClick={() => setShowCacheDialog(false)}
                   style={{
                     padding: '10px 20px',
                     borderRadius: '8px',
@@ -209,15 +260,15 @@ function App() {
                 </button>
                 <button
                   onClick={async () => {
-                    setShowClearDialog(false);
-                    await clearAllStorageData();
+                    setShowCacheDialog(false);
+                    await clearCacheWithBackup();
                   }}
                   style={{
                     padding: '10px 20px',
                     borderRadius: '8px',
                     border: 'none',
-                    backgroundColor: '#ff3333',
-                    color: '#ffffff',
+                    backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+                    color: 'var(--tg-theme-button-text-color, #ffffff)',
                     fontSize: '14px',
                     fontWeight: '500',
                     cursor: 'pointer'
