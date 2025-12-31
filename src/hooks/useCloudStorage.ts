@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   getTasks,
   saveTasks,
@@ -43,30 +43,15 @@ export function useCloudStorage() {
   const [taskTags, setTaskTags] = useState<TaskTag[]>([]);
   const [inBoxNotes, setInBoxNotes] = useState<InBoxNote[]>([]);
   const [loading, setLoading] = useState(true);
-  const isLoadingRef = useRef(false);
 
   // Загрузка данных при монтировании
   useEffect(() => {
-    // Защита от повторных вызовов
-    if (isLoadingRef.current) {
-      console.log('loadAllData already in progress, skipping...');
-      return;
-    }
     loadAllData();
   }, []);
 
   const loadAllData = async () => {
-    // Защита от повторных вызовов
-    if (isLoadingRef.current) {
-      console.log('loadAllData already in progress, skipping...');
-      return;
-    }
-    
     try {
-      isLoadingRef.current = true;
       setLoading(true);
-      console.log('Starting data load...');
-      
       const [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData, notesData] = await Promise.all([
         getTasks().catch(err => {
           console.error('Error loading tasks:', err);
@@ -102,8 +87,6 @@ export function useCloudStorage() {
         })
       ]);
       
-      console.log('Data loaded, processing...');
-      
       // Миграция привычек при загрузке
       const migratedHabits = habitsData.map(habit => {
         if (habit.history && Object.keys(habit.history).length > 0) {
@@ -125,25 +108,15 @@ export function useCloudStorage() {
       });
       
       // Генерируем экземпляры повторяющихся задач
-      try {
-        const newInstances = generateUpcomingInstances(tasksData, 30);
-        const allTasks = [...tasksData, ...newInstances];
-        
-        // Сохраняем новые экземпляры, если они есть
-        if (newInstances.length > 0) {
-          console.log(`Saving ${newInstances.length} new task instances...`);
-          await saveTasks(allTasks).catch(err => {
-            console.error('Error saving new task instances:', err);
-          });
-        }
-        
-        setTasks(allTasks);
-      } catch (error) {
-        console.error('Error processing tasks:', error);
-        // Используем исходные задачи без генерации экземпляров
-        setTasks(tasksData);
+      const newInstances = generateUpcomingInstances(tasksData, 30);
+      const allTasks = [...tasksData, ...newInstances];
+      
+      // Сохраняем новые экземпляры, если они есть
+      if (newInstances.length > 0) {
+        await saveTasks(allTasks);
       }
       
+      setTasks(allTasks);
       setHabits(migratedHabits);
       setFinance(financeData);
       setOnboarding(onboardingData);
@@ -153,23 +126,12 @@ export function useCloudStorage() {
       setInBoxNotes(notesData);
       
       // Сохраняем мигрированные данные, если была миграция
-      try {
-        if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
-          console.log('Saving migrated habits...');
-          await saveHabits(migratedHabits).catch(err => {
-            console.error('Error saving migrated habits:', err);
-          });
-        }
-      } catch (error) {
-        console.error('Error saving migrated habits:', error);
+      if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
+        await saveHabits(migratedHabits);
       }
-      
-      console.log('Data load complete');
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
-      console.log('Setting loading to false');
-      isLoadingRef.current = false;
       setLoading(false);
     }
   };

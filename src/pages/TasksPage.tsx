@@ -167,65 +167,55 @@ export default function TasksPage({ storage }: TasksPageProps) {
   const handleStep9Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
     if (isEditing && editingTaskId) {
       // Редактирование существующей задачи
-      // Используем данные из taskData, а не ищем задачу в storage.tasks
-      // Все необходимые данные уже загружены при вызове handleEditTask
-      
-      // Вычисляем dueDate: используем taskData.dueDate если он задан, иначе selectedDate
+      // Получаем исходную задачу, чтобы сохранить все её поля
+      const originalTask = storage.tasks.find(t => t.id === editingTaskId);
+      if (!originalTask) {
+        setIsCreating(false);
+        setIsEditing(false);
+        setEditingTaskId(null);
+        setCreateStep(0);
+        setTaskData({});
+        return;
+      }
+
+      // Вычисляем dueDate: используем taskData.dueDate если он задан, иначе исходную дату задачи
       const finalDueDate = taskData.dueDate !== undefined 
         ? taskData.dueDate 
-        : selectedDate.getTime();
+        : (originalTask.dueDate || selectedDate.getTime());
       
       // Вычисляем startTime и endTime на основе finalDueDate
       const finalStartTime = taskData.startTime !== undefined
         ? minutesOfDayToTimestamp(finalDueDate, taskData.startTime)
-        : undefined;
+        : originalTask.startTime;
       
       const finalEndTime = taskData.startTime !== undefined && taskData.duration !== undefined
         ? minutesOfDayToTimestamp(finalDueDate, taskData.startTime + taskData.duration)
-        : undefined;
+        : originalTask.endTime;
 
-      // Собираем все поля для обновления из taskData
-      const updates: Partial<Task> = {};
-      
-      // Добавляем только определенные поля
-      if (taskData.name !== undefined) {
-        updates.text = taskData.name;
-      }
-      if (taskData.priority !== undefined) {
-        updates.priority = taskData.priority;
-      }
-      updates.dueDate = finalDueDate;
-      updates.plannedDate = finalDueDate;
-      if (finalStartTime !== undefined) {
-        updates.startTime = finalStartTime;
-      }
-      if (finalEndTime !== undefined) {
-        updates.endTime = finalEndTime;
-      }
-      if (taskData.duration !== undefined) {
-        updates.duration = taskData.duration;
-      }
-      if (taskData.categoryId !== undefined) {
-        updates.categoryId = taskData.categoryId;
-      }
-      if (taskData.description !== undefined) {
-        updates.description = taskData.description;
-      }
-      if (taskData.subtasks !== undefined) {
-        updates.subtasks = taskData.subtasks;
-      }
-      if (taskData.recurrence !== undefined) {
-        updates.recurrence = taskData.recurrence;
-      }
-      if (energyLevel !== undefined) {
-        updates.energyLevel = energyLevel;
-      }
+      // Объединяем исходные данные с изменениями
+      const updates: Partial<Task> = {
+        // Обновляем поля из taskData
+        // Используем значения из taskData, если они определены, иначе сохраняем исходные значения
+        text: taskData.name !== undefined ? taskData.name : originalTask.text,
+        priority: taskData.priority !== undefined ? taskData.priority : originalTask.priority,
+        dueDate: finalDueDate,
+        plannedDate: finalDueDate,
+        startTime: finalStartTime,
+        endTime: finalEndTime,
+        duration: taskData.duration !== undefined ? taskData.duration : originalTask.duration,
+        categoryId: taskData.categoryId !== undefined ? taskData.categoryId : originalTask.categoryId,
+        description: taskData.description !== undefined ? taskData.description : originalTask.description,
+        subtasks: taskData.subtasks !== undefined ? taskData.subtasks : originalTask.subtasks,
+        recurrence: taskData.recurrence !== undefined ? taskData.recurrence : originalTask.recurrence,
+        energyLevel: energyLevel !== undefined ? energyLevel : originalTask.energyLevel
+      };
 
       try {
         await storage.updateTask(editingTaskId, updates);
         console.log('Task updated successfully');
       } catch (error) {
         console.error('Error updating task:', error);
+        // Состояние уже обновлено в updateTask, продолжаем
       }
     } else {
       // Создание новой задачи
