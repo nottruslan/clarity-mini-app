@@ -7,6 +7,36 @@ export interface StorageData {
   habits: Habit[];
   finance: FinanceData;
   onboarding: OnboardingFlags;
+  taskCategories?: TaskCategory[];
+  taskTags?: TaskTag[];
+}
+
+export interface Subtask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface RecurrenceRule {
+  type: 'daily' | 'weekly' | 'monthly' | 'custom';
+  interval?: number; // интервал повторения (например, каждые 2 дня)
+  daysOfWeek?: number[]; // дни недели для weekly/custom (0-6, где 0 = воскресенье)
+  dayOfMonth?: number; // день месяца для monthly
+  endDate?: number; // дата окончания повторений (timestamp)
+  count?: number; // количество повторений
+}
+
+export interface TaskCategory {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string;
+}
+
+export interface TaskTag {
+  id: string;
+  name: string;
+  color?: string;
 }
 
 export interface Task {
@@ -15,7 +45,39 @@ export interface Task {
   completed: boolean;
   createdAt: number;
   priority?: 'low' | 'medium' | 'high';
-  dueDate?: number;
+  dueDate?: number; // дата дедлайна (timestamp)
+  
+  // Временные поля
+  startTime?: number; // время начала (timestamp, или только время дня в минутах от полуночи)
+  endTime?: number; // время окончания (timestamp, или только время дня в минутах от полуночи)
+  duration?: number; // длительность в минутах
+  
+  // Подзадачи
+  subtasks?: Subtask[];
+  
+  // Описание
+  description?: string;
+  
+  // Категории и теги
+  categoryId?: string;
+  tags?: string[]; // массив ID тегов
+  
+  // Повторения
+  recurrence?: RecurrenceRule;
+  parentTaskId?: string; // ID родительской задачи для повторяющихся задач
+  recurrenceInstanceDate?: number; // дата конкретного экземпляра повторяющейся задачи
+  
+  // Энергозатратность
+  energyLevel?: 'low' | 'medium' | 'high';
+  
+  // Статус
+  status?: 'todo' | 'in-progress' | 'completed';
+  
+  // Время выполнения
+  timeSpent?: number; // в минутах
+  
+  // Планирование
+  plannedDate?: number; // дата планирования задачи (timestamp)
 }
 
 export interface Habit {
@@ -179,7 +241,9 @@ const STORAGE_KEYS = {
   HABITS: 'habits',
   FINANCE: 'finance',
   ONBOARDING: 'onboarding',
-  YEARLY_REPORTS: 'yearly-reports'
+  YEARLY_REPORTS: 'yearly-reports',
+  TASK_CATEGORIES: 'task-categories',
+  TASK_TAGS: 'task-tags'
 } as const;
 
 /**
@@ -249,7 +313,37 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
  */
 export async function getTasks(): Promise<Task[]> {
   const tasks = await getStorageData<Task[]>(STORAGE_KEYS.TASKS);
-  return tasks || [];
+  const loadedTasks = tasks || [];
+  
+  // Миграция существующих задач к новой структуре
+  const migratedTasks = migrateTasks(loadedTasks);
+  
+  // Если была миграция, сохраняем обновленные задачи
+  if (JSON.stringify(migratedTasks) !== JSON.stringify(loadedTasks)) {
+    await saveTasks(migratedTasks);
+  }
+  
+  return migratedTasks;
+}
+
+/**
+ * Миграция задач к новой структуре данных
+ */
+function migrateTasks(tasks: Task[]): Task[] {
+  return tasks.map(task => {
+    // Если задача имеет старую структуру, преобразуем её
+    const migrated: Task = {
+      ...task,
+      // Убеждаемся, что есть все необходимые поля
+      status: task.status || (task.completed ? 'completed' : 'todo'),
+      // Если есть dueDate, но нет plannedDate, используем dueDate для plannedDate
+      plannedDate: task.plannedDate || task.dueDate,
+      // Если есть только completed, но нет status, устанавливаем status
+      completed: task.completed !== undefined ? task.completed : (task.status === 'completed')
+    };
+    
+    return migrated;
+  });
 }
 
 /**
@@ -384,5 +478,57 @@ export async function getYearlyReport(year: number): Promise<YearlyReport | null
  */
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Получить категории задач
+ */
+export async function getTaskCategories(): Promise<TaskCategory[]> {
+  const categories = await getStorageData<TaskCategory[]>(STORAGE_KEYS.TASK_CATEGORIES);
+  if (!categories || categories.length === 0) {
+    const defaultCategories = getDefaultTaskCategories();
+    await saveTaskCategories(defaultCategories);
+    return defaultCategories;
+  }
+  return categories;
+}
+
+/**
+ * Сохранить категории задач
+ */
+export async function saveTaskCategories(categories: TaskCategory[]): Promise<void> {
+  await setStorageData(STORAGE_KEYS.TASK_CATEGORIES, categories);
+}
+
+/**
+ * Предустановленные категории задач
+ */
+export function getDefaultTaskCategories(): TaskCategory[] {
+  return [
+    { id: generateId(), name: 'Работа', color: '#3390ec', icon: '💼' },
+    { id: generateId(), name: 'Личное', color: '#ff6b35', icon: '👤' },
+    { id: generateId(), name: 'Здоровье', color: '#4caf50', icon: '💚' },
+    { id: generateId(), name: 'Образование', color: '#9c27b0', icon: '📚' },
+    { id: generateId(), name: 'Семья', color: '#ff9800', icon: '👨‍👩‍👧‍👦' },
+    { id: generateId(), name: 'Дом', color: '#607d8b', icon: '🏠' },
+    { id: generateId(), name: 'Хобби', color: '#e91e63', icon: '🎨' },
+    { id: generateId(), name: 'Спорт', color: '#00bcd4', icon: '⚽' },
+    { id: generateId(), name: 'Прочее', color: '#9e9e9e', icon: '📝' }
+  ];
+}
+
+/**
+ * Получить теги задач
+ */
+export async function getTaskTags(): Promise<TaskTag[]> {
+  const tags = await getStorageData<TaskTag[]>(STORAGE_KEYS.TASK_TAGS);
+  return tags || [];
+}
+
+/**
+ * Сохранить теги задач
+ */
+export async function saveTaskTags(tags: TaskTag[]): Promise<void> {
+  await setStorageData(STORAGE_KEYS.TASK_TAGS, tags);
 }
 

@@ -10,12 +10,19 @@ import {
   saveOnboardingFlags,
   getYearlyReports,
   saveYearlyReports,
+  getTaskCategories,
+  saveTaskCategories,
+  getTaskTags,
+  saveTaskTags,
   type Task,
   type Habit,
   type FinanceData,
   type OnboardingFlags,
-  type YearlyReport
+  type YearlyReport,
+  type TaskCategory,
+  type TaskTag
 } from '../utils/storage';
+import { generateUpcomingInstances } from '../utils/taskRecurrence';
 
 export function useCloudStorage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -29,6 +36,8 @@ export function useCloudStorage() {
     'yearly-report': false
   });
   const [yearlyReports, setYearlyReports] = useState<YearlyReport[]>([]);
+  const [taskCategories, setTaskCategories] = useState<TaskCategory[]>([]);
+  const [taskTags, setTaskTags] = useState<TaskTag[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Загрузка данных при монтировании
@@ -39,7 +48,7 @@ export function useCloudStorage() {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [tasksData, habitsData, financeData, onboardingData, reportsData] = await Promise.all([
+      const [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData] = await Promise.all([
         getTasks().catch(err => {
           console.error('Error loading tasks:', err);
           return [];
@@ -58,6 +67,14 @@ export function useCloudStorage() {
         }),
         getYearlyReports().catch(err => {
           console.error('Error loading reports:', err);
+          return [];
+        }),
+        getTaskCategories().catch(err => {
+          console.error('Error loading task categories:', err);
+          return [];
+        }),
+        getTaskTags().catch(err => {
+          console.error('Error loading task tags:', err);
           return [];
         })
       ]);
@@ -82,11 +99,22 @@ export function useCloudStorage() {
         return habit;
       });
       
-      setTasks(tasksData);
+      // Генерируем экземпляры повторяющихся задач
+      const newInstances = generateUpcomingInstances(tasksData, 30);
+      const allTasks = [...tasksData, ...newInstances];
+      
+      // Сохраняем новые экземпляры, если они есть
+      if (newInstances.length > 0) {
+        await saveTasks(allTasks);
+      }
+      
+      setTasks(allTasks);
       setHabits(migratedHabits);
       setFinance(financeData);
       setOnboarding(onboardingData);
       setYearlyReports(reportsData);
+      setTaskCategories(categoriesData);
+      setTaskTags(tagsData);
       
       // Сохраняем мигрированные данные, если была миграция
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
@@ -284,6 +312,52 @@ export function useCloudStorage() {
     await updateYearlyReports(newReports);
   }, [yearlyReports, updateYearlyReports]);
 
+  // Task Categories
+  const updateTaskCategories = useCallback(async (newCategories: TaskCategory[]) => {
+    setTaskCategories(newCategories);
+    await saveTaskCategories(newCategories);
+  }, []);
+
+  const addTaskCategory = useCallback(async (category: TaskCategory) => {
+    const newCategories = [...taskCategories, category];
+    await updateTaskCategories(newCategories);
+  }, [taskCategories, updateTaskCategories]);
+
+  const updateTaskCategory = useCallback(async (id: string, updates: Partial<TaskCategory>) => {
+    const newCategories = taskCategories.map(cat => 
+      cat.id === id ? { ...cat, ...updates } : cat
+    );
+    await updateTaskCategories(newCategories);
+  }, [taskCategories, updateTaskCategories]);
+
+  const deleteTaskCategory = useCallback(async (id: string) => {
+    const newCategories = taskCategories.filter(cat => cat.id !== id);
+    await updateTaskCategories(newCategories);
+  }, [taskCategories, updateTaskCategories]);
+
+  // Task Tags
+  const updateTaskTags = useCallback(async (newTags: TaskTag[]) => {
+    setTaskTags(newTags);
+    await saveTaskTags(newTags);
+  }, []);
+
+  const addTaskTag = useCallback(async (tag: TaskTag) => {
+    const newTags = [...taskTags, tag];
+    await updateTaskTags(newTags);
+  }, [taskTags, updateTaskTags]);
+
+  const updateTaskTag = useCallback(async (id: string, updates: Partial<TaskTag>) => {
+    const newTags = taskTags.map(tag => 
+      tag.id === id ? { ...tag, ...updates } : tag
+    );
+    await updateTaskTags(newTags);
+  }, [taskTags, updateTaskTags]);
+
+  const deleteTaskTag = useCallback(async (id: string) => {
+    const newTags = taskTags.filter(tag => tag.id !== id);
+    await updateTaskTags(newTags);
+  }, [taskTags, updateTaskTags]);
+
   return {
     // Data
     tasks,
@@ -291,6 +365,8 @@ export function useCloudStorage() {
     finance,
     onboarding,
     yearlyReports,
+    taskCategories,
+    taskTags,
     loading,
     
     // Tasks
@@ -324,6 +400,18 @@ export function useCloudStorage() {
     addYearlyReport,
     updateYearlyReport,
     deleteYearlyReport,
+    
+    // Task Categories
+    updateTaskCategories,
+    addTaskCategory,
+    updateTaskCategory,
+    deleteTaskCategory,
+    
+    // Task Tags
+    updateTaskTags,
+    addTaskTag,
+    updateTaskTag,
+    deleteTaskTag,
     
     // Reload
     reload: loadAllData

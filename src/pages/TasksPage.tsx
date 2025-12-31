@@ -1,25 +1,69 @@
 import { useState } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
-import { generateId, type Task } from '../utils/storage';
+import { generateId, type Task, type Subtask, type RecurrenceRule, type TaskTag } from '../utils/storage';
 import TaskList from '../components/Tasks/TaskList';
+import DayView from '../components/Tasks/DayView/DayView';
+import TaskFilters from '../components/Tasks/TaskFilters';
+import { TaskFilterOptions, TaskSortOption } from '../hooks/useTaskFilters';
 import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Name from '../components/Tasks/CreateTask/Step1Name';
 import Step2Priority from '../components/Tasks/CreateTask/Step2Priority';
 import Step3Date from '../components/Tasks/CreateTask/Step3Date';
+import Step4Time from '../components/Tasks/CreateTask/Step4Time';
+import Step5Category from '../components/Tasks/CreateTask/Step5Category';
+import Step6Tags from '../components/Tasks/CreateTask/Step6Tags';
+import Step7Description from '../components/Tasks/CreateTask/Step7Description';
+import Step8Subtasks from '../components/Tasks/CreateTask/Step8Subtasks';
+import Step9Recurrence from '../components/Tasks/CreateTask/Step9Recurrence';
+import Step10Energy from '../components/Tasks/CreateTask/Step10Energy';
 import { sectionColors } from '../utils/sectionColors';
+import { useTaskFilters } from '../hooks/useTaskFilters';
+import { minutesOfDayToTimestamp } from '../utils/taskTimeUtils';
 
 interface TasksPageProps {
   storage: ReturnType<typeof useCloudStorage>;
 }
 
+type ViewMode = 'day' | 'list';
+
 export default function TasksPage({ storage }: TasksPageProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [createStep, setCreateStep] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [filters, setFilters] = useState<TaskFilterOptions>({
+    status: 'all',
+    priority: 'all',
+    dateFilter: 'today'
+  });
+  const [sortBy, setSortBy] = useState<TaskSortOption>('time');
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  
   const [taskData, setTaskData] = useState<{
     name?: string;
     priority?: 'low' | 'medium' | 'high';
+    dueDate?: number;
+    startTime?: number;
+    duration?: number;
+    categoryId?: string;
+    tagIds?: string[];
+    newTags?: TaskTag[];
+    description?: string;
+    subtasks?: Subtask[];
+    recurrence?: RecurrenceRule;
+    energyLevel?: 'low' | 'medium' | 'high';
   }>({});
-  
+
+  // Используем хук для фильтрации
+  const filteredTasks = useTaskFilters({
+    tasks: storage.tasks,
+    categories: storage.taskCategories,
+    tags: storage.taskTags,
+    filters,
+    sortBy,
+    date: selectedDate
+  });
 
   const handleStartCreate = () => {
     setIsCreating(true);
@@ -37,14 +81,76 @@ export default function TasksPage({ storage }: TasksPageProps) {
     setCreateStep(2);
   };
 
-  const handleStep3Complete = async (dueDate?: number) => {
+  const handleStep3Complete = (dueDate?: number) => {
+    setTaskData(prev => ({ ...prev, dueDate }));
+    setCreateStep(3);
+  };
+
+  const handleStep4Complete = (startTime: number, duration: number) => {
+    setTaskData(prev => ({ ...prev, startTime, duration }));
+    setCreateStep(4);
+  };
+
+  const handleStep5Complete = (categoryId?: string) => {
+    setTaskData(prev => ({ ...prev, categoryId }));
+    setCreateStep(5);
+  };
+
+  const handleStep6Complete = (tagIds: string[], newTags: TaskTag[]) => {
+    setTaskData(prev => ({ ...prev, tagIds, newTags }));
+    // Сохраняем новые теги
+    if (newTags.length > 0) {
+      newTags.forEach(tag => {
+        storage.addTaskTag(tag);
+      });
+    }
+    setCreateStep(6);
+  };
+
+  const handleStep7Complete = (description?: string) => {
+    setTaskData(prev => ({ ...prev, description }));
+    setCreateStep(7);
+  };
+
+  const handleStep8Complete = (subtasks: Subtask[]) => {
+    setTaskData(prev => ({ ...prev, subtasks }));
+    setCreateStep(8);
+  };
+
+  const handleStep9Complete = (recurrence?: RecurrenceRule) => {
+    setTaskData(prev => ({ ...prev, recurrence }));
+    setCreateStep(9);
+  };
+
+  const handleStep10Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
+    // Создаем задачу со всеми данными
+    const dueDate = taskData.dueDate || selectedDate.getTime();
+    const startTime = taskData.startTime 
+      ? minutesOfDayToTimestamp(dueDate, taskData.startTime)
+      : undefined;
+    
+    const endTime = taskData.startTime && taskData.duration
+      ? minutesOfDayToTimestamp(dueDate, taskData.startTime + taskData.duration)
+      : undefined;
+
     const newTask: Task = {
       id: generateId(),
       text: taskData.name!,
       completed: false,
       createdAt: Date.now(),
       priority: taskData.priority,
-      dueDate
+      dueDate,
+      plannedDate: dueDate,
+      startTime,
+      endTime,
+      duration: taskData.duration,
+      categoryId: taskData.categoryId,
+      tags: taskData.tagIds,
+      description: taskData.description,
+      subtasks: taskData.subtasks,
+      recurrence: taskData.recurrence,
+      energyLevel,
+      status: 'todo'
     };
 
     await storage.addTask(newTask);
@@ -65,47 +171,105 @@ export default function TasksPage({ storage }: TasksPageProps) {
   const handleToggle = async (id: string) => {
     const task = storage.tasks.find(t => t.id === id);
     if (task) {
-      await storage.updateTask(id, { completed: !task.completed });
+      const newCompleted = !(task.status === 'completed' || task.completed);
+      await storage.updateTask(id, { 
+        completed: newCompleted,
+        status: newCompleted ? 'completed' : 'todo'
+      });
     }
+  };
+
+  const handleStatusChange = async (id: string, status: 'todo' | 'in-progress' | 'completed') => {
+    await storage.updateTask(id, { 
+      status,
+      completed: status === 'completed'
+    });
   };
 
   const handleDelete = async (id: string) => {
     await storage.deleteTask(id);
   };
 
+  const handleToggleExpand = (id: string) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   if (isCreating) {
     const colors = sectionColors.tasks;
+    const totalSteps = 10;
     
     return (
       <WizardContainer 
         currentStep={createStep + 1} 
-        totalSteps={3}
+        totalSteps={totalSteps}
         progressColor={colors.primary}
       >
-        <div 
-          className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}
-        >
-          <Step1Name 
-            onNext={handleStep1Complete}
-          />
-        </div>
-        <div 
-          className={`wizard-slide ${createStep === 1 ? 'active' : createStep > 1 ? 'prev' : 'next'}`}
-        >
-          <Step2Priority 
-            onNext={handleStep2Complete}
-            onBack={handleBack}
-          />
-        </div>
-        <div 
-          className={`wizard-slide ${createStep === 2 ? 'active' : createStep > 2 ? 'prev' : 'next'}`}
-        >
-          <Step3Date 
-            onComplete={handleStep3Complete}
-            onBack={handleBack}
-          />
-        </div>
+        {createStep === 0 && (
+          <div className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}>
+            <Step1Name onNext={handleStep1Complete} />
+          </div>
+        )}
+        {createStep === 1 && (
+          <div className={`wizard-slide ${createStep === 1 ? 'active' : createStep > 1 ? 'prev' : 'next'}`}>
+            <Step2Priority onNext={handleStep2Complete} onBack={handleBack} />
+          </div>
+        )}
+        {createStep === 2 && (
+          <div className={`wizard-slide ${createStep === 2 ? 'active' : createStep > 2 ? 'prev' : 'next'}`}>
+            <Step3Date onComplete={handleStep3Complete} onBack={handleBack} />
+          </div>
+        )}
+        {createStep === 3 && (
+          <div className={`wizard-slide ${createStep === 3 ? 'active' : createStep > 3 ? 'prev' : 'next'}`}>
+            <Step4Time onNext={handleStep4Complete} onBack={handleBack} />
+          </div>
+        )}
+        {createStep === 4 && (
+          <div className={`wizard-slide ${createStep === 4 ? 'active' : createStep > 4 ? 'prev' : 'next'}`}>
+            <Step5Category 
+              categories={storage.taskCategories} 
+              onNext={handleStep5Complete} 
+              onBack={handleBack} 
+            />
+          </div>
+        )}
+        {createStep === 5 && (
+          <div className={`wizard-slide ${createStep === 5 ? 'active' : createStep > 5 ? 'prev' : 'next'}`}>
+            <Step6Tags 
+              existingTags={storage.taskTags}
+              onNext={handleStep6Complete} 
+              onBack={handleBack} 
+            />
+          </div>
+        )}
+        {createStep === 6 && (
+          <div className={`wizard-slide ${createStep === 6 ? 'active' : createStep > 6 ? 'prev' : 'next'}`}>
+            <Step7Description onNext={handleStep7Complete} onBack={handleBack} />
+          </div>
+        )}
+        {createStep === 7 && (
+          <div className={`wizard-slide ${createStep === 7 ? 'active' : createStep > 7 ? 'prev' : 'next'}`}>
+            <Step8Subtasks onNext={handleStep8Complete} onBack={handleBack} />
+          </div>
+        )}
+        {createStep === 8 && (
+          <div className={`wizard-slide ${createStep === 8 ? 'active' : createStep > 8 ? 'prev' : 'next'}`}>
+            <Step9Recurrence onNext={handleStep9Complete} onBack={handleBack} />
+          </div>
+        )}
+        {createStep === 9 && (
+          <div className={`wizard-slide ${createStep === 9 ? 'active' : createStep > 9 ? 'prev' : 'next'}`}>
+            <Step10Energy onComplete={handleStep10Complete} onBack={handleBack} />
+          </div>
+        )}
       </WizardContainer>
     );
   }
@@ -120,11 +284,102 @@ export default function TasksPage({ storage }: TasksPageProps) {
       paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
       overflow: 'hidden'
     }}>
-      <TaskList 
-        tasks={storage.tasks}
-        onToggle={handleToggle}
-        onDelete={handleDelete}
-      />
+      {/* Панель переключения представлений и фильтров */}
+      <div style={{
+        padding: '12px 16px',
+        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
+        backgroundColor: 'var(--tg-theme-bg-color)',
+        display: 'flex',
+        gap: '8px',
+        alignItems: 'center'
+      }}>
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          flex: 1,
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          borderRadius: '12px',
+          padding: '4px'
+        }}>
+          <button
+            onClick={() => setViewMode('list')}
+            style={{
+              flex: 1,
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: viewMode === 'list' 
+                ? 'var(--tg-theme-bg-color)' 
+                : 'transparent',
+              color: 'var(--tg-theme-text-color)',
+              fontSize: '14px',
+              fontWeight: viewMode === 'list' ? '600' : '400',
+              cursor: 'pointer',
+              boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            📋 Список
+          </button>
+          <button
+            onClick={() => setViewMode('day')}
+            style={{
+              flex: 1,
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: viewMode === 'day' 
+                ? 'var(--tg-theme-bg-color)' 
+                : 'transparent',
+              color: 'var(--tg-theme-text-color)',
+              fontSize: '14px',
+              fontWeight: viewMode === 'day' ? '600' : '400',
+              cursor: 'pointer',
+              boxShadow: viewMode === 'day' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            📅 День
+          </button>
+        </div>
+        <button
+          onClick={() => setShowFilters(true)}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: 'var(--tg-theme-button-color)',
+            color: 'var(--tg-theme-button-text-color)',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
+        >
+          🔍
+        </button>
+      </div>
+
+      {/* Контент */}
+      {viewMode === 'list' ? (
+        <TaskList 
+          tasks={filteredTasks}
+          categories={storage.taskCategories}
+          tags={storage.taskTags}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onStatusChange={handleStatusChange}
+          date={selectedDate}
+          expandedTasks={expandedTasks}
+          onToggleExpand={handleToggleExpand}
+        />
+      ) : (
+        <DayView
+          tasks={filteredTasks}
+          categories={storage.taskCategories}
+          tags={storage.taskTags}
+          date={selectedDate}
+        />
+      )}
+
+      {/* Кнопка создания */}
       <button 
         className="fab"
         onClick={handleStartCreate}
@@ -132,7 +387,19 @@ export default function TasksPage({ storage }: TasksPageProps) {
       >
         +
       </button>
+
+      {/* Модальное окно фильтров */}
+      {showFilters && (
+        <TaskFilters
+          categories={storage.taskCategories}
+          tags={storage.taskTags}
+          filters={filters}
+          sortBy={sortBy}
+          onFiltersChange={setFilters}
+          onSortChange={setSortBy}
+          onClose={() => setShowFilters(false)}
+        />
+      )}
     </div>
   );
 }
-
