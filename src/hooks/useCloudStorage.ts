@@ -32,17 +32,26 @@ export function useCloudStorage() {
   
   // Обертка для setTasks с логированием всех вызовов
   const setTasks = useCallback((updater: Task[] | ((prev: Task[]) => Task[])) => {
+    const stackTrace = new Error().stack;
+    const caller = stackTrace?.split('\n')[2]?.trim() || 'unknown';
     console.log('[DEBUG] setTasks CALLED', { 
       timestamp: Date.now(),
       isFunction: typeof updater === 'function',
-      stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n')
+      caller: caller,
+      fullStackTrace: stackTrace
     });
     if (typeof updater === 'function') {
       setTasksRaw(prev => {
         const result = updater(prev);
+        // Находим задачу, которая была изменена, если это updateTask
+        const changedTask = result.find((t, i) => {
+          const prevTask = prev[i];
+          return prevTask && prevTask.id === t.id && prevTask.text !== t.text;
+        });
         console.log('[DEBUG] setTasks FUNCTION RESULT', {
           prevCount: prev.length,
           resultCount: result.length,
+          changedTask: changedTask ? { id: changedTask.id, oldText: prev.find(t => t.id === changedTask.id)?.text, newText: changedTask.text } : null,
           prevTaskIds: prev.map(t => ({ id: t.id, text: t.text })),
           resultTaskIds: result.map(t => ({ id: t.id, text: t.text }))
         });
@@ -51,7 +60,8 @@ export function useCloudStorage() {
     } else {
       console.log('[DEBUG] setTasks DIRECT VALUE', {
         tasksCount: updater.length,
-        taskIds: updater.map(t => ({ id: t.id, text: t.text }))
+        taskIds: updater.map(t => ({ id: t.id, text: t.text })),
+        caller: caller
       });
       setTasksRaw(updater);
     }
