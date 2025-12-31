@@ -56,7 +56,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
     recurrence?: RecurrenceRule;
     energyLevel?: 'low' | 'medium' | 'high';
   }>({});
-  
+
   // Отслеживаем, какие поля были явно изменены пользователем
   const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
 
@@ -178,10 +178,19 @@ export default function TasksPage({ storage }: TasksPageProps) {
   };
 
   const handleStep9Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
+    // #region agent log
+    console.log('[DEBUG] handleStep9Complete ENTRY', { isEditing, editingTaskId, energyLevel, modifiedFields: Array.from(modifiedFields), taskData });
+    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:180',message:'handleStep9Complete entry',data:{isEditing,editingTaskId,energyLevel,modifiedFields:Array.from(modifiedFields),taskData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     if (isEditing && editingTaskId) {
+      console.log('[DEBUG] Editing mode - finding original task', { editingTaskId, tasksCount: storage.tasks.length });
       // Редактирование существующей задачи
       // Получаем исходную задачу из актуального состояния
       const originalTask = storage.tasks.find(t => t.id === editingTaskId);
+      // #region agent log
+      console.log('[DEBUG] originalTask search result', { found: !!originalTask, taskId: editingTaskId, originalTask: originalTask ? { id: originalTask.id, text: originalTask.text, status: originalTask.status } : null });
+      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:185',message:'originalTask found',data:{found:!!originalTask,taskId:editingTaskId,originalTask:originalTask?{id:originalTask.id,text:originalTask.text,status:originalTask.status}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       if (!originalTask) {
         console.warn('Task not found for editing:', editingTaskId);
         setIsCreating(false);
@@ -296,8 +305,11 @@ export default function TasksPage({ storage }: TasksPageProps) {
         }
       }
 
-      // Формируем обновления: только те поля, которые были изменены или должны быть обновлены
-      // Используем modifiedFields, чтобы различать "не изменял" и "явно удалил"
+        // Формируем обновления: только те поля, которые были изменены или должны быть обновлены
+        // Используем modifiedFields, чтобы различать "не изменял" и "явно удалил"
+        // #region agent log
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:301',message:'Building updates object',data:{modifiedFields:Array.from(modifiedFields),taskDataKeys:Object.keys(taskData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
       const updates: Partial<Task> = {
         // Обновляем поля из taskData, если они были изменены пользователем
         // Если поле было изменено (в modifiedFields), используем значение из taskData (даже если undefined)
@@ -346,11 +358,23 @@ export default function TasksPage({ storage }: TasksPageProps) {
         updates,
         taskData
       });
+        // #region agent log
+        console.log('[DEBUG] Before updateTask call', { taskId: editingTaskId, updates, originalTask: { id: originalTask.id, text: originalTask.text } });
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:337',message:'Before updateTask call',data:{taskId:editingTaskId,updates,originalTask:{id:originalTask.id,text:originalTask.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
 
       try {
+        console.log('[DEBUG] Calling storage.updateTask', { taskId: editingTaskId });
         await storage.updateTask(editingTaskId, updates);
+        console.log('[DEBUG] storage.updateTask completed', { taskId: editingTaskId });
+        // #region agent log
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:352',message:'updateTask completed',data:{taskId:editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         console.log('Task updated successfully:', editingTaskId);
       } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:354',message:'updateTask error',data:{taskId:editingTaskId,error:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         console.error('Error updating task:', error);
         // Состояние уже обновлено в updateTask, продолжаем
       }
@@ -367,7 +391,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
       // Проверяем, что name не пустая строка
       const taskName = taskData.name?.trim() || 'Новая задача';
-      
+
       const newTask: Task = {
         id: generateId(),
         text: taskName,

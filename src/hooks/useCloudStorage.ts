@@ -139,12 +139,37 @@ export function useCloudStorage() {
   // Tasks
   // Функция только для сохранения в хранилище (без обновления состояния)
   const saveTasksToStorage = useCallback(async (newTasks: Task[]) => {
+    // #region agent log
+    console.log('[DEBUG] saveTasksToStorage ENTRY', { tasksCount: newTasks.length });
+    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:141',message:'saveTasksToStorage entry',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     try {
+      console.log('[DEBUG] Calling saveTasks', { tasksCount: newTasks.length });
       await saveTasks(newTasks);
+      // #region agent log
+      console.log('[DEBUG] saveTasks completed successfully');
+      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:144',message:'saveTasksToStorage success',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       console.log('Tasks saved successfully');
     } catch (error) {
+      // #region agent log
+      const errorStr = error instanceof Error ? error.message : String(error);
+      console.log('[DEBUG] saveTasksToStorage error caught', { error: errorStr, errorType: error?.constructor?.name });
+      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:146',message:'saveTasksToStorage error',data:{error:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       console.error('Error saving tasks:', error);
-      // В случае ошибки данные остаются в localStorage (fallback)
+      // В случае ошибки fallback на localStorage должен был сработать в setStorageData
+      // Проверяем, сохранились ли данные в localStorage
+      try {
+        const saved = localStorage.getItem('tasks');
+        if (saved) {
+          console.log('[DEBUG] Data found in localStorage after error, fallback worked');
+        } else {
+          console.warn('[DEBUG] No data in localStorage after error, fallback may have failed');
+        }
+      } catch (e) {
+        console.error('[DEBUG] Error checking localStorage:', e);
+      }
     }
   }, []);
 
@@ -171,6 +196,10 @@ export function useCloudStorage() {
   }, [saveTasksToStorage]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
+    // #region agent log
+    console.log('[DEBUG] updateTask ENTRY', { id, updatesKeys: Object.keys(updates), updates });
+    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:173',message:'updateTask entry',data:{id,updatesKeys:Object.keys(updates),updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     try {
       // НЕ фильтруем undefined значения, так как они могут означать явное удаление полей
       // Контроль того, какие поля передавать, осуществляется в вызывающем коде через modifiedFields
@@ -180,6 +209,10 @@ export function useCloudStorage() {
       
       setTasks(prevTasks => {
         const taskIndex = prevTasks.findIndex(task => task.id === id);
+        // #region agent log
+        console.log('[DEBUG] setTasks callback entry', { id, prevTasksCount: prevTasks.length, taskIndex, taskFound: taskIndex !== -1 });
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:182',message:'setTasks callback entry',data:{id,prevTasksCount:prevTasks.length,taskIndex},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         if (taskIndex === -1) {
           console.warn('Task not found:', id);
           return prevTasks;
@@ -189,6 +222,11 @@ export function useCloudStorage() {
         // Применяем обновления: undefined значения перезапишут существующие поля
         const updatedTask = { ...originalTask, ...updates };
         
+        // #region agent log
+        console.log('[DEBUG] Task updated in state', { id, originalTask: { id: originalTask.id, text: originalTask.text }, updatedTask: { id: updatedTask.id, text: updatedTask.text } });
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:190',message:'Task updated in state',data:{id,originalTask:{id:originalTask.id,text:originalTask.text},updatedTask:{id:updatedTask.id,text:updatedTask.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        
         console.log('Original task:', originalTask);
         console.log('Updated task:', updatedTask);
         
@@ -196,8 +234,18 @@ export function useCloudStorage() {
           task.id === id ? updatedTask : task
         );
         
+        // #region agent log
+        console.log('[DEBUG] Before saveTasksToStorage', { newTasksCount: newTasks.length, updatedTaskId: id });
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:199',message:'Before saveTasksToStorage',data:{newTasksCount:newTasks.length,updatedTaskId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        
         // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
-        saveTasksToStorage(newTasks).catch(err => {
+        saveTasksToStorage(newTasks).then(() => {
+          console.log('[DEBUG] saveTasksToStorage completed successfully');
+        }).catch(err => {
+          // #region agent log
+          fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:201',message:'saveTasksToStorage error',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
           console.error('Error saving task:', err);
           // В случае ошибки можно попробовать восстановить состояние
         });

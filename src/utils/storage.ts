@@ -263,29 +263,57 @@ const STORAGE_KEYS = {
  * Получить данные из Cloud Storage
  */
 export async function getStorageData<T>(key: string): Promise<T | null> {
-  if (!window.Telegram?.WebApp?.CloudStorage) {
-    console.warn('Cloud Storage not available, using localStorage fallback');
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
+  // Проверяем доступность CloudStorage и версию WebApp
+  const cloudStorage = window.Telegram?.WebApp?.CloudStorage;
+  const webAppVersion = window.Telegram?.WebApp?.version;
+  const versionNum = webAppVersion ? parseFloat(webAppVersion) : null;
+  const hasCloudStorage = cloudStorage && typeof cloudStorage.getItem === 'function';
+  const isCloudStorageSupported = hasCloudStorage && (versionNum === null || versionNum >= 6.1);
+
+  if (!hasCloudStorage || !isCloudStorageSupported) {
+    console.warn('[DEBUG] Cloud Storage not available or not supported, using localStorage fallback', {
+      hasCloudStorage,
+      webAppVersion,
+      versionNum,
+      isCloudStorageSupported
+    });
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (parseError) {
+      console.error('Error parsing localStorage data:', parseError);
+      return null;
+    }
   }
 
   return new Promise((resolve) => {
-    if (!window.Telegram?.WebApp?.CloudStorage) {
-      const data = localStorage.getItem(key);
-      resolve(data ? JSON.parse(data) : null);
-      return;
-    }
-    
-    window.Telegram.WebApp.CloudStorage.getItem(key, (error, value) => {
-      if (error) {
-        console.error('Error getting from Cloud Storage:', error);
-        // Fallback to localStorage
+    try {
+      cloudStorage.getItem(key, (error, value) => {
+        if (error) {
+          console.error('[DEBUG] Error getting from Cloud Storage:', error);
+          // Fallback to localStorage
+          try {
+            const data = localStorage.getItem(key);
+            resolve(data ? JSON.parse(data) : null);
+          } catch (parseError) {
+            console.error('Error parsing localStorage data:', parseError);
+            resolve(null);
+          }
+          return;
+        }
+        resolve(value ? JSON.parse(value) : null);
+      });
+    } catch (syncError) {
+      // Синхронная ошибка при вызове getItem
+      console.error('[DEBUG] Synchronous error calling CloudStorage.getItem:', syncError);
+      try {
         const data = localStorage.getItem(key);
         resolve(data ? JSON.parse(data) : null);
-        return;
+      } catch (parseError) {
+        console.error('Error parsing localStorage data:', parseError);
+        resolve(null);
       }
-      resolve(value ? JSON.parse(value) : null);
-    });
+    }
   });
 }
 
@@ -295,35 +323,73 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
 export async function setStorageData<T>(key: string, data: T): Promise<void> {
   const jsonData = JSON.stringify(data);
 
-  if (!window.Telegram?.WebApp?.CloudStorage) {
-    console.warn('Cloud Storage not available, using localStorage fallback');
-    localStorage.setItem(key, jsonData);
-    return;
+  // Проверяем доступность CloudStorage и метода setItem
+  const cloudStorage = window.Telegram?.WebApp?.CloudStorage;
+  const hasCloudStorage = cloudStorage && typeof cloudStorage.setItem === 'function';
+  
+  // Дополнительная проверка: если версия WebApp 6.0, CloudStorage не поддерживается
+  const webAppVersion = window.Telegram?.WebApp?.version;
+  const versionNum = webAppVersion ? parseFloat(webAppVersion) : null;
+  const isCloudStorageSupported = hasCloudStorage && (versionNum === null || versionNum >= 6.1);
+
+  if (!hasCloudStorage || !isCloudStorageSupported) {
+    console.warn('[DEBUG] Cloud Storage not available or not supported, using localStorage fallback', { 
+      hasCloudStorage, 
+      webAppVersion,
+      versionNum,
+      isCloudStorageSupported 
+    });
+    try {
+      localStorage.setItem(key, jsonData);
+      console.log('[DEBUG] Data saved to localStorage (direct fallback)');
+      return;
+    } catch (localStorageError) {
+      console.error('Error saving to localStorage:', localStorageError);
+      throw localStorageError;
+    }
   }
 
   return new Promise((resolve, reject) => {
-    if (!window.Telegram?.WebApp?.CloudStorage) {
-      localStorage.setItem(key, jsonData);
-      resolve();
-      return;
-    }
-    
-    window.Telegram.WebApp.CloudStorage.setItem(key, jsonData, (error) => {
-      if (error) {
-        console.error('Error saving to Cloud Storage:', error);
-        // Fallback to localStorage
-        try {
-          localStorage.setItem(key, jsonData);
-          console.log('Data saved to localStorage as fallback');
-          resolve(); // Успешно сохранили в localStorage, разрешаем промис
-        } catch (localStorageError) {
-          console.error('Error saving to localStorage:', localStorageError);
-          reject(localStorageError);
+    try {
+      cloudStorage.setItem(key, jsonData, (error) => {
+        if (error) {
+          console.error('[DEBUG] Error saving to Cloud Storage:', error);
+          // Проверяем, является ли ошибка WebAppMethodUnsupported
+          const errorStr = error?.toString() || String(error);
+          const isUnsupportedError = errorStr.includes('WebAppMethodUnsupported') || 
+                                     errorStr.includes('not supported') ||
+                                     errorStr.includes('MethodUnsupported');
+          
+          if (isUnsupportedError) {
+            console.warn('[DEBUG] CloudStorage method not supported, falling back to localStorage');
+          }
+          
+          // Fallback to localStorage при любой ошибке
+          try {
+            localStorage.setItem(key, jsonData);
+            console.log('[DEBUG] Data saved to localStorage as fallback successfully');
+            resolve(); // Успешно сохранили в localStorage, разрешаем промис
+          } catch (localStorageError) {
+            console.error('[DEBUG] Error saving to localStorage:', localStorageError);
+            reject(localStorageError);
+          }
+          return;
         }
-        return;
+        console.log('[DEBUG] Data saved to Cloud Storage successfully');
+        resolve();
+      });
+    } catch (syncError) {
+      // Синхронная ошибка при вызове setItem (например, метод не поддерживается)
+      console.error('Synchronous error calling CloudStorage.setItem:', syncError);
+      try {
+        localStorage.setItem(key, jsonData);
+        console.log('Data saved to localStorage as fallback (sync error)');
+        resolve();
+      } catch (localStorageError) {
+        console.error('Error saving to localStorage:', localStorageError);
+        reject(localStorageError);
       }
-      resolve();
-    });
+    }
   });
 }
 
