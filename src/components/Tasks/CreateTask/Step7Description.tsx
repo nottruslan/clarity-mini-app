@@ -5,10 +5,11 @@ import GradientButton from '../../Wizard/GradientButton';
 interface Step7DescriptionProps {
   onNext: (description?: string) => void;
   onBack: () => void;
+  initialValue?: string;
 }
 
-export default function Step7Description({ onNext, onBack }: Step7DescriptionProps) {
-  const [description, setDescription] = useState('');
+export default function Step7Description({ onNext, onBack, initialValue }: Step7DescriptionProps) {
+  const [description, setDescription] = useState(initialValue || '');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleNext = () => {

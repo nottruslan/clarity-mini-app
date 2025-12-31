@@ -7,10 +7,11 @@ import { RecurrenceRule } from '../../../utils/storage';
 interface Step9RecurrenceProps {
   onNext: (recurrence?: RecurrenceRule) => void;
   onBack: () => void;
+  initialValue?: RecurrenceRule;
 }
 
-export default function Step9Recurrence({ onNext, onBack }: Step9RecurrenceProps) {
-  const [hasRecurrence, setHasRecurrence] = useState(false);
+export default function Step9Recurrence({ onNext, onBack, initialValue }: Step9RecurrenceProps) {
+  const [hasRecurrence, setHasRecurrence] = useState(!!initialValue);
   const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('daily');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 

@@ -5,12 +5,22 @@ import GradientButton from '../../Wizard/GradientButton';
 interface Step4TimeProps {
   onNext: (startTime: number, duration: number) => void;
   onBack: () => void;
+  initialStartTime?: number;
+  initialDuration?: number;
 }
 
-export default function Step4Time({ onNext, onBack }: Step4TimeProps) {
-  const [hasTime, setHasTime] = useState(false);
-  const [startTime, setStartTime] = useState('09:00');
-  const [duration, setDuration] = useState('60');
+const minutesToTimeString = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+};
+
+export default function Step4Time({ onNext, onBack, initialStartTime, initialDuration }: Step4TimeProps) {
+  const initialStartTimeStr = initialStartTime ? minutesToTimeString(initialStartTime) : '09:00';
+  const initialDurationStr = initialDuration ? initialDuration.toString() : '60';
+  const [hasTime, setHasTime] = useState(!!initialStartTime && !!initialDuration);
+  const [startTime, setStartTime] = useState(initialStartTimeStr);
+  const [duration, setDuration] = useState(initialDurationStr);
 
   const handleNext = () => {
     if (hasTime) {

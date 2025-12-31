@@ -6,10 +6,11 @@ import { Subtask, generateId } from '../../../utils/storage';
 interface Step8SubtasksProps {
   onNext: (subtasks: Subtask[]) => void;
   onBack: () => void;
+  initialValue?: Subtask[];
 }
 
-export default function Step8Subtasks({ onNext, onBack }: Step8SubtasksProps) {
-  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8SubtasksProps) {
+  const [subtasks, setSubtasks] = useState<Subtask[]>(initialValue || []);
   const [newSubtaskText, setNewSubtaskText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 

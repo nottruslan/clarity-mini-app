@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Task, TaskCategory, TaskTag } from '../../utils/storage';
+import { Task, TaskCategory } from '../../utils/storage';
 import TaskItem from './TaskItem';
 import EmptyState from '../EmptyState';
 
 interface TaskListProps {
   tasks: Task[];
   categories?: TaskCategory[];
-  tags?: TaskTag[];
   onToggle: (id: string) => void;
   onEdit?: (id: string) => void;
   onDelete: (id: string) => void;
@@ -19,7 +18,6 @@ interface TaskListProps {
 export default function TaskList({ 
   tasks, 
   categories = [],
-  tags = [],
   onToggle, 
   onEdit,
   onDelete,
@@ -68,7 +66,6 @@ export default function TaskList({
           key={task.id}
           task={task}
           categories={categories}
-          tags={tags}
           onToggle={() => onToggle(task.id)}
           onEdit={onEdit ? () => onEdit(task.id) : undefined}
           onDelete={() => onDelete(task.id)}

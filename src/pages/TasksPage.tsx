@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
-import { generateId, type Task, type Subtask, type RecurrenceRule, type TaskTag } from '../utils/storage';
+import { generateId, type Task, type Subtask, type RecurrenceRule, type TaskCategory } from '../utils/storage';
 import TaskList from '../components/Tasks/TaskList';
 import DayView from '../components/Tasks/DayView/DayView';
+import InBoxView from '../components/Tasks/InBox/InBoxView';
 import TaskFilters from '../components/Tasks/TaskFilters';
 import { TaskFilterOptions, TaskSortOption } from '../hooks/useTaskFilters';
 import WizardContainer from '../components/Wizard/WizardContainer';
@@ -11,7 +12,6 @@ import Step2Priority from '../components/Tasks/CreateTask/Step2Priority';
 import Step3Date from '../components/Tasks/CreateTask/Step3Date';
 import Step4Time from '../components/Tasks/CreateTask/Step4Time';
 import Step5Category from '../components/Tasks/CreateTask/Step5Category';
-import Step6Tags from '../components/Tasks/CreateTask/Step6Tags';
 import Step7Description from '../components/Tasks/CreateTask/Step7Description';
 import Step8Subtasks from '../components/Tasks/CreateTask/Step8Subtasks';
 import Step9Recurrence from '../components/Tasks/CreateTask/Step9Recurrence';
@@ -24,12 +24,14 @@ interface TasksPageProps {
   storage: ReturnType<typeof useCloudStorage>;
 }
 
-type ViewMode = 'day' | 'list';
+type ViewMode = 'day' | 'list' | 'inbox';
 
 export default function TasksPage({ storage }: TasksPageProps) {
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [createStep, setCreateStep] = useState(0);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('inbox');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [filters, setFilters] = useState<TaskFilterOptions>({
@@ -47,8 +49,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
     startTime?: number;
     duration?: number;
     categoryId?: string;
-    tagIds?: string[];
-    newTags?: TaskTag[];
     description?: string;
     subtasks?: Subtask[];
     recurrence?: RecurrenceRule;
@@ -59,7 +59,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
   const filteredTasks = useTaskFilters({
     tasks: storage.tasks,
     categories: storage.taskCategories,
-    tags: storage.taskTags,
+    tags: [],
     filters,
     sortBy,
     date: selectedDate
@@ -67,8 +67,46 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
   const handleStartCreate = () => {
     setIsCreating(true);
+    setIsEditing(false);
+    setEditingTaskId(null);
     setCreateStep(0);
     setTaskData({});
+  };
+
+  const handleEditTask = (taskId: string) => {
+    const task = storage.tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    setIsCreating(true);
+    setIsEditing(true);
+    setEditingTaskId(taskId);
+    setCreateStep(0);
+    
+    // Преобразуем startTime из timestamp в минуты от полуночи
+    let startTimeMinutes: number | undefined;
+    if (task.startTime && task.dueDate) {
+      const startDate = new Date(task.startTime);
+      const dueDate = new Date(task.dueDate);
+      // Если startTime в тот же день что и dueDate
+      if (startDate.getDate() === dueDate.getDate() && 
+          startDate.getMonth() === dueDate.getMonth() &&
+          startDate.getFullYear() === dueDate.getFullYear()) {
+        startTimeMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+      }
+    }
+    
+    setTaskData({
+      name: task.text,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      startTime: startTimeMinutes,
+      duration: task.duration,
+      categoryId: task.categoryId,
+      description: task.description,
+      subtasks: task.subtasks,
+      recurrence: task.recurrence,
+      energyLevel: task.energyLevel
+    });
   };
 
   const handleStep1Complete = (name: string) => {
@@ -91,38 +129,33 @@ export default function TasksPage({ storage }: TasksPageProps) {
     setCreateStep(4);
   };
 
-  const handleStep5Complete = (categoryId?: string) => {
-    setTaskData(prev => ({ ...prev, categoryId }));
+  const handleStep5Complete = (categoryId?: string, newCategory?: TaskCategory) => {
+    // Если создана новая категория, сохраняем её
+    if (newCategory) {
+      storage.addTaskCategory(newCategory);
+      setTaskData(prev => ({ ...prev, categoryId: newCategory.id }));
+    } else {
+      setTaskData(prev => ({ ...prev, categoryId }));
+    }
     setCreateStep(5);
   };
 
-  const handleStep6Complete = (tagIds: string[], newTags: TaskTag[]) => {
-    setTaskData(prev => ({ ...prev, tagIds, newTags }));
-    // Сохраняем новые теги
-    if (newTags.length > 0) {
-      newTags.forEach(tag => {
-        storage.addTaskTag(tag);
-      });
-    }
+  const handleStep6Complete = (description?: string) => {
+    setTaskData(prev => ({ ...prev, description }));
     setCreateStep(6);
   };
 
-  const handleStep7Complete = (description?: string) => {
-    setTaskData(prev => ({ ...prev, description }));
+  const handleStep7Complete = (subtasks: Subtask[]) => {
+    setTaskData(prev => ({ ...prev, subtasks }));
     setCreateStep(7);
   };
 
-  const handleStep8Complete = (subtasks: Subtask[]) => {
-    setTaskData(prev => ({ ...prev, subtasks }));
+  const handleStep8Complete = (recurrence?: RecurrenceRule) => {
+    setTaskData(prev => ({ ...prev, recurrence }));
     setCreateStep(8);
   };
 
-  const handleStep9Complete = (recurrence?: RecurrenceRule) => {
-    setTaskData(prev => ({ ...prev, recurrence }));
-    setCreateStep(9);
-  };
-
-  const handleStep10Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
+  const handleStep9Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
     // Создаем задачу со всеми данными
     const dueDate = taskData.dueDate || selectedDate.getTime();
     const startTime = taskData.startTime 
@@ -145,7 +178,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
       endTime,
       duration: taskData.duration,
       categoryId: taskData.categoryId,
-      tags: taskData.tagIds,
       description: taskData.description,
       subtasks: taskData.subtasks,
       recurrence: taskData.recurrence,
@@ -204,7 +236,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
   if (isCreating) {
     const colors = sectionColors.tasks;
-    const totalSteps = 10;
+    const totalSteps = 9;
     
     return (
       <WizardContainer 
@@ -214,22 +246,22 @@ export default function TasksPage({ storage }: TasksPageProps) {
       >
         {createStep === 0 && (
           <div className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}>
-            <Step1Name onNext={handleStep1Complete} />
+            <Step1Name onNext={handleStep1Complete} initialValue={taskData.name} />
           </div>
         )}
         {createStep === 1 && (
           <div className={`wizard-slide ${createStep === 1 ? 'active' : createStep > 1 ? 'prev' : 'next'}`}>
-            <Step2Priority onNext={handleStep2Complete} onBack={handleBack} />
+            <Step2Priority onNext={handleStep2Complete} onBack={handleBack} initialValue={taskData.priority} />
           </div>
         )}
         {createStep === 2 && (
           <div className={`wizard-slide ${createStep === 2 ? 'active' : createStep > 2 ? 'prev' : 'next'}`}>
-            <Step3Date onComplete={handleStep3Complete} onBack={handleBack} />
+            <Step3Date onComplete={handleStep3Complete} onBack={handleBack} initialValue={taskData.dueDate} />
           </div>
         )}
         {createStep === 3 && (
           <div className={`wizard-slide ${createStep === 3 ? 'active' : createStep > 3 ? 'prev' : 'next'}`}>
-            <Step4Time onNext={handleStep4Complete} onBack={handleBack} />
+            <Step4Time onNext={handleStep4Complete} onBack={handleBack} initialStartTime={taskData.startTime} initialDuration={taskData.duration} />
           </div>
         )}
         {createStep === 4 && (
@@ -237,37 +269,29 @@ export default function TasksPage({ storage }: TasksPageProps) {
             <Step5Category 
               categories={storage.taskCategories} 
               onNext={handleStep5Complete} 
-              onBack={handleBack} 
+              onBack={handleBack}
+              initialValue={taskData.categoryId}
             />
           </div>
         )}
         {createStep === 5 && (
           <div className={`wizard-slide ${createStep === 5 ? 'active' : createStep > 5 ? 'prev' : 'next'}`}>
-            <Step6Tags 
-              existingTags={storage.taskTags}
-              onNext={handleStep6Complete} 
-              onBack={handleBack} 
-            />
+            <Step7Description onNext={handleStep6Complete} onBack={handleBack} initialValue={taskData.description} />
           </div>
         )}
         {createStep === 6 && (
           <div className={`wizard-slide ${createStep === 6 ? 'active' : createStep > 6 ? 'prev' : 'next'}`}>
-            <Step7Description onNext={handleStep7Complete} onBack={handleBack} />
+            <Step8Subtasks onNext={handleStep7Complete} onBack={handleBack} initialValue={taskData.subtasks} />
           </div>
         )}
         {createStep === 7 && (
           <div className={`wizard-slide ${createStep === 7 ? 'active' : createStep > 7 ? 'prev' : 'next'}`}>
-            <Step8Subtasks onNext={handleStep8Complete} onBack={handleBack} />
+            <Step9Recurrence onNext={handleStep8Complete} onBack={handleBack} initialValue={taskData.recurrence} />
           </div>
         )}
         {createStep === 8 && (
           <div className={`wizard-slide ${createStep === 8 ? 'active' : createStep > 8 ? 'prev' : 'next'}`}>
-            <Step9Recurrence onNext={handleStep9Complete} onBack={handleBack} />
-          </div>
-        )}
-        {createStep === 9 && (
-          <div className={`wizard-slide ${createStep === 9 ? 'active' : createStep > 9 ? 'prev' : 'next'}`}>
-            <Step10Energy onComplete={handleStep10Complete} onBack={handleBack} />
+            <Step10Energy onComplete={handleStep9Complete} onBack={handleBack} initialValue={taskData.energyLevel} isEditing={isEditing} />
           </div>
         )}
       </WizardContainer>
@@ -302,17 +326,36 @@ export default function TasksPage({ storage }: TasksPageProps) {
           padding: '4px'
         }}>
           <button
+            onClick={() => setViewMode('inbox')}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              background: viewMode === 'inbox' 
+                ? 'var(--tg-theme-bg-color)' 
+                : 'transparent',
+              color: 'var(--tg-theme-text-color)',
+              fontSize: '13px',
+              fontWeight: viewMode === 'inbox' ? '600' : '400',
+              cursor: 'pointer',
+              boxShadow: viewMode === 'inbox' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            📥 InBox
+          </button>
+          <button
             onClick={() => setViewMode('list')}
             style={{
               flex: 1,
-              padding: '8px 16px',
+              padding: '8px 12px',
               borderRadius: '8px',
               border: 'none',
               background: viewMode === 'list' 
                 ? 'var(--tg-theme-bg-color)' 
                 : 'transparent',
               color: 'var(--tg-theme-text-color)',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: viewMode === 'list' ? '600' : '400',
               cursor: 'pointer',
               boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
@@ -324,14 +367,14 @@ export default function TasksPage({ storage }: TasksPageProps) {
             onClick={() => setViewMode('day')}
             style={{
               flex: 1,
-              padding: '8px 16px',
+              padding: '8px 12px',
               borderRadius: '8px',
               border: 'none',
               background: viewMode === 'day' 
                 ? 'var(--tg-theme-bg-color)' 
                 : 'transparent',
               color: 'var(--tg-theme-text-color)',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: viewMode === 'day' ? '600' : '400',
               cursor: 'pointer',
               boxShadow: viewMode === 'day' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
@@ -362,8 +405,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
         <TaskList 
           tasks={filteredTasks}
           categories={storage.taskCategories}
-          tags={storage.taskTags}
           onToggle={handleToggle}
+          onEdit={handleEditTask}
           onDelete={handleDelete}
           onStatusChange={handleStatusChange}
           date={selectedDate}
@@ -374,7 +417,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
         <DayView
           tasks={filteredTasks}
           categories={storage.taskCategories}
-          tags={storage.taskTags}
           date={selectedDate}
         />
       )}
@@ -392,7 +434,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
       {showFilters && (
         <TaskFilters
           categories={storage.taskCategories}
-          tags={storage.taskTags}
           filters={filters}
           sortBy={sortBy}
           onFiltersChange={setFilters}

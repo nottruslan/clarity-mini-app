@@ -39,6 +39,12 @@ export interface TaskTag {
   color?: string;
 }
 
+export interface InBoxNote {
+  id: string;
+  text: string;
+  createdAt: number;
+}
+
 export interface Task {
   id: string;
   text: string;
@@ -243,7 +249,8 @@ const STORAGE_KEYS = {
   ONBOARDING: 'onboarding',
   YEARLY_REPORTS: 'yearly-reports',
   TASK_CATEGORIES: 'task-categories',
-  TASK_TAGS: 'task-tags'
+  TASK_TAGS: 'task-tags',
+  INBOX_NOTES: 'inbox-notes'
 } as const;
 
 /**
@@ -530,5 +537,20 @@ export async function getTaskTags(): Promise<TaskTag[]> {
  */
 export async function saveTaskTags(tags: TaskTag[]): Promise<void> {
   await setStorageData(STORAGE_KEYS.TASK_TAGS, tags);
+}
+
+/**
+ * Получить заметки InBox
+ */
+export async function getInBoxNotes(): Promise<InBoxNote[]> {
+  const notes = await getStorageData<InBoxNote[]>(STORAGE_KEYS.INBOX_NOTES);
+  return notes || [];
+}
+
+/**
+ * Сохранить заметки InBox
+ */
+export async function saveInBoxNotes(notes: InBoxNote[]): Promise<void> {
+  await setStorageData(STORAGE_KEYS.INBOX_NOTES, notes);
 }
 

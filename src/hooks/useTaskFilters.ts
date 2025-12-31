@@ -58,12 +58,6 @@ export function useTaskFilters({
       result = result.filter(t => t.categoryId === filters.categoryId);
     }
 
-    // Фильтр по тегам
-    if (filters.tagIds && filters.tagIds.length > 0) {
-      result = result.filter(t => 
-        t.tags && t.tags.some(tagId => filters.tagIds!.includes(tagId))
-      );
-    }
 
     // Фильтр по энергозатратности
     if (filters.energyLevel && filters.energyLevel !== 'all') {

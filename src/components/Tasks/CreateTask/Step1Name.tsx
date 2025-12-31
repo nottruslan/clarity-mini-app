@@ -5,10 +5,11 @@ import GradientButton from '../../Wizard/GradientButton';
 interface Step1NameProps {
   onNext: (name: string) => void;
   onBack?: () => void;
+  initialValue?: string;
 }
 
-export default function Step1Name({ onNext, onBack }: Step1NameProps) {
-  const [name, setName] = useState('');
+export default function Step1Name({ onNext, onBack, initialValue }: Step1NameProps) {
+  const [name, setName] = useState(initialValue || '');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleNext = () => {

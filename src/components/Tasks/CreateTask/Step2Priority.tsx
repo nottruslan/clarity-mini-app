@@ -6,10 +6,11 @@ import GradientButton from '../../Wizard/GradientButton';
 interface Step2PriorityProps {
   onNext: (priority: 'low' | 'medium' | 'high') => void;
   onBack: () => void;
+  initialValue?: 'low' | 'medium' | 'high';
 }
 
-export default function Step2Priority({ onNext, onBack }: Step2PriorityProps) {
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+export default function Step2Priority({ onNext, onBack, initialValue }: Step2PriorityProps) {
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(initialValue || 'medium');
 
   const priorities = [
     { 

@@ -14,13 +14,16 @@ import {
   saveTaskCategories,
   getTaskTags,
   saveTaskTags,
+  getInBoxNotes,
+  saveInBoxNotes,
   type Task,
   type Habit,
   type FinanceData,
   type OnboardingFlags,
   type YearlyReport,
   type TaskCategory,
-  type TaskTag
+  type TaskTag,
+  type InBoxNote
 } from '../utils/storage';
 import { generateUpcomingInstances } from '../utils/taskRecurrence';
 
@@ -38,6 +41,7 @@ export function useCloudStorage() {
   const [yearlyReports, setYearlyReports] = useState<YearlyReport[]>([]);
   const [taskCategories, setTaskCategories] = useState<TaskCategory[]>([]);
   const [taskTags, setTaskTags] = useState<TaskTag[]>([]);
+  const [inBoxNotes, setInBoxNotes] = useState<InBoxNote[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Загрузка данных при монтировании
@@ -48,7 +52,7 @@ export function useCloudStorage() {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData] = await Promise.all([
+      const [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData, notesData] = await Promise.all([
         getTasks().catch(err => {
           console.error('Error loading tasks:', err);
           return [];
@@ -75,6 +79,10 @@ export function useCloudStorage() {
         }),
         getTaskTags().catch(err => {
           console.error('Error loading task tags:', err);
+          return [];
+        }),
+        getInBoxNotes().catch(err => {
+          console.error('Error loading inbox notes:', err);
           return [];
         })
       ]);
@@ -115,6 +123,7 @@ export function useCloudStorage() {
       setYearlyReports(reportsData);
       setTaskCategories(categoriesData);
       setTaskTags(tagsData);
+      setInBoxNotes(notesData);
       
       // Сохраняем мигрированные данные, если была миграция
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
@@ -358,6 +367,29 @@ export function useCloudStorage() {
     await updateTaskTags(newTags);
   }, [taskTags, updateTaskTags]);
 
+  // InBox Notes
+  const updateInBoxNotes = useCallback(async (newNotes: InBoxNote[]) => {
+    setInBoxNotes(newNotes);
+    await saveInBoxNotes(newNotes);
+  }, []);
+
+  const addInBoxNote = useCallback(async (note: InBoxNote) => {
+    const newNotes = [...inBoxNotes, note];
+    await updateInBoxNotes(newNotes);
+  }, [inBoxNotes, updateInBoxNotes]);
+
+  const updateInBoxNote = useCallback(async (id: string, updates: Partial<InBoxNote>) => {
+    const newNotes = inBoxNotes.map(note => 
+      note.id === id ? { ...note, ...updates } : note
+    );
+    await updateInBoxNotes(newNotes);
+  }, [inBoxNotes, updateInBoxNotes]);
+
+  const deleteInBoxNote = useCallback(async (id: string) => {
+    const newNotes = inBoxNotes.filter(note => note.id !== id);
+    await updateInBoxNotes(newNotes);
+  }, [inBoxNotes, updateInBoxNotes]);
+
   return {
     // Data
     tasks,
@@ -367,6 +399,7 @@ export function useCloudStorage() {
     yearlyReports,
     taskCategories,
     taskTags,
+    inBoxNotes,
     loading,
     
     // Tasks
@@ -412,6 +445,12 @@ export function useCloudStorage() {
     addTaskTag,
     updateTaskTag,
     deleteTaskTag,
+    
+    // InBox Notes
+    updateInBoxNotes,
+    addInBoxNote,
+    updateInBoxNote,
+    deleteInBoxNote,
     
     // Reload
     reload: loadAllData

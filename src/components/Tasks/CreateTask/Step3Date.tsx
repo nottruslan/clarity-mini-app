@@ -6,11 +6,13 @@ import GradientButton from '../../Wizard/GradientButton';
 interface Step3DateProps {
   onComplete: (dueDate?: number) => void;
   onBack: () => void;
+  initialValue?: number;
 }
 
-export default function Step3Date({ onComplete, onBack }: Step3DateProps) {
-  const [hasDueDate, setHasDueDate] = useState(false);
-  const [dueDate, setDueDate] = useState('');
+export default function Step3Date({ onComplete, onBack, initialValue }: Step3DateProps) {
+  const initialDateStr = initialValue ? new Date(initialValue).toISOString().split('T')[0] : '';
+  const [hasDueDate, setHasDueDate] = useState(!!initialValue);
+  const [dueDate, setDueDate] = useState(initialDateStr);
 
   const handleComplete = () => {
     if (hasDueDate && dueDate) {

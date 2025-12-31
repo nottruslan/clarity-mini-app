@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { TaskCategory, TaskTag } from '../../utils/storage';
+import { TaskCategory } from '../../utils/storage';
 import { TaskFilterOptions, TaskSortOption } from '../../hooks/useTaskFilters';
 
 interface TaskFiltersProps {
   categories: TaskCategory[];
-  tags: TaskTag[];
   filters: TaskFilterOptions;
   sortBy?: TaskSortOption;
   onFiltersChange: (filters: TaskFilterOptions) => void;
@@ -14,7 +13,6 @@ interface TaskFiltersProps {
 
 export default function TaskFilters({
   categories,
-  tags,
   filters,
   sortBy = 'time',
   onFiltersChange,
@@ -61,7 +59,6 @@ export default function TaskFilters({
       status: 'all',
       priority: 'all',
       categoryId: undefined,
-      tagIds: undefined,
       energyLevel: 'all',
       dateFilter: 'all',
       searchQuery: undefined
@@ -343,51 +340,6 @@ export default function TaskFilters({
           </div>
         </div>
 
-        {/* Теги */}
-        {tags.length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: 'var(--tg-theme-text-color)',
-              marginBottom: '12px'
-            }}>
-              Теги
-            </label>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px'
-            }}>
-              {tags.map(tag => {
-                const isSelected = localFilters.tagIds?.includes(tag.id);
-                return (
-                  <button
-                    key={tag.id}
-                    onClick={() => toggleTag(tag.id)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      border: 'none',
-                      background: isSelected
-                        ? tag.color || 'var(--tg-theme-button-color)'
-                        : 'var(--tg-theme-secondary-bg-color)',
-                      color: isSelected
-                        ? '#ffffff'
-                        : 'var(--tg-theme-text-color)',
-                      fontSize: '14px',
-                      fontWeight: isSelected ? '600' : '400',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {tag.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Энергозатратность */}
         <div style={{ marginBottom: '24px' }}>

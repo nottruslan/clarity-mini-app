@@ -6,10 +6,12 @@ import GradientButton from '../../Wizard/GradientButton';
 interface Step10EnergyProps {
   onComplete: (energyLevel?: 'low' | 'medium' | 'high') => void;
   onBack: () => void;
+  initialValue?: 'low' | 'medium' | 'high';
+  isEditing?: boolean;
 }
 
-export default function Step10Energy({ onComplete, onBack }: Step10EnergyProps) {
-  const [energyLevel, setEnergyLevel] = useState<'low' | 'medium' | 'high' | undefined>(undefined);
+export default function Step10Energy({ onComplete, onBack, initialValue, isEditing }: Step10EnergyProps) {
+  const [energyLevel, setEnergyLevel] = useState<'low' | 'medium' | 'high' | undefined>(initialValue);
 
   const energyLevels = [
     { 
@@ -48,7 +50,7 @@ export default function Step10Energy({ onComplete, onBack }: Step10EnergyProps) 
           <GradientButton
             onClick={() => onComplete(energyLevel)}
           >
-            Создать
+{isEditing ? 'Сохранить' : 'Создать задачу'}
           </GradientButton>
         </div>
       }

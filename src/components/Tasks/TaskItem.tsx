@@ -1,11 +1,10 @@
 import { useState, useRef } from 'react';
-import { Task, TaskCategory, TaskTag } from '../../utils/storage';
+import { Task, TaskCategory } from '../../utils/storage';
 import { getTaskStartMinutes, getTaskDuration, formatTime, formatDuration } from '../../utils/taskTimeUtils';
 
 interface TaskItemProps {
   task: Task;
   categories?: TaskCategory[];
-  tags?: TaskTag[];
   onToggle: () => void;
   onEdit?: () => void;
   onDelete: () => void;
@@ -18,7 +17,6 @@ interface TaskItemProps {
 export default function TaskItem({ 
   task, 
   categories = [],
-  tags = [],
   onToggle, 
   onEdit,
   onDelete,
@@ -85,7 +83,6 @@ export default function TaskItem({
 
   const isCompleted = task.status === 'completed' || task.completed;
   const category = task.categoryId ? categories.find(c => c.id === task.categoryId) : undefined;
-  const taskTags = task.tags ? tags.filter(t => task.tags!.includes(t.id)) : [];
   const startMinutes = getTaskStartMinutes(task, date);
   const duration = getTaskDuration(task);
   const subtasksCount = task.subtasks?.length || 0;
@@ -113,7 +110,17 @@ export default function TaskItem({
       <div 
         className="swipeable-content"
         style={{ transform: `translateX(-${swipeOffset}px)` }}
-        onClick={handleToggleExpand}
+        onClick={(e) => {
+          if (onEdit && e.target !== e.currentTarget) {
+            // Клик на саму задачу открывает редактирование, если не кликнули на чекбокс или другие элементы
+            const target = e.target as HTMLElement;
+            if (target.tagName !== 'INPUT' && !target.closest('button') && !target.closest('.swipeable-actions')) {
+              onEdit();
+            }
+          } else {
+            handleToggleExpand();
+          }
+        }}
       >
         <div className="list-item" style={{ 
           padding: '12px 16px',
@@ -214,9 +221,6 @@ export default function TaskItem({
                   {duration && (
                     <span>⏱️ {formatDuration(duration)}</span>
                   )}
-                  {taskTags.length > 0 && (
-                    <span>🏷️ {taskTags.length}</span>
-                  )}
                 </div>
               )}
 
@@ -254,24 +258,6 @@ export default function TaskItem({
                     )}
                   </div>
 
-                  {taskTags.length > 0 && (
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      {taskTags.map(tag => (
-                        <span
-                          key={tag.id}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '12px',
-                            backgroundColor: tag.color || 'var(--tg-theme-secondary-bg-color)',
-                            color: tag.color ? '#ffffff' : 'var(--tg-theme-text-color)',
-                            fontSize: '12px'
-                          }}
-                        >
-                          {tag.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
 
                   {subtasksCount > 0 && (
                     <div style={{
