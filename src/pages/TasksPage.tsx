@@ -401,7 +401,27 @@ export default function TasksPage({ storage }: TasksPageProps) {
       </div>
 
       {/* Контент */}
-      {viewMode === 'list' ? (
+      {viewMode === 'inbox' ? (
+        <InBoxView
+          tasks={storage.tasks.filter(task => !task.dueDate && !task.startTime && !task.endTime)}
+          onTaskAdd={async (task) => {
+            await storage.addTask(task);
+          }}
+          onTaskEdit={async (id, text) => {
+            await storage.updateTask(id, { text });
+          }}
+          onTaskDelete={async (id) => {
+            await storage.deleteTask(id);
+          }}
+          onTaskMove={(id) => {
+            // Перемещаем задачу в обычный список - открываем редактирование
+            const task = storage.tasks.find(t => t.id === id);
+            if (task) {
+              handleEditTask(id);
+            }
+          }}
+        />
+      ) : viewMode === 'list' ? (
         <TaskList 
           tasks={filteredTasks}
           categories={storage.taskCategories}
@@ -421,14 +441,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
         />
       )}
 
-      {/* Кнопка создания */}
-      <button 
-        className="fab"
-        onClick={handleStartCreate}
-        aria-label="Создать задачу"
-      >
-        +
-      </button>
+      {/* Кнопка создания - скрываем в InBox, там своя кнопка добавления */}
+      {viewMode !== 'inbox' && (
+        <button 
+          className="fab"
+          onClick={handleStartCreate}
+          aria-label="Создать задачу"
+        >
+          +
+        </button>
+      )}
 
       {/* Модальное окно фильтров */}
       {showFilters && (

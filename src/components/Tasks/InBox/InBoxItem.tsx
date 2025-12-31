@@ -1,26 +1,26 @@
 import { useState, useRef } from 'react';
-import { InBoxNote } from '../../../utils/storage';
+import { Task } from '../../../utils/storage';
 
 interface InBoxItemProps {
-  note: InBoxNote;
+  task: Task;
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
-  onConvert: (note: InBoxNote) => void;
+  onMove: (id: string) => void;
   isEditing?: boolean;
   onStartEdit?: (id: string) => void;
   onCancelEdit?: () => void;
 }
 
 export default function InBoxItem({
-  note,
+  task,
   onEdit,
   onDelete,
-  onConvert,
+  onMove,
   isEditing = false,
   onStartEdit,
   onCancelEdit
 }: InBoxItemProps) {
-  const [localText, setLocalText] = useState(note.text);
+  const [localText, setLocalText] = useState(task.text);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const maxSwipe = 80;
@@ -44,7 +44,7 @@ export default function InBoxItem({
 
   const handleTouchEnd = () => {
     if (swipeOffset > maxSwipe / 2) {
-      onDelete(note.id);
+      onDelete(task.id);
     } else {
       setSwipeOffset(0);
     }
@@ -53,13 +53,13 @@ export default function InBoxItem({
 
   const handleSave = () => {
     if (localText.trim()) {
-      onEdit(note.id, localText.trim());
+      onEdit(task.id, localText.trim());
       onCancelEdit?.();
     }
   };
 
   const handleCancel = () => {
-    setLocalText(note.text);
+    setLocalText(task.text);
     onCancelEdit?.();
   };
 
@@ -78,6 +78,9 @@ export default function InBoxItem({
               handleSave();
             } else if (e.key === 'Escape') {
               handleCancel();
+            } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+              // Сохраняем при простом Enter (без модификаторов)
+              handleSave();
             }
           }}
           autoFocus
@@ -156,59 +159,48 @@ export default function InBoxItem({
             borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
             cursor: 'pointer'
           }}
-          onClick={() => onStartEdit?.(note.id)}
+          onClick={() => onStartEdit?.(task.id)}
         >
+          {/* Минимальный вид - только текст задачи */}
           <div style={{
             fontSize: '16px',
-            color: 'var(--tg-theme-text-color)',
+            color: task.completed || task.status === 'completed' 
+              ? 'var(--tg-theme-hint-color)' 
+              : 'var(--tg-theme-text-color)',
             lineHeight: '1.5',
             whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word'
+            wordBreak: 'break-word',
+            textDecoration: task.completed || task.status === 'completed' ? 'line-through' : 'none'
           }}>
-            {note.text}
+            {task.text}
           </div>
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-            marginTop: '8px'
-          }}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onConvert(note);
-              }}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '6px',
-                border: 'none',
-                background: 'var(--tg-theme-button-color)',
-                color: 'var(--tg-theme-button-text-color)',
-                fontSize: '12px',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}
-            >
-              В задачу
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onStartEdit?.(note.id);
-              }}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '6px',
-                border: 'none',
-                background: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)',
-                fontSize: '12px',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}
-            >
-              Редактировать
-            </button>
-          </div>
+          {/* Кнопка перемещения в список - показываем только если не редактируем */}
+          {!isEditing && (
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              marginTop: '8px'
+            }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMove(task.id);
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: 'var(--tg-theme-button-color)',
+                  color: 'var(--tg-theme-button-text-color)',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                В список
+              </button>
+            </div>
+          )}
         </div>
       </div>
       {swipeOffset > 0 && (
