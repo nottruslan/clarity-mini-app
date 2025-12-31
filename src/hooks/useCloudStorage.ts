@@ -137,51 +137,68 @@ export function useCloudStorage() {
   };
 
   // Tasks
-  const updateTasks = useCallback(async (newTasks: Task[]) => {
-    // Сначала обновляем состояние, чтобы UI сразу отобразил изменения
-    setTasks(newTasks);
-    // Затем пытаемся сохранить в хранилище
+  // Функция только для сохранения в хранилище (без обновления состояния)
+  const saveTasksToStorage = useCallback(async (newTasks: Task[]) => {
     try {
       await saveTasks(newTasks);
       console.log('Tasks saved successfully');
     } catch (error) {
       console.error('Error saving tasks:', error);
-      // Состояние уже обновлено, пользователь видит изменения
       // В случае ошибки данные остаются в localStorage (fallback)
     }
   }, []);
 
+  // Функция для обновления состояния и сохранения (используется напрямую, когда нужно)
+  const updateTasks = useCallback(async (newTasks: Task[]) => {
+    // Сначала обновляем состояние, чтобы UI сразу отобразил изменения
+    setTasks(newTasks);
+    // Затем пытаемся сохранить в хранилище
+    await saveTasksToStorage(newTasks);
+  }, [saveTasksToStorage]);
+
   const addTask = useCallback(async (task: Task) => {
     try {
-      const newTasks = [...tasks, task];
-      await updateTasks(newTasks);
+      setTasks(prevTasks => {
+        const newTasks = [...prevTasks, task];
+        // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
+        saveTasksToStorage(newTasks).catch(err => console.error('Error saving task:', err));
+        return newTasks;
+      });
     } catch (error) {
       console.error('Error adding task:', error);
       throw error;
     }
-  }, [tasks, updateTasks]);
+  }, [saveTasksToStorage]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     try {
-      const newTasks = tasks.map(task => 
-        task.id === id ? { ...task, ...updates } : task
-      );
-      await updateTasks(newTasks);
+      setTasks(prevTasks => {
+        const newTasks = prevTasks.map(task => 
+          task.id === id ? { ...task, ...updates } : task
+        );
+        // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
+        saveTasksToStorage(newTasks).catch(err => console.error('Error saving task:', err));
+        return newTasks;
+      });
     } catch (error) {
       console.error('Error updating task:', error);
       throw error;
     }
-  }, [tasks, updateTasks]);
+  }, [saveTasksToStorage]);
 
   const deleteTask = useCallback(async (id: string) => {
     try {
-      const newTasks = tasks.filter(task => task.id !== id);
-      await updateTasks(newTasks);
+      setTasks(prevTasks => {
+        const newTasks = prevTasks.filter(task => task.id !== id);
+        // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
+        saveTasksToStorage(newTasks).catch(err => console.error('Error saving task:', err));
+        return newTasks;
+      });
     } catch (error) {
       console.error('Error deleting task:', error);
       throw error;
     }
-  }, [tasks, updateTasks]);
+  }, [saveTasksToStorage]);
 
   // Habits
   const updateHabits = useCallback(async (newHabits: Habit[]) => {
