@@ -382,22 +382,23 @@ export default function TasksPage({ storage }: TasksPageProps) {
           >
             📅 День
           </button>
+          <button
+            onClick={() => setShowFilters(true)}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'var(--tg-theme-button-color)',
+              color: 'var(--tg-theme-button-text-color)',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            🔍
+          </button>
         </div>
-        <button
-          onClick={() => setShowFilters(true)}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            background: 'var(--tg-theme-button-color)',
-            color: 'var(--tg-theme-button-text-color)',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer'
-          }}
-        >
-          🔍
-        </button>
       </div>
 
       {/* Контент */}
