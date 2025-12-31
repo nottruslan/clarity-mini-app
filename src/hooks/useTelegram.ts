@@ -33,8 +33,17 @@ export function useTelegram() {
   const [themeParams, setThemeParams] = useState<TelegramThemeParams | null>(null);
 
   useEffect(() => {
-    // Инициализация Telegram Web App
-    if (window.Telegram?.WebApp) {
+    // Функция инициализации Telegram Web App
+    const initTelegramWebApp = (): (() => void) | undefined => {
+      // Проверяем наличие Telegram WebApp API
+      if (!window.Telegram?.WebApp) {
+        // Если Telegram WebApp недоступен (например, при разработке или тестировании),
+        // все равно помечаем как готовый, чтобы приложение загрузилось
+        console.warn('Telegram WebApp not available, running in fallback mode');
+        setIsReady(true);
+        return undefined;
+      }
+
       const tg = window.Telegram.WebApp;
       tg.ready();
       tg.expand();
@@ -102,7 +111,11 @@ export function useTelegram() {
         if (tg.setHeaderColor) {
           try {
             // Устанавливаем цвет из темы или белый по умолчанию
-            const headerColor = tg.themeParams?.header_bg_color || '#ffffff';
+            // Убираем # из цвета, так как Telegram WebApp API принимает цвет без #
+            let headerColor = tg.themeParams?.header_bg_color || 'ffffff';
+            if (headerColor.startsWith('#')) {
+              headerColor = headerColor.substring(1);
+            }
             tg.setHeaderColor(headerColor);
             console.log('Initial header color set to', headerColor, 'isExpanded:', tg.isExpanded);
           } catch (error) {
@@ -155,12 +168,38 @@ export function useTelegram() {
       return () => {
         clearInterval(themeCheckInterval);
       };
+    };
+
+    // Ожидаем загрузки скрипта Telegram WebApp
+    // Скрипт может загружаться асинхронно, поэтому проверяем несколько раз
+    let cleanup: (() => void) | undefined;
+    let checkInterval: ReturnType<typeof setInterval> | undefined;
+
+    if (window.Telegram?.WebApp) {
+      // Скрипт уже загружен, инициализируем сразу
+      cleanup = initTelegramWebApp();
     } else {
-      // Если Telegram WebApp недоступен (например, при разработке или тестировании),
-      // все равно помечаем как готовый, чтобы приложение загрузилось
-      console.warn('Telegram WebApp not available, running in fallback mode');
-      setIsReady(true);
+      // Ждем загрузки скрипта
+      let attempts = 0;
+      const maxAttempts = 50; // 5 секунд максимум (50 * 100ms)
+      checkInterval = setInterval(() => {
+        attempts++;
+        if (window.Telegram?.WebApp) {
+          if (checkInterval) clearInterval(checkInterval);
+          cleanup = initTelegramWebApp();
+        } else if (attempts >= maxAttempts) {
+          // Если скрипт не загрузился за 5 секунд, запускаем в fallback режиме
+          if (checkInterval) clearInterval(checkInterval);
+          console.warn('Telegram WebApp script not loaded after 5 seconds, running in fallback mode');
+          setIsReady(true);
+        }
+      }, 100);
     }
+
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+      if (cleanup) cleanup();
+    };
   }, []);
 
   return {
