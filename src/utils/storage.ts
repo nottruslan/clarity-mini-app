@@ -442,6 +442,7 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
  * Получить все задачи
  */
 export async function getTasks(): Promise<Task[]> {
+  console.log('[DEBUG] getTasks CALLED - reading from storage', { timestamp: Date.now() });
   const tasks = await getStorageData<Task[]>(STORAGE_KEYS.TASKS);
   const loadedTasks = tasks || [];
   

@@ -316,11 +316,27 @@ export default function TasksPage({ storage }: TasksPageProps) {
         // #region agent log
         fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:301',message:'Building updates object',data:{modifiedFields:Array.from(modifiedFields),taskDataKeys:Object.keys(taskData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
         // #endregion
+        
+        // КРИТИЧЕСКАЯ ПРОВЕРКА: логируем значения перед формированием updates
+        const nameModified = modifiedFields.has('name');
+        const taskDataNameValue = taskData.name;
+        const originalTaskTextValue = originalTask.text;
+        const finalTextValue = nameModified ? taskDataNameValue : originalTaskTextValue;
+        
+        console.log('[DEBUG] CRITICAL: Text update logic', {
+          nameModified,
+          taskDataNameValue,
+          originalTaskTextValue,
+          finalTextValue,
+          modifiedFieldsArray: Array.from(modifiedFields),
+          taskDataFull: taskData
+        });
+        
       const updates: Partial<Task> = {
         // Обновляем поля из taskData, если они были изменены пользователем
         // Если поле было изменено (в modifiedFields), используем значение из taskData (даже если undefined)
         // Если поле не было изменено, используем значение из originalTask
-        text: modifiedFields.has('name') ? taskData.name : originalTask.text,
+        text: finalTextValue,
         priority: modifiedFields.has('priority') ? taskData.priority : originalTask.priority,
         dueDate: finalDueDate,
         // plannedDate должна соответствовать dueDate, если dueDate была изменена

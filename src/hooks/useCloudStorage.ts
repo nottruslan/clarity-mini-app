@@ -50,6 +50,10 @@ export function useCloudStorage() {
   }, []);
 
   const loadAllData = async () => {
+    console.log('[DEBUG] loadAllData CALLED - this will overwrite current state!', { 
+      timestamp: Date.now(),
+      stackTrace: new Error().stack 
+    });
     try {
       setLoading(true);
       const [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData, notesData] = await Promise.all([
@@ -109,7 +113,10 @@ export function useCloudStorage() {
       
       // Генерируем экземпляры повторяющихся задач
       // ВАЖНО: не перезаписываем существующие задачи при генерации экземпляров
-      console.log('[DEBUG] loadAllData: loaded tasks', { tasksCount: tasksData.length });
+      console.log('[DEBUG] loadAllData: loaded tasks', { 
+        tasksCount: tasksData.length,
+        taskIds: tasksData.map(t => ({ id: t.id, text: t.text }))
+      });
       const newInstances = generateUpcomingInstances(tasksData, 30);
       
       // Объединяем задачи: сначала существующие, потом новые экземпляры
@@ -119,7 +126,8 @@ export function useCloudStorage() {
       console.log('[DEBUG] loadAllData: after generating instances', { 
         originalCount: tasksData.length, 
         newInstancesCount: newInstances.length, 
-        totalCount: allTasks.length 
+        totalCount: allTasks.length,
+        taskIds: allTasks.map(t => ({ id: t.id, text: t.text }))
       });
       
       // Сохраняем новые экземпляры, если они есть
@@ -129,8 +137,12 @@ export function useCloudStorage() {
         await saveTasks(allTasks);
       }
       
+      console.log('[DEBUG] loadAllData: ABOUT TO OVERWRITE STATE with setTasks', { 
+        tasksCount: allTasks.length,
+        taskIds: allTasks.map(t => ({ id: t.id, text: t.text }))
+      });
       setTasks(allTasks);
-      console.log('[DEBUG] loadAllData: setTasks called', { tasksCount: allTasks.length });
+      console.log('[DEBUG] loadAllData: setTasks called - STATE OVERWRITTEN', { tasksCount: allTasks.length });
       setHabits(migratedHabits);
       setFinance(financeData);
       setOnboarding(onboardingData);
