@@ -57,10 +57,10 @@ export default function TasksPage({ storage }: TasksPageProps) {
     energyLevel?: 'low' | 'medium' | 'high';
   }>({});
 
-  // Фильтруем задачи для списка: показываем задачи с датами/временем ИЛИ с флагом movedToList
+  // Фильтруем задачи для списка: показываем только задачи с датами/временем
   const tasksForList = useMemo(() => {
     return storage.tasks.filter(task => 
-      task.dueDate || task.startTime || task.endTime || task.movedToList === true
+      task.dueDate || task.startTime || task.endTime
     );
   }, [storage.tasks]);
 
@@ -119,7 +119,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
   };
 
   const handleStep1Complete = (name: string) => {
-    setTaskData({ name });
+    setTaskData(prev => ({ ...prev, name }));
     setCreateStep(1);
   };
 
@@ -469,8 +469,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
       {viewMode === 'inbox' ? (
         <InBoxView
           tasks={storage.tasks.filter(task => 
-            // Показываем задачи без дат/времени ИЛИ с флагом movedToList
-            (!task.dueDate && !task.startTime && !task.endTime) || task.movedToList === true
+            // Показываем только задачи без дат/времени
+            !task.dueDate && !task.startTime && !task.endTime
           )}
           onTaskAdd={async (task) => {
             await storage.addTask(task);
@@ -482,11 +482,11 @@ export default function TasksPage({ storage }: TasksPageProps) {
             await storage.deleteTask(id);
           }}
           onTaskMove={async (id) => {
-            // Помечаем задачу как перемещенную в список и добавляем dueDate для видимости в списке
+            // Перемещаем задачу в список: добавляем dueDate, убираем movedToList
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             await storage.updateTask(id, { 
-              movedToList: true,
+              movedToList: false,
               dueDate: today.getTime()
             });
           }}
