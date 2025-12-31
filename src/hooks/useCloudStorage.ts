@@ -28,7 +28,34 @@ import {
 import { generateUpcomingInstances } from '../utils/taskRecurrence';
 
 export function useCloudStorage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasksRaw] = useState<Task[]>([]);
+  
+  // Обертка для setTasks с логированием всех вызовов
+  const setTasks = useCallback((updater: Task[] | ((prev: Task[]) => Task[])) => {
+    console.log('[DEBUG] setTasks CALLED', { 
+      timestamp: Date.now(),
+      isFunction: typeof updater === 'function',
+      stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n')
+    });
+    if (typeof updater === 'function') {
+      setTasksRaw(prev => {
+        const result = updater(prev);
+        console.log('[DEBUG] setTasks FUNCTION RESULT', {
+          prevCount: prev.length,
+          resultCount: result.length,
+          prevTaskIds: prev.map(t => ({ id: t.id, text: t.text })),
+          resultTaskIds: result.map(t => ({ id: t.id, text: t.text }))
+        });
+        return result;
+      });
+    } else {
+      console.log('[DEBUG] setTasks DIRECT VALUE', {
+        tasksCount: updater.length,
+        taskIds: updater.map(t => ({ id: t.id, text: t.text }))
+      });
+      setTasksRaw(updater);
+    }
+  }, []);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [finance, setFinance] = useState<FinanceData>({ transactions: [], categories: [], budgets: [] });
   const [onboarding, setOnboarding] = useState<OnboardingFlags>({
@@ -236,8 +263,15 @@ export function useCloudStorage() {
       setTasks(prevTasks => {
         const taskIndex = prevTasks.findIndex(task => task.id === id);
         // #region agent log
-        console.log('[DEBUG] setTasks callback entry', { id, prevTasksCount: prevTasks.length, taskIndex, taskFound: taskIndex !== -1 });
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:182',message:'setTasks callback entry',data:{id,prevTasksCount:prevTasks.length,taskIndex},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        console.log('[DEBUG] setTasks callback entry', { 
+          id, 
+          prevTasksCount: prevTasks.length, 
+          taskIndex, 
+          taskFound: taskIndex !== -1,
+          prevTaskText: taskIndex !== -1 ? prevTasks[taskIndex].text : 'NOT_FOUND',
+          updatesText: updates.text
+        });
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:182',message:'setTasks callback entry',data:{id,prevTasksCount:prevTasks.length,taskIndex,prevTaskText:taskIndex !== -1 ? prevTasks[taskIndex].text : 'NOT_FOUND',updatesText:updates.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
         // #endregion
         if (taskIndex === -1) {
           console.warn('Task not found:', id);
@@ -249,8 +283,14 @@ export function useCloudStorage() {
         const updatedTask = { ...originalTask, ...updates };
         
         // #region agent log
-        console.log('[DEBUG] Task updated in state', { id, originalTask: { id: originalTask.id, text: originalTask.text }, updatedTask: { id: updatedTask.id, text: updatedTask.text } });
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:190',message:'Task updated in state',data:{id,originalTask:{id:originalTask.id,text:originalTask.text},updatedTask:{id:updatedTask.id,text:updatedTask.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        console.log('[DEBUG] Task updated in state', { 
+          id, 
+          originalTask: { id: originalTask.id, text: originalTask.text }, 
+          updatedTask: { id: updatedTask.id, text: updatedTask.text },
+          updatesText: updates.text,
+          textMatches: updatedTask.text === updates.text
+        });
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:190',message:'Task updated in state',data:{id,originalTask:{id:originalTask.id,text:originalTask.text},updatedTask:{id:updatedTask.id,text:updatedTask.text},updatesText:updates.text,textMatches:updatedTask.text === updates.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
         // #endregion
         
         console.log('Original task:', originalTask);
@@ -259,6 +299,23 @@ export function useCloudStorage() {
         const newTasks = prevTasks.map(task => 
           task.id === id ? updatedTask : task
         );
+        
+        // КРИТИЧЕСКАЯ ПРОВЕРКА: убеждаемся, что обновленная задача действительно в новом массиве
+        const verifyUpdatedTask = newTasks.find(t => t.id === id);
+        if (verifyUpdatedTask) {
+          console.log('[DEBUG] CRITICAL: Verifying updated task in newTasks array', {
+            taskId: id,
+            newTasksText: verifyUpdatedTask.text,
+            expectedText: updatedTask.text,
+            matches: verifyUpdatedTask.text === updatedTask.text,
+            newTasksCount: newTasks.length
+          });
+        } else {
+          console.error('[DEBUG] CRITICAL: Updated task NOT FOUND in newTasks array!', {
+            taskId: id,
+            newTasksCount: newTasks.length
+          });
+        }
         
         // #region agent log
         console.log('[DEBUG] Before saveTasksToStorage', { newTasksCount: newTasks.length, updatedTaskId: id });
