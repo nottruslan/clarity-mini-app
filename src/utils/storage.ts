@@ -566,3 +566,75 @@ export async function saveInBoxNotes(notes: InBoxNote[]): Promise<void> {
   await setStorageData(STORAGE_KEYS.INBOX_NOTES, notes);
 }
 
+/**
+ * Удалить данные из Cloud Storage
+ */
+async function deleteStorageData(key: string): Promise<void> {
+  // Удаляем из localStorage
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.error(`Error removing ${key} from localStorage:`, error);
+  }
+
+  // Удаляем из Cloud Storage, если доступно
+  if (window.Telegram?.WebApp?.CloudStorage) {
+    return new Promise((resolve) => {
+      // Cloud Storage не имеет метода удаления, поэтому устанавливаем пустую строку
+      window.Telegram!.WebApp!.CloudStorage!.setItem(key, '', (error) => {
+        if (error) {
+          console.error(`Error removing ${key} from Cloud Storage:`, error);
+        }
+        resolve();
+      });
+    });
+  }
+}
+
+/**
+ * Очистить все данные приложения (localStorage и Cloud Storage)
+ * Используйте эту функцию для полной очистки кэша
+ * 
+ * Вызов из консоли: window.clearClarityData()
+ * 
+ * @param showReloadDialog - показывать ли диалог перезагрузки (по умолчанию true)
+ */
+export async function clearAllStorageData(showReloadDialog: boolean = true): Promise<void> {
+  console.log('🧹 Начинаю очистку всех данных приложения...');
+  
+  const keys = Object.values(STORAGE_KEYS);
+  const deletePromises = keys.map(key => deleteStorageData(key));
+  
+  await Promise.all(deletePromises);
+  
+  // Также очищаем весь localStorage на случай других данных
+  try {
+    localStorage.clear();
+    console.log('✅ localStorage полностью очищен');
+  } catch (error) {
+    console.error('❌ Ошибка при очистке localStorage:', error);
+  }
+  
+  console.log('✅ Все данные приложения очищены!');
+  
+  if (showReloadDialog) {
+    console.log('🔄 Перезагрузите страницу для применения изменений');
+    
+    // Предлагаем перезагрузить страницу
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.showConfirm(
+        'Все данные очищены. Перезагрузить страницу?',
+        (confirmed) => {
+          if (confirmed) {
+            window.location.reload();
+          }
+        }
+      );
+    } else {
+      if (confirm('Все данные очищены. Перезагрузить страницу?')) {
+        window.location.reload();
+      }
+    }
+  }
+}
+
