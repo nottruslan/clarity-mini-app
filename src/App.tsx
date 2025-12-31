@@ -13,7 +13,7 @@ import LanguagesPage from './pages/LanguagesPage';
 import YearlyReportPage from './pages/YearlyReportPage';
 
 function App() {
-  const { isReady, tg } = useTelegram();
+  const { isReady, tg, initError, isInitializing, user } = useTelegram();
   const storage = useCloudStorage();
   const [currentSection, setCurrentSection] = useState<Section>('home');
   const [navigationHistory, setNavigationHistory] = useState<Section[]>(['home']);
@@ -98,19 +98,78 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [currentSection, tg, isReady]);
 
-  if (!isReady || storage.loading) {
+  // Показываем состояние загрузки
+  if (isInitializing || !isReady || storage.loading) {
     return (
       <div style={{ 
         display: 'flex', 
+        flexDirection: 'column',
         alignItems: 'center', 
         justifyContent: 'center', 
         height: '100vh',
         paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'env(safe-area-inset-bottom)'
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        padding: '20px',
+        textAlign: 'center'
       }}>
-        Загрузка...
+        {isInitializing ? (
+          <>
+            <div style={{ marginBottom: '16px', fontSize: '18px' }}>Инициализация...</div>
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              Подключение к Telegram Web App
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: '18px' }}>Загрузка...</div>
+        )}
       </div>
     );
+  }
+
+  // Показываем ошибки инициализации (критические)
+  if (initError && (initError.code === 'SCRIPT_NOT_LOADED' || initError.code === 'TIMEOUT')) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        padding: '20px',
+        textAlign: 'center'
+      }}>
+        <div style={{ 
+          fontSize: '20px', 
+          fontWeight: 'bold', 
+          marginBottom: '16px',
+          color: '#ff3333'
+        }}>
+          Ошибка подключения
+        </div>
+        <div style={{ 
+          fontSize: '16px', 
+          marginBottom: '24px',
+          color: '#666',
+          lineHeight: '1.5'
+        }}>
+          {initError.message}
+        </div>
+        <div style={{ 
+          fontSize: '14px', 
+          color: '#999',
+          marginTop: '16px'
+        }}>
+          Попробуйте обновить страницу или открыть приложение заново через Telegram
+        </div>
+      </div>
+    );
+  }
+
+  // Предупреждение о проблемах с авторизацией (не критично, но информируем)
+  if (initError && initError.code === 'USER_NOT_AUTHORIZED') {
+    console.warn('User not authorized, but continuing in fallback mode');
   }
 
   const renderSection = () => {
