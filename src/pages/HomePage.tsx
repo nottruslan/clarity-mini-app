@@ -1,18 +1,11 @@
-import { useState, useRef } from 'react';
 import { type Section } from '../types/navigation';
 import LottieAnimation from '../components/LottieAnimation';
-import { clearAllStorageData } from '../utils/storage';
-import { useTelegram } from '../hooks/useTelegram';
 
 interface HomePageProps {
   onSectionChange: (section: Section) => void;
 }
 
 export default function HomePage({ onSectionChange }: HomePageProps) {
-  const { tg } = useTelegram();
-  const [showClearDialog, setShowClearDialog] = useState(false);
-  const clickCountRef = useRef(0);
-  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sections: { id: Section; label: string; icon: string; description: string }[] = [
     { 
       id: 'tasks', 
@@ -65,35 +58,12 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
         <LottieAnimation loop={true} autoplay={true} />
       </div>
       
-      <h1 
-        onClick={() => {
-          clickCountRef.current += 1;
-          
-          // Сбрасываем таймер при каждом клике
-          if (clickTimeoutRef.current) {
-            clearTimeout(clickTimeoutRef.current);
-          }
-          
-          // Если 5 кликов за 2 секунды - показываем диалог
-          if (clickCountRef.current >= 5) {
-            clickCountRef.current = 0;
-            setShowClearDialog(true);
-          } else {
-            // Сбрасываем счетчик через 2 секунды
-            clickTimeoutRef.current = setTimeout(() => {
-              clickCountRef.current = 0;
-            }, 2000);
-          }
-        }}
-        style={{ 
-          fontSize: '28px', 
-          fontWeight: '600', 
-          marginBottom: '8px',
-          textAlign: 'center',
-          cursor: 'pointer',
-          userSelect: 'none'
-        }}
-      >
+      <h1 style={{ 
+        fontSize: '28px', 
+        fontWeight: '600', 
+        marginBottom: '8px',
+        textAlign: 'center'
+      }}>
         Clarity
       </h1>
       
@@ -150,93 +120,6 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
           </button>
         ))}
       </div>
-
-      {/* Диалог очистки данных */}
-      {showClearDialog && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
-        }}
-        onClick={() => setShowClearDialog(false)}
-        >
-          <div 
-            style={{
-              backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-              borderRadius: '16px',
-              padding: '24px',
-              maxWidth: '400px',
-              width: '100%',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              marginBottom: '12px',
-              color: 'var(--tg-theme-text-color, #000000)'
-            }}>
-              Очистить все данные?
-            </h2>
-            <p style={{
-              fontSize: '14px',
-              color: 'var(--tg-theme-hint-color, #999999)',
-              marginBottom: '24px',
-              lineHeight: '1.5'
-            }}>
-              Это действие удалит все ваши задачи, привычки, финансовые данные и другие сохраненные данные. Это действие нельзя отменить.
-            </p>
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end'
-            }}>
-              <button
-                onClick={() => setShowClearDialog(false)}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--tg-theme-button-color, #3390ec)',
-                  backgroundColor: 'transparent',
-                  color: 'var(--tg-theme-button-color, #3390ec)',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={async () => {
-                  setShowClearDialog(false);
-                  await clearAllStorageData(true);
-                }}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: '#ff3333',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Очистить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

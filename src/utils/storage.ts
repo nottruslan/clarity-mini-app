@@ -594,12 +594,8 @@ async function deleteStorageData(key: string): Promise<void> {
 /**
  * Очистить все данные приложения (localStorage и Cloud Storage)
  * Используйте эту функцию для полной очистки кэша
- * 
- * Вызов из консоли: window.clearClarityData()
- * 
- * @param showReloadDialog - показывать ли диалог перезагрузки (по умолчанию true)
  */
-export async function clearAllStorageData(showReloadDialog: boolean = true): Promise<void> {
+export async function clearAllStorageData(): Promise<void> {
   console.log('🧹 Начинаю очистку всех данных приложения...');
   
   const keys = Object.values(STORAGE_KEYS);
@@ -617,24 +613,7 @@ export async function clearAllStorageData(showReloadDialog: boolean = true): Pro
   
   console.log('✅ Все данные приложения очищены!');
   
-  if (showReloadDialog) {
-    console.log('🔄 Перезагрузите страницу для применения изменений');
-    
-    // Предлагаем перезагрузить страницу
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.showConfirm(
-        'Все данные очищены. Перезагрузить страницу?',
-        (confirmed) => {
-          if (confirmed) {
-            window.location.reload();
-          }
-        }
-      );
-    } else {
-      if (confirm('Все данные очищены. Перезагрузить страницу?')) {
-        window.location.reload();
-      }
-    }
-  }
+  // Перезагружаем страницу
+  window.location.reload();
 }
 
