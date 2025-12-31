@@ -62,9 +62,15 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
   // Фильтруем задачи для списка: показываем только задачи с датами/временем
   const tasksForList = useMemo(() => {
-    return storage.tasks.filter(task => 
+    const filtered = storage.tasks.filter(task => 
       task.dueDate || task.startTime || task.endTime
     );
+    console.log('[DEBUG] tasksForList updated', { 
+      totalTasks: storage.tasks.length, 
+      filteredTasks: filtered.length,
+      taskIds: filtered.map(t => ({ id: t.id, text: t.text }))
+    });
+    return filtered;
   }, [storage.tasks]);
 
   // Используем хук для фильтрации

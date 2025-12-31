@@ -256,40 +256,63 @@ export function useCloudStorage() {
         // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
         saveTasksToStorage(newTasks).then(() => {
           console.log('[DEBUG] saveTasksToStorage completed successfully');
+          // #region agent log
+          fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:258',message:'saveTasksToStorage completed',data:{taskId:id,updatedText:updatedTask.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
           // Проверяем, что данные действительно сохранились в localStorage
-          try {
-            const saved = localStorage.getItem('tasks');
-            if (saved) {
-              const parsed = JSON.parse(saved);
-              const savedTask = parsed.find((t: Task) => t.id === id);
-              if (savedTask) {
-                const textMatches = savedTask.text === updatedTask.text;
-                const allFieldsMatch = JSON.stringify(savedTask) === JSON.stringify(updatedTask);
-                console.log('[DEBUG] Task verified in localStorage after save', {
-                  found: true,
-                  textMatches,
-                  allFieldsMatch,
-                  savedText: savedTask.text,
-                  expectedText: updatedTask.text
-                });
-                if (!textMatches || !allFieldsMatch) {
-                  console.warn('[DEBUG] Task data mismatch in localStorage!', {
-                    savedTask,
-                    expectedTask: updatedTask
+          // Проверяем сразу и с задержкой для надежности
+          const verifyStorage = () => {
+            try {
+              const saved = localStorage.getItem('tasks');
+              if (saved) {
+                const parsed = JSON.parse(saved);
+                const savedTask = parsed.find((t: Task) => t.id === id);
+                if (savedTask) {
+                  const textMatches = savedTask.text === updatedTask.text;
+                  const allFieldsMatch = JSON.stringify(savedTask) === JSON.stringify(updatedTask);
+                  console.log('[DEBUG] Task verified in localStorage after save', {
+                    found: true,
+                    textMatches,
+                    allFieldsMatch,
+                    savedText: savedTask.text,
+                    expectedText: updatedTask.text,
+                    taskId: id
                   });
+                  // #region agent log
+                  fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:270',message:'Task verified in localStorage',data:{taskId:id,textMatches,allFieldsMatch,savedText:savedTask.text,expectedText:updatedTask.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                  // #endregion
+                  if (!textMatches || !allFieldsMatch) {
+                    console.warn('[DEBUG] Task data mismatch in localStorage!', {
+                      savedTask,
+                      expectedTask: updatedTask
+                    });
+                  }
+                } else {
+                  console.warn('[DEBUG] Task NOT found in localStorage after save!', {
+                    taskId: id,
+                    totalTasksInStorage: parsed.length
+                  });
+                  // #region agent log
+                  fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:285',message:'Task NOT found in localStorage',data:{taskId:id,totalTasksInStorage:parsed.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                  // #endregion
                 }
               } else {
-                console.warn('[DEBUG] Task NOT found in localStorage after save!', {
-                  taskId: id,
-                  totalTasksInStorage: parsed.length
-                });
+                console.error('[DEBUG] No tasks data in localStorage after save!');
+                // #region agent log
+                fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:293',message:'No tasks data in localStorage',data:{taskId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
               }
-            } else {
-              console.error('[DEBUG] No tasks data in localStorage after save!');
+            } catch (e) {
+              console.error('[DEBUG] Error verifying task in localStorage:', e);
+              // #region agent log
+              fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:298',message:'Error verifying task in localStorage',data:{error:String(e),taskId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+              // #endregion
             }
-          } catch (e) {
-            console.error('[DEBUG] Error verifying task in localStorage:', e);
-          }
+          };
+          // Проверяем сразу
+          verifyStorage();
+          // И с задержкой для надежности
+          setTimeout(verifyStorage, 100);
         }).catch(err => {
           // #region agent log
           fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:201',message:'saveTasksToStorage error',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});

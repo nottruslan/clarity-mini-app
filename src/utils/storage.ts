@@ -263,6 +263,7 @@ const STORAGE_KEYS = {
  * Получить данные из Cloud Storage
  */
 export async function getStorageData<T>(key: string): Promise<T | null> {
+  console.log('[DEBUG] getStorageData: entry', { key });
   // Проверяем доступность CloudStorage и версию WebApp
   const cloudStorage = window.Telegram?.WebApp?.CloudStorage;
   const webAppVersion = window.Telegram?.WebApp?.version;
@@ -351,9 +352,22 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
       // Проверяем, что данные действительно сохранились
       const saved = localStorage.getItem(key);
       if (saved === jsonData) {
-        console.log('[DEBUG] Data saved to localStorage (direct fallback) - verified');
+        console.log('[DEBUG] Data saved to localStorage (direct fallback) - verified', { key, dataLength: jsonData.length });
+        // Для задач проверяем содержимое
+        if (key === 'tasks') {
+          try {
+            const parsed = JSON.parse(saved);
+            console.log('[DEBUG] Tasks saved to localStorage verified', { 
+              tasksCount: Array.isArray(parsed) ? parsed.length : 0,
+              taskIds: Array.isArray(parsed) ? parsed.map((t: any) => ({ id: t.id, text: t.text })) : []
+            });
+          } catch (e) {
+            console.error('[DEBUG] Error parsing saved tasks for verification:', e);
+          }
+        }
       } else {
         console.warn('[DEBUG] Data saved to localStorage but verification failed', { 
+          key,
           expectedLength: jsonData.length, 
           savedLength: saved?.length 
         });
@@ -431,7 +445,10 @@ export async function getTasks(): Promise<Task[]> {
   const tasks = await getStorageData<Task[]>(STORAGE_KEYS.TASKS);
   const loadedTasks = tasks || [];
   
-  console.log('[DEBUG] getTasks: loaded from storage', { tasksCount: loadedTasks.length });
+  console.log('[DEBUG] getTasks: loaded from storage', { 
+    tasksCount: loadedTasks.length,
+    taskIds: loadedTasks.map(t => ({ id: t.id, text: t.text }))
+  });
   
   // Миграция существующих задач к новой структуре
   const migratedTasks = migrateTasks(loadedTasks);
@@ -442,7 +459,10 @@ export async function getTasks(): Promise<Task[]> {
     await saveTasks(migratedTasks);
   }
   
-  console.log('[DEBUG] getTasks: returning tasks', { tasksCount: migratedTasks.length });
+  console.log('[DEBUG] getTasks: returning tasks', { 
+    tasksCount: migratedTasks.length,
+    taskIds: migratedTasks.map(t => ({ id: t.id, text: t.text }))
+  });
   return migratedTasks;
 }
 
