@@ -408,7 +408,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
         alignItems: 'center'
       }}>
         <div style={{
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr 44px',
           gap: '8px',
           flex: 1,
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
@@ -419,8 +420,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
           <button
             onClick={() => setViewMode('inbox')}
             style={{
-              flex: '1 1 0',
-              minWidth: 0,
               padding: '8px 12px',
               minHeight: '44px',
               borderRadius: '8px',
@@ -441,7 +440,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
               justifyContent: 'center',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
-              textOverflow: 'ellipsis'
+              textOverflow: 'ellipsis',
+              minWidth: 0
             }}
           >
             📥 InBox
@@ -449,8 +449,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
           <button
             onClick={() => setViewMode('list')}
             style={{
-              flex: '1 1 0',
-              minWidth: 0,
               padding: '8px 12px',
               minHeight: '44px',
               borderRadius: '8px',
@@ -471,7 +469,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
               justifyContent: 'center',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
-              textOverflow: 'ellipsis'
+              textOverflow: 'ellipsis',
+              minWidth: 0
             }}
           >
             📋 Список
@@ -479,8 +478,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
           <button
             onClick={() => setViewMode('day')}
             style={{
-              flex: '1 1 0',
-              minWidth: 0,
               padding: '8px 12px',
               minHeight: '44px',
               borderRadius: '8px',
@@ -501,7 +498,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
               justifyContent: 'center',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
-              textOverflow: 'ellipsis'
+              textOverflow: 'ellipsis',
+              minWidth: 0
             }}
           >
             📅 День
@@ -509,9 +507,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
           <button
             onClick={() => setShowFilters(true)}
             style={{
-              flexShrink: 0,
               width: '44px',
-              minHeight: '44px',
+              height: '44px',
               padding: '0',
               borderRadius: '8px',
               border: 'none',
@@ -525,7 +522,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
               WebkitTapHighlightColor: 'transparent',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}
           >
             🔍
