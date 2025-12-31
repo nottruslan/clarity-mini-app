@@ -5,32 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#ffffff" />
   <title>Clarity</title>
+  <!-- Загружаем скрипт синхронно для мобильных устройств -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    // Улучшенная загрузка скрипта Telegram Web App с обработкой ошибок
+    // Проверяем доступность WebApp после загрузки скрипта
     (function() {
-      const script = document.createElement('script');
-      script.src = 'https://telegram.org/js/telegram-web-app.js';
-      script.async = true;
-      
-      script.onload = function() {
-        console.log('[Telegram Script] Скрипт успешно загружен');
-        // Проверяем, что объект доступен
+      function checkTelegramReady() {
         if (window.Telegram && window.Telegram.WebApp) {
-          console.log('[Telegram Script] WebApp доступен после загрузки');
+          console.log('[Telegram Script] WebApp доступен');
+          // Помечаем, что скрипт готов
+          window.__telegramWebAppReady = true;
+          // Вызываем событие для уведомления других скриптов
+          window.dispatchEvent(new Event('telegram-web-app-ready'));
         } else {
-          console.warn('[Telegram Script] WebApp не доступен после загрузки скрипта');
+          console.warn('[Telegram Script] WebApp еще не доступен, повторная проверка...');
+          // В мобильном приложении может потребоваться время
+          setTimeout(checkTelegramReady, 100);
         }
-      };
+      }
       
-      script.onerror = function() {
-        console.error('[Telegram Script] Ошибка загрузки скрипта Telegram Web App');
-        console.error('[Telegram Script] Возможные причины:');
-        console.error('[Telegram Script] - Проблемы с интернет-соединением');
-        console.error('[Telegram Script] - Блокировка скрипта браузером или расширениями');
-        console.error('[Telegram Script] - Приложение открыто не через Telegram');
-      };
-      
-      document.head.appendChild(script);
+      // Проверяем сразу (для случаев, когда скрипт уже загружен)
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', checkTelegramReady);
+      } else {
+        // DOM уже загружен, проверяем сразу
+        setTimeout(checkTelegramReady, 0);
+      }
     })();
   </script>
 </head>

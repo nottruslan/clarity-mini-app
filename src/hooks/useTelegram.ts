@@ -44,9 +44,9 @@ export function useTelegram() {
     let timeoutId: ReturnType<typeof setTimeout>;
     let retryCount = 0;
     let isInitialized = false;
-    const maxRetries = 3;
-    const retryDelay = 1000;
-    const initTimeout = 5000; // 5 секунд на инициализацию
+    const maxRetries = 5; // Увеличено для мобильных устройств
+    const retryDelay = 500; // Уменьшена задержка для более быстрой проверки
+    const initTimeout = 10000; // Увеличено до 10 секунд для мобильных устройств
 
     const logInitStep = (step: string, data?: any) => {
       console.log(`[Telegram Init] ${step}`, data || '');
@@ -63,8 +63,14 @@ export function useTelegram() {
       setInitError(null);
 
       // Проверка 1: Загрузка скрипта
+      // В мобильном приложении Telegram скрипт может быть уже доступен,
+      // но WebApp может еще не быть инициализирован
       if (!window.Telegram) {
-        logInitStep('Checking for Telegram script...', { available: false });
+        logInitStep('Checking for Telegram script...', { 
+          available: false,
+          retryCount,
+          userAgent: navigator.userAgent 
+        });
         
         if (retryCount < maxRetries) {
           retryCount++;
@@ -75,13 +81,21 @@ export function useTelegram() {
           logError({
             code: 'SCRIPT_NOT_LOADED',
             message: 'Скрипт Telegram Web App не загружен. Проверьте подключение к интернету и настройки браузера.',
-            details: { retries: retryCount }
+            details: { retries: retryCount, userAgent: navigator.userAgent }
           });
           setIsInitializing(false);
           // В fallback режиме все равно помечаем как готовый для разработки
           setIsReady(true);
           return;
         }
+      }
+
+      // Проверка 1.5: В мобильном приложении WebApp может быть доступен не сразу
+      if (!window.Telegram.WebApp && retryCount < maxRetries) {
+        logInitStep('Telegram script found, but WebApp not ready yet...', { retryCount });
+        retryCount++;
+        timeoutId = setTimeout(tryInitialize, retryDelay);
+        return;
       }
 
       logInitStep('Telegram script found');
