@@ -165,15 +165,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
   };
 
   const handleStep9Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
-    const dueDate = taskData.dueDate || selectedDate.getTime();
-    const startTime = taskData.startTime 
-      ? minutesOfDayToTimestamp(dueDate, taskData.startTime)
-      : undefined;
-    
-    const endTime = taskData.startTime && taskData.duration
-      ? minutesOfDayToTimestamp(dueDate, taskData.startTime + taskData.duration)
-      : undefined;
-
     if (isEditing && editingTaskId) {
       // Редактирование существующей задачи
       // Получаем исходную задачу, чтобы сохранить все её поля
@@ -187,28 +178,30 @@ export default function TasksPage({ storage }: TasksPageProps) {
         return;
       }
 
+      // Вычисляем dueDate: используем taskData.dueDate если он задан, иначе исходную дату задачи
+      const finalDueDate = taskData.dueDate !== undefined 
+        ? taskData.dueDate 
+        : (originalTask.dueDate || selectedDate.getTime());
+      
+      // Вычисляем startTime и endTime на основе finalDueDate
+      const finalStartTime = taskData.startTime !== undefined
+        ? minutesOfDayToTimestamp(finalDueDate, taskData.startTime)
+        : originalTask.startTime;
+      
+      const finalEndTime = taskData.startTime !== undefined && taskData.duration !== undefined
+        ? minutesOfDayToTimestamp(finalDueDate, taskData.startTime + taskData.duration)
+        : originalTask.endTime;
+
       // Объединяем исходные данные с изменениями
       const updates: Partial<Task> = {
-        // Сохраняем все важные поля исходной задачи
-        id: originalTask.id,
-        completed: originalTask.completed,
-        createdAt: originalTask.createdAt,
-        status: originalTask.status,
-        pinned: originalTask.pinned,
-        movedToList: originalTask.movedToList,
-        timeSpent: originalTask.timeSpent,
-        parentTaskId: originalTask.parentTaskId,
-        recurrenceInstanceDate: originalTask.recurrenceInstanceDate,
-        tags: originalTask.tags,
-        
         // Обновляем поля из taskData
         // Используем значения из taskData, если они определены, иначе сохраняем исходные значения
         text: taskData.name !== undefined ? taskData.name : originalTask.text,
         priority: taskData.priority !== undefined ? taskData.priority : originalTask.priority,
-        dueDate: taskData.dueDate !== undefined ? dueDate : originalTask.dueDate,
-        plannedDate: taskData.dueDate !== undefined ? dueDate : originalTask.plannedDate,
-        startTime: taskData.startTime !== undefined ? startTime : originalTask.startTime,
-        endTime: taskData.startTime !== undefined ? endTime : originalTask.endTime,
+        dueDate: finalDueDate,
+        plannedDate: finalDueDate,
+        startTime: finalStartTime,
+        endTime: finalEndTime,
         duration: taskData.duration !== undefined ? taskData.duration : originalTask.duration,
         categoryId: taskData.categoryId !== undefined ? taskData.categoryId : originalTask.categoryId,
         description: taskData.description !== undefined ? taskData.description : originalTask.description,
@@ -220,6 +213,15 @@ export default function TasksPage({ storage }: TasksPageProps) {
       await storage.updateTask(editingTaskId, updates);
     } else {
       // Создание новой задачи
+      const dueDate = taskData.dueDate || selectedDate.getTime();
+      const startTime = taskData.startTime 
+        ? minutesOfDayToTimestamp(dueDate, taskData.startTime)
+        : undefined;
+      
+      const endTime = taskData.startTime && taskData.duration
+        ? minutesOfDayToTimestamp(dueDate, taskData.startTime + taskData.duration)
+        : undefined;
+
       const newTask: Task = {
         id: generateId(),
         text: taskData.name!,
