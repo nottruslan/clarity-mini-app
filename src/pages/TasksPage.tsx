@@ -16,6 +16,7 @@ import Step7Description from '../components/Tasks/CreateTask/Step7Description';
 import Step8Subtasks from '../components/Tasks/CreateTask/Step8Subtasks';
 import Step9Recurrence from '../components/Tasks/CreateTask/Step9Recurrence';
 import Step10Energy from '../components/Tasks/CreateTask/Step10Energy';
+import ConfirmDeleteDialog from '../components/Tasks/ConfirmDeleteDialog';
 import { sectionColors } from '../utils/sectionColors';
 import { useTaskFilters } from '../hooks/useTaskFilters';
 import { minutesOfDayToTimestamp } from '../utils/taskTimeUtils';
@@ -41,6 +42,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
   });
   const [sortBy, setSortBy] = useState<TaskSortOption>('time');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [deleteConfirmTaskId, setDeleteConfirmTaskId] = useState<string | null>(null);
   
   const [taskData, setTaskData] = useState<{
     name?: string;
@@ -220,6 +222,38 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
   const handleDelete = async (id: string) => {
     await storage.deleteTask(id);
+  };
+
+  const handlePin = async (id: string) => {
+    await storage.updateTask(id, { pinned: true });
+  };
+
+  const handleUnpin = async (id: string) => {
+    await storage.updateTask(id, { pinned: false });
+  };
+
+  const handleConfirmDelete = (id: string) => {
+    setDeleteConfirmTaskId(id);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (deleteConfirmTaskId) {
+      await storage.deleteTask(deleteConfirmTaskId);
+      setDeleteConfirmTaskId(null);
+    }
+  };
+
+  const handleSubtaskToggle = async (taskId: string, subtaskId: string) => {
+    const task = storage.tasks.find(t => t.id === taskId);
+    if (!task || !task.subtasks) return;
+
+    const updatedSubtasks = task.subtasks.map(subtask =>
+      subtask.id === subtaskId
+        ? { ...subtask, completed: !subtask.completed }
+        : subtask
+    );
+
+    await storage.updateTask(taskId, { subtasks: updatedSubtasks });
   };
 
   const handleToggleExpand = (id: string) => {
@@ -427,6 +461,10 @@ export default function TasksPage({ storage }: TasksPageProps) {
           onEdit={handleEditTask}
           onDelete={handleDelete}
           onStatusChange={handleStatusChange}
+          onPin={handlePin}
+          onUnpin={handleUnpin}
+          onConfirmDelete={handleConfirmDelete}
+          onSubtaskToggle={handleSubtaskToggle}
           date={selectedDate}
           expandedTasks={expandedTasks}
           onToggleExpand={handleToggleExpand}
@@ -460,6 +498,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
           onFiltersChange={setFilters}
           onSortChange={setSortBy}
           onClose={() => setShowFilters(false)}
+        />
+      )}
+
+      {/* Диалог подтверждения удаления */}
+      {deleteConfirmTaskId && (
+        <ConfirmDeleteDialog
+          isOpen={true}
+          taskText={storage.tasks.find(t => t.id === deleteConfirmTaskId)?.text || ''}
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setDeleteConfirmTaskId(null)}
         />
       )}
     </div>

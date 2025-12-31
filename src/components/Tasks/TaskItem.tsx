@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
-import { Task, TaskCategory } from '../../utils/storage';
+import { Task, TaskCategory, Subtask } from '../../utils/storage';
 import { getTaskStartMinutes, getTaskDuration, formatTime, formatDuration } from '../../utils/taskTimeUtils';
+import TaskActionsMenu from './TaskActionsMenu';
 
 interface TaskItemProps {
   task: Task;
@@ -9,6 +10,10 @@ interface TaskItemProps {
   onEdit?: () => void;
   onDelete: () => void;
   onStatusChange?: (status: 'todo' | 'in-progress' | 'completed') => void;
+  onPin?: () => void;
+  onUnpin?: () => void;
+  onConfirmDelete?: () => void;
+  onSubtaskToggle?: (subtaskId: string) => void;
   date?: Date;
   expanded?: boolean;
   onToggleExpand?: () => void;
@@ -21,12 +26,19 @@ export default function TaskItem({
   onEdit,
   onDelete,
   onStatusChange,
+  onPin,
+  onUnpin,
+  onConfirmDelete,
+  onSubtaskToggle,
   date = new Date(),
   expanded = false,
   onToggleExpand
 }: TaskItemProps) {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isExpanded, setIsExpanded] = useState(expanded);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | undefined>(undefined);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const touchStartX = useRef<number | null>(null);
   const maxSwipe = 80;
 
@@ -58,11 +70,33 @@ export default function TaskItem({
 
   const handleTouchEnd = () => {
     if (swipeOffset > maxSwipe / 2) {
-      onDelete();
+      if (onConfirmDelete) {
+        onConfirmDelete();
+      } else {
+        onDelete();
+      }
     } else {
       setSwipeOffset(0);
     }
     touchStartX.current = null;
+  };
+
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (menuButtonRef.current) {
+      const rect = menuButtonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        left: rect.left - 150 // Смещаем влево, чтобы меню не выходило за экран
+      });
+    }
+    setIsMenuOpen(true);
+  };
+
+  const handleSubtaskToggle = (subtaskId: string) => {
+    if (onSubtaskToggle) {
+      onSubtaskToggle(subtaskId);
+    }
   };
 
   const handleStatusClick = (e: React.MouseEvent) => {
@@ -111,13 +145,12 @@ export default function TaskItem({
         className="swipeable-content"
         style={{ transform: `translateX(-${swipeOffset}px)` }}
         onClick={(e) => {
-          if (onEdit && e.target !== e.currentTarget) {
-            // Клик на саму задачу открывает редактирование, если не кликнули на чекбокс или другие элементы
-            const target = e.target as HTMLElement;
-            if (target.tagName !== 'INPUT' && !target.closest('button') && !target.closest('.swipeable-actions')) {
-              onEdit();
-            }
-          } else {
+          // Клик на задачу раскрывает/сворачивает, если не кликнули на кнопки или меню
+          const target = e.target as HTMLElement;
+          if (target.tagName !== 'INPUT' && 
+              !target.closest('button') && 
+              !target.closest('.swipeable-actions') &&
+              !target.closest('.task-menu-button')) {
             handleToggleExpand();
           }
         }}
@@ -181,6 +214,9 @@ export default function TaskItem({
                 
                 {/* Иконки */}
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
+                  {task.pinned && (
+                    <span style={{ fontSize: '16px' }} title="Закреплено">📌</span>
+                  )}
                   {category && (
                     <span style={{ fontSize: '16px' }}>{category.icon}</span>
                   )}
@@ -203,6 +239,27 @@ export default function TaskItem({
                       {completedSubtasks}/{subtasksCount}
                     </span>
                   )}
+                  {/* Меню действий (три точки) */}
+                  <button
+                    ref={menuButtonRef}
+                    className="task-menu-button"
+                    onClick={handleMenuClick}
+                    style={{
+                      padding: '4px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      color: 'var(--tg-theme-hint-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginLeft: '4px'
+                    }}
+                  >
+                    ⋮
+                  </button>
                 </div>
               </div>
 
@@ -232,63 +289,134 @@ export default function TaskItem({
                   borderTop: '1px solid var(--tg-theme-secondary-bg-color)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px'
+                  gap: '12px'
                 }}>
+                  {/* Описание */}
                   {task.description && (
                     <div style={{
                       fontSize: '14px',
-                      color: 'var(--tg-theme-hint-color)'
+                      color: 'var(--tg-theme-text-color)',
+                      lineHeight: '1.5',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word'
                     }}>
                       {task.description}
                     </div>
                   )}
                   
-                  <div style={{
-                    display: 'flex',
-                    gap: '12px',
-                    flexWrap: 'wrap',
-                    fontSize: '12px',
-                    color: 'var(--tg-theme-hint-color)'
-                  }}>
-                    {startMinutes !== null && (
-                      <span>⏰ {formatTime(startMinutes)}</span>
-                    )}
-                    {duration && (
-                      <span>⏱️ {formatDuration(duration)}</span>
-                    )}
-                  </div>
-
-
-                  {subtasksCount > 0 && (
+                  {/* Подзадачи с чекбоксами */}
+                  {task.subtasks && task.subtasks.length > 0 && (
                     <div style={{
-                      fontSize: '14px',
-                      color: 'var(--tg-theme-hint-color)'
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
                     }}>
-                      Подзадачи: {completedSubtasks}/{subtasksCount} выполнено
-                    </div>
-                  )}
-
-                  {onEdit && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit();
-                      }}
-                      style={{
-                        marginTop: '8px',
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: 'var(--tg-theme-button-color)',
-                        color: 'var(--tg-theme-button-text-color)',
+                      <div style={{
                         fontSize: '14px',
                         fontWeight: '500',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Редактировать
-                    </button>
+                        color: 'var(--tg-theme-text-color)',
+                        marginBottom: '4px'
+                      }}>
+                        Подзадачи ({completedSubtasks}/{subtasksCount})
+                      </div>
+                      {task.subtasks.map((subtask: Subtask) => (
+                        <div
+                          key={subtask.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '8px',
+                            borderRadius: '8px',
+                            backgroundColor: 'var(--tg-theme-secondary-bg-color)'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={subtask.completed}
+                            onChange={() => handleSubtaskToggle(subtask.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              cursor: 'pointer',
+                              flexShrink: 0
+                            }}
+                          />
+                          <span
+                            style={{
+                              flex: 1,
+                              fontSize: '14px',
+                              color: subtask.completed 
+                                ? 'var(--tg-theme-hint-color)' 
+                                : 'var(--tg-theme-text-color)',
+                              textDecoration: subtask.completed ? 'line-through' : 'none',
+                              opacity: subtask.completed ? 0.6 : 1
+                            }}
+                          >
+                            {subtask.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   )}
+                  
+                  {/* Дополнительная информация */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    fontSize: '13px',
+                    color: 'var(--tg-theme-hint-color)'
+                  }}>
+                    {task.priority && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>Приоритет:</span>
+                        <span style={{ 
+                          color: priorityColors[task.priority],
+                          fontWeight: '500'
+                        }}>
+                          {task.priority === 'low' ? 'Низкий' : task.priority === 'medium' ? 'Средний' : 'Высокий'}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {category && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>Категория:</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span>{category.icon}</span>
+                          <span>{category.name}</span>
+                        </span>
+                      </div>
+                    )}
+                    
+                    {task.energyLevel && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>Энергия:</span>
+                        <span>{energyIcons[task.energyLevel]}</span>
+                      </div>
+                    )}
+                    
+                    {task.dueDate && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>Срок:</span>
+                        <span>{new Date(task.dueDate).toLocaleDateString('ru-RU', { 
+                          day: 'numeric', 
+                          month: 'long',
+                          year: 'numeric'
+                        })}</span>
+                      </div>
+                    )}
+                    
+                    {startMinutes !== null && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>Время:</span>
+                        <span>⏰ {formatTime(startMinutes)}</span>
+                        {duration && <span>⏱️ {formatDuration(duration)}</span>}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -302,6 +430,36 @@ export default function TaskItem({
           </div>
         </div>
       )}
+      
+      {/* Меню действий */}
+      <TaskActionsMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        onEdit={() => {
+          if (onEdit) {
+            onEdit();
+          }
+        }}
+        onDelete={() => {
+          if (onConfirmDelete) {
+            onConfirmDelete();
+          } else {
+            onDelete();
+          }
+        }}
+        onPin={() => {
+          if (onPin) {
+            onPin();
+          }
+        }}
+        onUnpin={() => {
+          if (onUnpin) {
+            onUnpin();
+          }
+        }}
+        isPinned={task.pinned || false}
+        position={menuPosition}
+      />
     </div>
   );
 }

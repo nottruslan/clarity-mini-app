@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Task, TaskCategory } from '../../utils/storage';
 import TaskItem from './TaskItem';
 import EmptyState from '../EmptyState';
@@ -10,6 +10,10 @@ interface TaskListProps {
   onEdit?: (id: string) => void;
   onDelete: (id: string) => void;
   onStatusChange?: (id: string, status: 'todo' | 'in-progress' | 'completed') => void;
+  onPin?: (id: string) => void;
+  onUnpin?: (id: string) => void;
+  onConfirmDelete?: (id: string) => void;
+  onSubtaskToggle?: (taskId: string, subtaskId: string) => void;
   date?: Date;
   expandedTasks?: Set<string>;
   onToggleExpand?: (id: string) => void;
@@ -22,6 +26,10 @@ export default function TaskList({
   onEdit,
   onDelete,
   onStatusChange,
+  onPin,
+  onUnpin,
+  onConfirmDelete,
+  onSubtaskToggle,
   date = new Date(),
   expandedTasks,
   onToggleExpand
@@ -46,6 +54,17 @@ export default function TaskList({
 
   const expandedSet = expandedTasks || localExpanded;
 
+  // Сортировка: сначала закрепленные (последняя закрепленная первая), затем остальные
+  const sortedTasks = useMemo(() => {
+    const pinned = tasks.filter(t => t.pinned);
+    const unpinned = tasks.filter(t => !t.pinned);
+    
+    // Закрепленные сортируем по createdAt в обратном порядке (новые первыми)
+    pinned.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    
+    return [...pinned, ...unpinned];
+  }, [tasks]);
+
   if (tasks.length === 0) {
     return (
       <EmptyState 
@@ -61,7 +80,7 @@ export default function TaskList({
       paddingTop: '0px',
       WebkitOverflowScrolling: 'touch' as any
     }}>
-      {tasks.map((task) => (
+      {sortedTasks.map((task) => (
         <TaskItem
           key={task.id}
           task={task}
@@ -70,6 +89,10 @@ export default function TaskList({
           onEdit={onEdit ? () => onEdit(task.id) : undefined}
           onDelete={() => onDelete(task.id)}
           onStatusChange={onStatusChange ? (status) => onStatusChange(task.id, status) : undefined}
+          onPin={onPin ? () => onPin(task.id) : undefined}
+          onUnpin={onUnpin ? () => onUnpin(task.id) : undefined}
+          onConfirmDelete={onConfirmDelete ? () => onConfirmDelete(task.id) : undefined}
+          onSubtaskToggle={onSubtaskToggle ? (subtaskId) => onSubtaskToggle(task.id, subtaskId) : undefined}
           date={date}
           expanded={expandedSet.has(task.id)}
           onToggleExpand={() => handleToggleExpand(task.id)}

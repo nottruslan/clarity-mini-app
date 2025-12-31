@@ -87,6 +87,9 @@ export interface Task {
   
   // InBox флаги
   movedToList?: boolean; // помечена как перемещенная в список
+  
+  // Закрепление
+  pinned?: boolean; // закреплена ли задача
 }
 
 export interface Habit {
