@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type Task, type Subtask, type RecurrenceRule, type TaskCategory } from '../utils/storage';
 import TaskList from '../components/Tasks/TaskList';
@@ -57,9 +57,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
     energyLevel?: 'low' | 'medium' | 'high';
   }>({});
 
+  // Фильтруем задачи для списка: показываем задачи с датами/временем ИЛИ с флагом movedToList
+  const tasksForList = useMemo(() => {
+    return storage.tasks.filter(task => 
+      task.dueDate || task.startTime || task.endTime || task.movedToList === true
+    );
+  }, [storage.tasks]);
+
   // Используем хук для фильтрации
   const filteredTasks = useTaskFilters({
-    tasks: storage.tasks,
+    tasks: tasksForList,
     categories: storage.taskCategories,
     tags: [],
     filters,
@@ -438,7 +445,10 @@ export default function TasksPage({ storage }: TasksPageProps) {
       {/* Контент */}
       {viewMode === 'inbox' ? (
         <InBoxView
-          tasks={storage.tasks.filter(task => !task.dueDate && !task.startTime && !task.endTime)}
+          tasks={storage.tasks.filter(task => 
+            // Показываем задачи без дат/времени ИЛИ с флагом movedToList
+            (!task.dueDate && !task.startTime && !task.endTime) || task.movedToList === true
+          )}
           onTaskAdd={async (task) => {
             await storage.addTask(task);
           }}
@@ -449,8 +459,13 @@ export default function TasksPage({ storage }: TasksPageProps) {
             await storage.deleteTask(id);
           }}
           onTaskMove={async (id) => {
-            // Помечаем задачу как перемещенную в список
-            await storage.updateTask(id, { movedToList: true });
+            // Помечаем задачу как перемещенную в список и добавляем dueDate для видимости в списке
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            await storage.updateTask(id, { 
+              movedToList: true,
+              dueDate: today.getTime()
+            });
           }}
         />
       ) : viewMode === 'list' ? (

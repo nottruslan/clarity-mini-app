@@ -158,8 +158,34 @@ export default function TaskItem({
         <div className="list-item" style={{ 
           padding: '12px 16px',
           backgroundColor: 'var(--tg-theme-section-bg-color)',
-          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
+          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
+          position: 'relative'
         }}>
+          {/* Меню действий (три точки) - в правом верхнем углу */}
+          <button
+            ref={menuButtonRef}
+            className="task-menu-button"
+            onClick={handleMenuClick}
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              padding: '4px 8px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              fontSize: '20px',
+              color: 'var(--tg-theme-hint-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              zIndex: 10
+            }}
+          >
+            ⋮
+          </button>
+          
           {/* Основная строка */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {/* Чекбокс/Статус */}
@@ -193,9 +219,9 @@ export default function TaskItem({
             </div>
 
             {/* Контент */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
               {/* Заголовок */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', paddingRight: '32px' }}>
                 <span style={{
                   flex: 1,
                   textDecoration: isCompleted ? 'line-through' : 'none',
@@ -239,27 +265,6 @@ export default function TaskItem({
                       {completedSubtasks}/{subtasksCount}
                     </span>
                   )}
-                  {/* Меню действий (три точки) */}
-                  <button
-                    ref={menuButtonRef}
-                    className="task-menu-button"
-                    onClick={handleMenuClick}
-                    style={{
-                      padding: '4px',
-                      border: 'none',
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      fontSize: '20px',
-                      color: 'var(--tg-theme-hint-color)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginLeft: '4px'
-                    }}
-                  >
-                    ⋮
-                  </button>
                 </div>
               </div>
 
@@ -289,7 +294,9 @@ export default function TaskItem({
                   borderTop: '1px solid var(--tg-theme-secondary-bg-color)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '12px'
+                  gap: '12px',
+                  width: '100%',
+                  maxWidth: '100%'
                 }}>
                   {/* Описание */}
                   {task.description && (
