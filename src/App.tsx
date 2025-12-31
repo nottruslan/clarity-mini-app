@@ -70,15 +70,13 @@ function App() {
       try {
         if (currentSection !== 'home') {
           const colors = sectionColors[currentSection];
-          // Пробуем разные форматы цвета
-          tg.setHeaderColor(colors.primary);
-          // Также пробуем без #
-          if (colors.primary.startsWith('#')) {
-            tg.setHeaderColor(colors.primary.substring(1));
-          }
+          // Убираем # из цвета, если он есть, так как Telegram WebApp API принимает цвет без #
+          const colorWithoutHash = colors.primary.startsWith('#') 
+            ? colors.primary.substring(1) 
+            : colors.primary;
+          tg.setHeaderColor(colorWithoutHash);
         } else {
           // На главной странице возвращаем стандартный цвет
-          tg.setHeaderColor('#ffffff');
           tg.setHeaderColor('ffffff');
         }
       } catch (error) {

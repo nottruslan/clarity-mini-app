@@ -87,11 +87,12 @@ export function useTelegram() {
       }
       
       // Предотвращаем закрытие приложения при свайпе вниз
-      if (tg.disableVerticalSwipes) {
+      if (tg.disableVerticalSwipes && typeof tg.disableVerticalSwipes === 'function') {
         try {
           tg.disableVerticalSwipes();
         } catch (error) {
-          console.error('Error disabling vertical swipes:', error);
+          // Ошибка не критична, приложение должно продолжать работать
+          console.warn('Could not disable vertical swipes:', error);
         }
       }
 
