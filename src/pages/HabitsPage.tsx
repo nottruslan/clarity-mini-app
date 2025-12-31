@@ -298,6 +298,7 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
       flexDirection: 'column', 
       position: 'relative',
       paddingTop: '0px',
+      paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
       overflow: 'hidden'
     }}>
       <HabitList 

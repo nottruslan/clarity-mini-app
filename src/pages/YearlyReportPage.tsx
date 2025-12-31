@@ -691,7 +691,8 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '16px'
+        padding: '16px',
+        paddingBottom: 'calc(116px + env(safe-area-inset-bottom))'
       }}>
         {storage.yearlyReports.length === 0 ? (
           <div style={{
