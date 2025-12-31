@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { Task, generateId } from '../../../utils/storage';
 import InBoxItem from './InBoxItem';
-import EmptyState from '../../EmptyState';
 
 interface InBoxViewProps {
   tasks: Task[];
@@ -59,7 +58,7 @@ export default function InBoxView({
       {/* Инлайн-редактор для быстрого добавления */}
       <div style={{
         padding: '12px 16px',
-        borderBottom: '2px solid var(--tg-theme-button-color)',
+        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
         backgroundColor: 'var(--tg-theme-bg-color)',
         position: 'sticky',
         top: 0,
@@ -73,19 +72,15 @@ export default function InBoxView({
           <input
             ref={inputRef}
             type="text"
+            className="wizard-input"
             placeholder="Быстрая задача..."
             value={newTaskText}
             onChange={(e) => setNewTaskText(e.target.value)}
             onKeyPress={handleKeyPress}
             style={{
               flex: 1,
-              padding: '12px 16px',
-              borderRadius: '10px',
-              border: '1px solid var(--tg-theme-secondary-bg-color)',
-              backgroundColor: 'var(--tg-theme-bg-color)',
-              color: 'var(--tg-theme-text-color)',
-              fontSize: '16px',
-              outline: 'none'
+              marginTop: 0,
+              fontSize: '16px'
             }}
           />
           <button
@@ -119,9 +114,55 @@ export default function InBoxView({
         WebkitOverflowScrolling: 'touch' as any
       }}>
         {sortedTasks.length === 0 ? (
-          <EmptyState 
-            message="InBox пуст. Добавьте первую задачу!"
-          />
+          <div style={{
+            padding: '32px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '24px'
+          }}>
+            <div style={{
+              fontSize: '64px',
+              color: 'var(--tg-theme-hint-color)',
+              opacity: 0.6
+            }}>
+              📥
+            </div>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              maxWidth: '320px'
+            }}>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: 'var(--tg-theme-text-color)',
+                margin: 0
+              }}>
+                InBox — быстрые задачи
+              </h3>
+              <div style={{
+                fontSize: '15px',
+                color: 'var(--tg-theme-hint-color)',
+                lineHeight: '1.6',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <p style={{ margin: 0 }}>
+                  <strong style={{ color: 'var(--tg-theme-text-color)' }}>📥 InBox</strong> — пиши быстрые задачи без лишних шагов. Просто введи текст и нажми Enter.
+                </p>
+                <p style={{ margin: 0 }}>
+                  <strong style={{ color: 'var(--tg-theme-text-color)' }}>📋 Список</strong> — когда будет время, добавь задачу в список и отредактируй её (приоритет, дату, категорию).
+                </p>
+                <p style={{ margin: 0 }}>
+                  <strong style={{ color: 'var(--tg-theme-text-color)' }}>📅 День</strong> — размести задачу в календаре на конкретный день и время.
+                </p>
+              </div>
+            </div>
+          </div>
         ) : (
           sortedTasks.map((task) => (
             <InBoxItem
