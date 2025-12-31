@@ -279,9 +279,16 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     });
     try {
       const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
+      if (data) {
+        const parsed = JSON.parse(data);
+        console.log('[DEBUG] Data loaded from localStorage', { key, dataLength: data.length, parsedType: Array.isArray(parsed) ? 'array' : typeof parsed });
+        return parsed;
+      } else {
+        console.log('[DEBUG] No data in localStorage for key', { key });
+        return null;
+      }
     } catch (parseError) {
-      console.error('Error parsing localStorage data:', parseError);
+      console.error('[DEBUG] Error parsing localStorage data:', parseError);
       return null;
     }
   }
@@ -341,10 +348,19 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
     });
     try {
       localStorage.setItem(key, jsonData);
-      console.log('[DEBUG] Data saved to localStorage (direct fallback)');
+      // Проверяем, что данные действительно сохранились
+      const saved = localStorage.getItem(key);
+      if (saved === jsonData) {
+        console.log('[DEBUG] Data saved to localStorage (direct fallback) - verified');
+      } else {
+        console.warn('[DEBUG] Data saved to localStorage but verification failed', { 
+          expectedLength: jsonData.length, 
+          savedLength: saved?.length 
+        });
+      }
       return;
     } catch (localStorageError) {
-      console.error('Error saving to localStorage:', localStorageError);
+      console.error('[DEBUG] Error saving to localStorage:', localStorageError);
       throw localStorageError;
     }
   }
@@ -367,7 +383,16 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
           // Fallback to localStorage при любой ошибке
           try {
             localStorage.setItem(key, jsonData);
-            console.log('[DEBUG] Data saved to localStorage as fallback successfully');
+            // Проверяем, что данные действительно сохранились
+            const saved = localStorage.getItem(key);
+            if (saved === jsonData) {
+              console.log('[DEBUG] Data saved to localStorage as fallback successfully - verified');
+            } else {
+              console.warn('[DEBUG] Data saved to localStorage but verification failed', { 
+                expectedLength: jsonData.length, 
+                savedLength: saved?.length 
+              });
+            }
             resolve(); // Успешно сохранили в localStorage, разрешаем промис
           } catch (localStorageError) {
             console.error('[DEBUG] Error saving to localStorage:', localStorageError);
@@ -380,13 +405,19 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
       });
     } catch (syncError) {
       // Синхронная ошибка при вызове setItem (например, метод не поддерживается)
-      console.error('Synchronous error calling CloudStorage.setItem:', syncError);
+      console.error('[DEBUG] Synchronous error calling CloudStorage.setItem:', syncError);
       try {
         localStorage.setItem(key, jsonData);
-        console.log('Data saved to localStorage as fallback (sync error)');
+        // Проверяем, что данные действительно сохранились
+        const saved = localStorage.getItem(key);
+        if (saved === jsonData) {
+          console.log('[DEBUG] Data saved to localStorage as fallback (sync error) - verified');
+        } else {
+          console.warn('[DEBUG] Data saved to localStorage but verification failed (sync error)');
+        }
         resolve();
       } catch (localStorageError) {
-        console.error('Error saving to localStorage:', localStorageError);
+        console.error('[DEBUG] Error saving to localStorage:', localStorageError);
         reject(localStorageError);
       }
     }

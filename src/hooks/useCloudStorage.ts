@@ -242,6 +242,25 @@ export function useCloudStorage() {
         // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
         saveTasksToStorage(newTasks).then(() => {
           console.log('[DEBUG] saveTasksToStorage completed successfully');
+          // Проверяем, что данные действительно сохранились в localStorage
+          try {
+            const saved = localStorage.getItem('tasks');
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              const savedTask = parsed.find((t: Task) => t.id === id);
+              if (savedTask && savedTask.text === updatedTask.text) {
+                console.log('[DEBUG] Task verified in localStorage after save');
+              } else {
+                console.warn('[DEBUG] Task not found or different in localStorage after save', {
+                  found: !!savedTask,
+                  savedText: savedTask?.text,
+                  expectedText: updatedTask.text
+                });
+              }
+            }
+          } catch (e) {
+            console.error('[DEBUG] Error verifying task in localStorage:', e);
+          }
         }).catch(err => {
           // #region agent log
           fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:201',message:'saveTasksToStorage error',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});

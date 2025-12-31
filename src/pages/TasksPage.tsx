@@ -367,6 +367,19 @@ export default function TasksPage({ storage }: TasksPageProps) {
         console.log('[DEBUG] Calling storage.updateTask', { taskId: editingTaskId });
         await storage.updateTask(editingTaskId, updates);
         console.log('[DEBUG] storage.updateTask completed', { taskId: editingTaskId });
+        
+        // Проверяем, что задача действительно обновилась в состоянии
+        const updatedTaskInState = storage.tasks.find(t => t.id === editingTaskId);
+        if (updatedTaskInState) {
+          console.log('[DEBUG] Task found in state after update', { 
+            id: updatedTaskInState.id, 
+            text: updatedTaskInState.text,
+            matchesUpdate: updatedTaskInState.text === updates.text 
+          });
+        } else {
+          console.warn('[DEBUG] Task NOT found in state after update!', { taskId: editingTaskId });
+        }
+        
         // #region agent log
         fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:352',message:'updateTask completed',data:{taskId:editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
         // #endregion
