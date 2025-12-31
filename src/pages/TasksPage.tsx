@@ -210,7 +210,13 @@ export default function TasksPage({ storage }: TasksPageProps) {
         energyLevel: energyLevel !== undefined ? energyLevel : originalTask.energyLevel
       };
 
-      await storage.updateTask(editingTaskId, updates);
+      try {
+        await storage.updateTask(editingTaskId, updates);
+        console.log('Task updated successfully');
+      } catch (error) {
+        console.error('Error updating task:', error);
+        // Состояние уже обновлено в updateTask, продолжаем
+      }
     } else {
       // Создание новой задачи
       const dueDate = taskData.dueDate || selectedDate.getTime();
@@ -241,7 +247,13 @@ export default function TasksPage({ storage }: TasksPageProps) {
         status: 'todo'
       };
 
-      await storage.addTask(newTask);
+      try {
+        await storage.addTask(newTask);
+        console.log('Task added successfully');
+      } catch (error) {
+        console.error('Error adding task:', error);
+        // Состояние уже обновлено в addTask, продолжаем
+      }
     }
 
     setIsCreating(false);

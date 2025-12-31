@@ -138,25 +138,49 @@ export function useCloudStorage() {
 
   // Tasks
   const updateTasks = useCallback(async (newTasks: Task[]) => {
+    // Сначала обновляем состояние, чтобы UI сразу отобразил изменения
     setTasks(newTasks);
-    await saveTasks(newTasks);
+    // Затем пытаемся сохранить в хранилище
+    try {
+      await saveTasks(newTasks);
+      console.log('Tasks saved successfully');
+    } catch (error) {
+      console.error('Error saving tasks:', error);
+      // Состояние уже обновлено, пользователь видит изменения
+      // В случае ошибки данные остаются в localStorage (fallback)
+    }
   }, []);
 
   const addTask = useCallback(async (task: Task) => {
-    const newTasks = [...tasks, task];
-    await updateTasks(newTasks);
+    try {
+      const newTasks = [...tasks, task];
+      await updateTasks(newTasks);
+    } catch (error) {
+      console.error('Error adding task:', error);
+      throw error;
+    }
   }, [tasks, updateTasks]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
-    const newTasks = tasks.map(task => 
-      task.id === id ? { ...task, ...updates } : task
-    );
-    await updateTasks(newTasks);
+    try {
+      const newTasks = tasks.map(task => 
+        task.id === id ? { ...task, ...updates } : task
+      );
+      await updateTasks(newTasks);
+    } catch (error) {
+      console.error('Error updating task:', error);
+      throw error;
+    }
   }, [tasks, updateTasks]);
 
   const deleteTask = useCallback(async (id: string) => {
-    const newTasks = tasks.filter(task => task.id !== id);
-    await updateTasks(newTasks);
+    try {
+      const newTasks = tasks.filter(task => task.id !== id);
+      await updateTasks(newTasks);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+    }
   }, [tasks, updateTasks]);
 
   // Habits

@@ -312,8 +312,14 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
       if (error) {
         console.error('Error saving to Cloud Storage:', error);
         // Fallback to localStorage
-        localStorage.setItem(key, jsonData);
-        reject(error);
+        try {
+          localStorage.setItem(key, jsonData);
+          console.log('Data saved to localStorage as fallback');
+          resolve(); // Успешно сохранили в localStorage, разрешаем промис
+        } catch (localStorageError) {
+          console.error('Error saving to localStorage:', localStorageError);
+          reject(localStorageError);
+        }
         return;
       }
       resolve();
