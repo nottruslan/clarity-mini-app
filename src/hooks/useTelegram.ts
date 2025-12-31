@@ -33,93 +33,36 @@ export function useTelegram() {
   const [themeParams, setThemeParams] = useState<TelegramThemeParams | null>(null);
 
   useEffect(() => {
-    // Инициализация Telegram Web App
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-      setWebApp(tg);
-      
-      // Получаем данные пользователя
-      if (tg.initDataUnsafe?.user) {
-        const tgUser = tg.initDataUnsafe.user;
-        setUser({
-          id: tgUser.id,
-          first_name: tgUser.first_name,
-          last_name: tgUser.last_name,
-          username: tgUser.username,
-          language_code: tgUser.language_code,
-          is_premium: tgUser.is_premium,
-          photo_url: tgUser.photo_url
-        });
-      }
-
-      // Получаем параметры темы
-      if (tg.themeParams) {
-        setThemeParams(tg.themeParams);
+    // Функция инициализации Telegram Web App
+    const initTelegram = () => {
+      if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        console.log('Telegram WebApp found, initializing...');
         
-        // Применяем тему к CSS переменным
-        const root = document.documentElement;
-        if (tg.themeParams.bg_color) {
-          root.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
-        }
-        if (tg.themeParams.text_color) {
-          root.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
-        }
-        if (tg.themeParams.hint_color) {
-          root.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color);
-        }
-        if (tg.themeParams.button_color) {
-          root.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color);
-        }
-        if (tg.themeParams.button_text_color) {
-          root.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color);
-        }
-        if (tg.themeParams.secondary_bg_color) {
-          root.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color);
-        }
-        if (tg.themeParams.section_bg_color) {
-          root.style.setProperty('--tg-theme-section-bg-color', tg.themeParams.section_bg_color);
-        }
-        if (tg.themeParams.destructive_text_color) {
-          root.style.setProperty('--tg-theme-destructive-text-color', tg.themeParams.destructive_text_color);
-        }
-      }
-      
-      // Предотвращаем закрытие приложения при свайпе вниз
-      if (tg.disableVerticalSwipes) {
         try {
-          tg.disableVerticalSwipes();
-        } catch (error) {
-          console.error('Error disabling vertical swipes:', error);
-        }
-      }
-
-      // Устанавливаем начальный цвет header после небольшой задержки
-      // чтобы убедиться, что WebApp полностью инициализирован
-      setTimeout(() => {
-        if (tg.setHeaderColor) {
-          try {
-            // Устанавливаем цвет из темы или белый по умолчанию
-            const headerColor = tg.themeParams?.header_bg_color || '#ffffff';
-            tg.setHeaderColor(headerColor);
-            console.log('Initial header color set to', headerColor, 'isExpanded:', tg.isExpanded);
-          } catch (error) {
-            console.error('Error setting initial header color:', error);
+          tg.ready();
+          tg.expand();
+          setWebApp(tg);
+          
+          // Получаем данные пользователя
+          if (tg.initDataUnsafe?.user) {
+            const tgUser = tg.initDataUnsafe.user;
+            setUser({
+              id: tgUser.id,
+              first_name: tgUser.first_name,
+              last_name: tgUser.last_name,
+              username: tgUser.username,
+              language_code: tgUser.language_code,
+              is_premium: tgUser.is_premium,
+              photo_url: tgUser.photo_url
+            });
           }
-        }
-      }, 200);
 
-      // Периодически проверяем изменения темы (fallback)
-      // Telegram Web App может изменять тему динамически
-      let lastThemeParams = JSON.stringify(tg.themeParams || {});
-      const themeCheckInterval = setInterval(() => {
-        if (tg.themeParams) {
-          const currentParams = JSON.stringify(tg.themeParams);
-          if (currentParams !== lastThemeParams) {
-            lastThemeParams = currentParams;
+          // Получаем параметры темы
+          if (tg.themeParams) {
             setThemeParams(tg.themeParams);
-            // Обновляем CSS переменные при изменении темы
+            
+            // Применяем тему к CSS переменным
             const root = document.documentElement;
             if (tg.themeParams.bg_color) {
               root.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
@@ -146,20 +89,111 @@ export function useTelegram() {
               root.style.setProperty('--tg-theme-destructive-text-color', tg.themeParams.destructive_text_color);
             }
           }
-        }
-      }, 1000);
+          
+          // Предотвращаем закрытие приложения при свайпе вниз
+          if (tg.disableVerticalSwipes) {
+            try {
+              tg.disableVerticalSwipes();
+            } catch (error) {
+              console.error('Error disabling vertical swipes:', error);
+            }
+          }
 
-      setIsReady(true);
-      
-      return () => {
-        clearInterval(themeCheckInterval);
-      };
-    } else {
-      // Если Telegram WebApp недоступен (например, при разработке или тестировании),
-      // все равно помечаем как готовый, чтобы приложение загрузилось
-      console.warn('Telegram WebApp not available, running in fallback mode');
-      setIsReady(true);
-    }
+          // Устанавливаем начальный цвет header после небольшой задержки
+          setTimeout(() => {
+            if (tg.setHeaderColor) {
+              try {
+                const headerColor = tg.themeParams?.header_bg_color || '#ffffff';
+                tg.setHeaderColor(headerColor);
+                console.log('Initial header color set to', headerColor);
+              } catch (error) {
+                console.error('Error setting initial header color:', error);
+              }
+            }
+          }, 200);
+
+          // Периодически проверяем изменения темы
+          let lastThemeParams = JSON.stringify(tg.themeParams || {});
+          const themeCheckInterval = setInterval(() => {
+            if (tg.themeParams) {
+              const currentParams = JSON.stringify(tg.themeParams);
+              if (currentParams !== lastThemeParams) {
+                lastThemeParams = currentParams;
+                setThemeParams(tg.themeParams);
+                const root = document.documentElement;
+                if (tg.themeParams.bg_color) {
+                  root.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
+                }
+                if (tg.themeParams.text_color) {
+                  root.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
+                }
+                if (tg.themeParams.hint_color) {
+                  root.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color);
+                }
+                if (tg.themeParams.button_color) {
+                  root.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color);
+                }
+                if (tg.themeParams.button_text_color) {
+                  root.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color);
+                }
+                if (tg.themeParams.secondary_bg_color) {
+                  root.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color);
+                }
+                if (tg.themeParams.section_bg_color) {
+                  root.style.setProperty('--tg-theme-section-bg-color', tg.themeParams.section_bg_color);
+                }
+                if (tg.themeParams.destructive_text_color) {
+                  root.style.setProperty('--tg-theme-destructive-text-color', tg.themeParams.destructive_text_color);
+                }
+              }
+            }
+          }, 1000);
+
+          console.log('Telegram WebApp initialized successfully');
+          setIsReady(true);
+          
+          return () => {
+            clearInterval(themeCheckInterval);
+          };
+        } catch (error) {
+          console.error('Error initializing Telegram WebApp:', error);
+          // Все равно помечаем как готовый, чтобы приложение загрузилось
+          setIsReady(true);
+        }
+      } else {
+        // Если Telegram WebApp недоступен, ждем немного и пробуем снова
+        console.warn('Telegram WebApp not available yet, waiting...');
+        
+        // Пробуем несколько раз с интервалом
+        let attempts = 0;
+        const maxAttempts = 10;
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (window.Telegram?.WebApp) {
+            clearInterval(checkInterval);
+            initTelegram();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            console.warn('Telegram WebApp not available after attempts, running in fallback mode');
+            setIsReady(true);
+          }
+        }, 100);
+        
+        // Также устанавливаем таймаут на случай, если скрипт загружается очень долго
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          if (!window.Telegram?.WebApp) {
+            console.warn('Telegram WebApp not available after timeout, running in fallback mode');
+            setIsReady(true);
+          }
+        }, 2000);
+        
+        return () => clearInterval(checkInterval);
+      }
+    };
+
+    // Пробуем инициализировать сразу
+    initTelegram();
   }, []);
 
   return {

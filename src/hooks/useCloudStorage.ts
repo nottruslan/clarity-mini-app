@@ -131,7 +131,17 @@ export function useCloudStorage() {
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      // Устанавливаем пустые данные в случае ошибки, чтобы приложение могло загрузиться
+      setTasks([]);
+      setHabits([]);
+      setFinance({ transactions: [], categories: [], budgets: [] });
+      setOnboarding({ tasks: false, habits: false, finance: false, languages: false, 'yearly-report': false });
+      setYearlyReports([]);
+      setTaskCategories([]);
+      setTaskTags([]);
+      setInBoxNotes([]);
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };
