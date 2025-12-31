@@ -33,34 +33,11 @@ export function useTelegram() {
   const [themeParams, setThemeParams] = useState<TelegramThemeParams | null>(null);
 
   useEffect(() => {
-    // Функция инициализации Telegram Web App
-    const initTelegramWebApp = (): (() => void) | undefined => {
-      // Проверяем наличие Telegram WebApp API
-      if (!window.Telegram?.WebApp) {
-        // Если Telegram WebApp недоступен (например, при разработке или тестировании),
-        // все равно помечаем как готовый, чтобы приложение загрузилось
-        console.warn('Telegram WebApp not available, running in fallback mode');
-        setIsReady(true);
-        return undefined;
-      }
-
+    // Инициализация Telegram Web App
+    if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
-      
-      // Инициализируем Telegram WebApp с обработкой ошибок
-      try {
-        tg.ready();
-      } catch (error) {
-        console.error('Error calling tg.ready():', error);
-        // Продолжаем работу даже при ошибке
-      }
-      
-      try {
-        tg.expand();
-      } catch (error) {
-        console.error('Error calling tg.expand():', error);
-        // Продолжаем работу даже при ошибке
-      }
-      
+      tg.ready();
+      tg.expand();
       setWebApp(tg);
       
       // Получаем данные пользователя
@@ -110,12 +87,11 @@ export function useTelegram() {
       }
       
       // Предотвращаем закрытие приложения при свайпе вниз
-      if (tg.disableVerticalSwipes && typeof tg.disableVerticalSwipes === 'function') {
+      if (tg.disableVerticalSwipes) {
         try {
           tg.disableVerticalSwipes();
         } catch (error) {
-          // Ошибка не критична, приложение должно продолжать работать
-          console.warn('Could not disable vertical swipes:', error);
+          console.error('Error disabling vertical swipes:', error);
         }
       }
 
@@ -125,21 +101,9 @@ export function useTelegram() {
         if (tg.setHeaderColor) {
           try {
             // Устанавливаем цвет из темы или белый по умолчанию
-            // Убираем # из цвета, так как Telegram WebApp API принимает цвет в формате RRGGBB (без #)
-            let headerColor = tg.themeParams?.header_bg_color || 'ffffff';
-            if (headerColor.startsWith('#')) {
-              headerColor = headerColor.substring(1);
-            }
-            
-            // Валидация: цвет должен быть в формате RRGGBB (6 символов) или специальное значение
-            if (headerColor === 'bg_color' || headerColor === 'secondary_bg_color' || 
-                (headerColor.length === 6 && /^[0-9A-Fa-f]{6}$/.test(headerColor))) {
-              tg.setHeaderColor(headerColor);
-              console.log('Initial header color set to', headerColor, 'isExpanded:', tg.isExpanded);
-            } else {
-              console.warn('Invalid header color format:', headerColor, 'using default');
-              tg.setHeaderColor('ffffff');
-            }
+            const headerColor = tg.themeParams?.header_bg_color || '#ffffff';
+            tg.setHeaderColor(headerColor);
+            console.log('Initial header color set to', headerColor, 'isExpanded:', tg.isExpanded);
           } catch (error) {
             console.error('Error setting initial header color:', error);
           }
@@ -190,47 +154,12 @@ export function useTelegram() {
       return () => {
         clearInterval(themeCheckInterval);
       };
-    };
-
-    // Функция проверки готовности Telegram WebApp API
-    const isTelegramWebAppReady = (): boolean => {
-      return !!(
-        window.Telegram?.WebApp &&
-        typeof window.Telegram.WebApp.ready === 'function' &&
-        typeof window.Telegram.WebApp.expand === 'function'
-      );
-    };
-
-    // Ожидаем загрузки скрипта Telegram WebApp
-    // Скрипт может загружаться асинхронно, поэтому проверяем несколько раз
-    let cleanup: (() => void) | undefined;
-    let checkInterval: ReturnType<typeof setInterval> | undefined;
-
-    if (isTelegramWebAppReady()) {
-      // Скрипт уже загружен и готов, инициализируем сразу
-      cleanup = initTelegramWebApp();
     } else {
-      // Ждем загрузки скрипта
-      let attempts = 0;
-      const maxAttempts = 50; // 5 секунд максимум (50 * 100ms)
-      checkInterval = setInterval(() => {
-        attempts++;
-        if (isTelegramWebAppReady()) {
-          if (checkInterval) clearInterval(checkInterval);
-          cleanup = initTelegramWebApp();
-        } else if (attempts >= maxAttempts) {
-          // Если скрипт не загрузился за 5 секунд, запускаем в fallback режиме
-          if (checkInterval) clearInterval(checkInterval);
-          console.warn('Telegram WebApp script not loaded after 5 seconds, running in fallback mode');
-          setIsReady(true);
-        }
-      }, 100);
+      // Если Telegram WebApp недоступен (например, при разработке или тестировании),
+      // все равно помечаем как готовый, чтобы приложение загрузилось
+      console.warn('Telegram WebApp not available, running in fallback mode');
+      setIsReady(true);
     }
-
-    return () => {
-      if (checkInterval) clearInterval(checkInterval);
-      if (cleanup) cleanup();
-    };
   }, []);
 
   return {
