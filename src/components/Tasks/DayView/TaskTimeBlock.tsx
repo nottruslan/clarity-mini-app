@@ -9,7 +9,7 @@ interface TaskTimeBlockProps {
   top: string;
   height: string;
   onClick?: () => void;
-  onDelete?: () => void;
+  onConfirmDelete?: () => void;
 }
 
 export default function TaskTimeBlock({
@@ -19,7 +19,7 @@ export default function TaskTimeBlock({
   top,
   height,
   onClick,
-  onDelete
+  onConfirmDelete
 }: TaskTimeBlockProps) {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const touchStartX = useRef<number | null>(null);
@@ -43,7 +43,7 @@ export default function TaskTimeBlock({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || !onDelete) return;
+    if (touchStartX.current === null || !onConfirmDelete) return;
     
     const deltaX = touchStartX.current - e.touches[0].clientX;
     
@@ -55,8 +55,9 @@ export default function TaskTimeBlock({
   };
 
   const handleTouchEnd = () => {
-    if (swipeOffset > maxSwipe / 2 && onDelete) {
-      onDelete();
+    if (swipeOffset > maxSwipe / 2 && onConfirmDelete) {
+      onConfirmDelete();
+      setSwipeOffset(0);
     } else {
       setSwipeOffset(0);
     }
@@ -101,6 +102,7 @@ export default function TaskTimeBlock({
           <div style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '6px',
             marginBottom: '4px'
           }}>
@@ -114,7 +116,8 @@ export default function TaskTimeBlock({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              flex: 1
+              flex: 1,
+              textAlign: 'center'
             }}>
               {task.text}
             </span>
@@ -124,14 +127,15 @@ export default function TaskTimeBlock({
             <div style={{
               fontSize: '11px',
               color: '#ffffff',
-              opacity: 0.9
+              opacity: 0.9,
+              textAlign: 'center'
             }}>
               {formatDuration(duration)}
             </div>
           )}
         </div>
       </div>
-      {swipeOffset > 0 && onDelete && (
+      {swipeOffset > 0 && onConfirmDelete && (
         <div className="swipeable-actions">
           <div className="swipeable-delete">
             Удалить

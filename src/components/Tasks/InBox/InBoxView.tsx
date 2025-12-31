@@ -88,6 +88,7 @@ export default function InBoxView({
             disabled={!newTaskText.trim()}
             style={{
               padding: '12px 20px',
+              minHeight: '44px',
               borderRadius: '10px',
               border: 'none',
               background: newTaskText.trim()
@@ -99,7 +100,13 @@ export default function InBoxView({
               fontSize: '16px',
               fontWeight: '500',
               cursor: newTaskText.trim() ? 'pointer' : 'not-allowed',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             Добавить

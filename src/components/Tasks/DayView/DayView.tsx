@@ -9,7 +9,7 @@ interface DayViewProps {
   tags?: TaskTag[];
   date: Date;
   onTaskClick?: (task: Task) => void;
-  onTaskDelete?: (taskId: string) => void;
+  onTaskConfirmDelete?: (taskId: string) => void;
   dayStartMinutes?: number;
   dayEndMinutes?: number;
 }
@@ -20,7 +20,7 @@ export default function DayView({
   tags = [],
   date,
   onTaskClick,
-  onTaskDelete,
+  onTaskConfirmDelete,
   dayStartMinutes = 360, // 6:00
   dayEndMinutes = 1440 // 24:00
 }: DayViewProps) {
@@ -57,21 +57,21 @@ export default function DayView({
         {hours.map(minutes => {
           if (minutes % 60 !== 0) return null; // Показываем только целые часы
           return (
-            <div
+              <div
               key={minutes}
               style={{
                 height: '60px',
                 display: 'flex',
-                alignItems: 'flex-start',
-                paddingTop: '4px',
+                alignItems: 'center',
                 paddingRight: '8px',
-                justifyContent: 'flex-end'
+                justifyContent: 'center'
               }}
             >
               <span style={{
                 fontSize: '12px',
                 color: 'var(--tg-theme-hint-color)',
-                fontWeight: '500'
+                fontWeight: '500',
+                textAlign: 'center'
               }}>
                 {formatTime(minutes)}
               </span>
@@ -106,7 +106,7 @@ export default function DayView({
               top={`${Math.max(0, top)}%`}
               height={`${Math.min(100 - top, height)}%`}
               onClick={() => onTaskClick?.(task)}
-              onDelete={onTaskDelete ? () => onTaskDelete(task.id) : undefined}
+              onConfirmDelete={onTaskConfirmDelete ? () => onTaskConfirmDelete(task.id) : undefined}
             />
           );
         })}

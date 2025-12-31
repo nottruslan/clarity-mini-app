@@ -49,7 +49,8 @@ export default function ConfirmDeleteDialog({
             fontSize: '20px',
             fontWeight: '600',
             color: 'var(--tg-theme-text-color)',
-            margin: '0 0 12px 0'
+            margin: '0 0 12px 0',
+            textAlign: 'center'
           }}>
             Удалить задачу?
           </h3>
@@ -59,7 +60,8 @@ export default function ConfirmDeleteDialog({
             color: 'var(--tg-theme-hint-color)',
             margin: '0 0 24px 0',
             lineHeight: '1.5',
-            wordBreak: 'break-word'
+            wordBreak: 'break-word',
+            textAlign: 'center'
           }}>
             {taskText}
           </p>
@@ -67,12 +69,13 @@ export default function ConfirmDeleteDialog({
           <div style={{
             display: 'flex',
             gap: '12px',
-            justifyContent: 'flex-end'
+            justifyContent: 'center'
           }}>
             <button
               onClick={onCancel}
               style={{
                 padding: '12px 24px',
+                minHeight: '44px',
                 borderRadius: '10px',
                 border: 'none',
                 background: 'var(--tg-theme-secondary-bg-color)',
@@ -80,8 +83,14 @@ export default function ConfirmDeleteDialog({
                 fontSize: '16px',
                 fontWeight: '500',
                 cursor: 'pointer',
-                transition: 'background-color 0.2s'
+                transition: 'opacity 0.2s',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
+              onMouseDown={(e) => e.preventDefault()}
             >
               Отмена
             </button>
@@ -89,6 +98,7 @@ export default function ConfirmDeleteDialog({
               onClick={onConfirm}
               style={{
                 padding: '12px 24px',
+                minHeight: '44px',
                 borderRadius: '10px',
                 border: 'none',
                 background: 'var(--tg-theme-destructive-text-color)',
@@ -96,8 +106,14 @@ export default function ConfirmDeleteDialog({
                 fontSize: '16px',
                 fontWeight: '500',
                 cursor: 'pointer',
-                transition: 'background-color 0.2s'
+                transition: 'opacity 0.2s',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
+              onMouseDown={(e) => e.preventDefault()}
             >
               Удалить
             </button>

@@ -106,27 +106,7 @@ export default function TaskActionsMenu({
           onClick={handleEdit}
           style={{
             padding: '16px 20px',
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--tg-theme-text-color)',
-            fontSize: '16px',
-            textAlign: 'left',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <span style={{ fontSize: '20px' }}>✏️</span>
-          <span>Редактировать</span>
-        </button>
-        
-        <button
-          onClick={handlePin}
-          style={{
-            padding: '16px 20px',
+            minHeight: '44px',
             border: 'none',
             background: 'transparent',
             color: 'var(--tg-theme-text-color)',
@@ -137,9 +117,49 @@ export default function TaskActionsMenu({
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            borderTop: '1px solid var(--tg-theme-secondary-bg-color)'
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+            width: '100%'
           }}
           onMouseDown={(e) => e.preventDefault()}
+          onTouchStart={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
+          }}
+          onTouchEnd={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+          }}
+        >
+          <span style={{ fontSize: '20px' }}>✏️</span>
+          <span>Редактировать</span>
+        </button>
+        
+        <button
+          onClick={handlePin}
+          style={{
+            padding: '16px 20px',
+            minHeight: '44px',
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--tg-theme-text-color)',
+            fontSize: '16px',
+            textAlign: 'left',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderTop: '1px solid var(--tg-theme-secondary-bg-color)',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+            width: '100%'
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+          onTouchStart={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
+          }}
+          onTouchEnd={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+          }}
         >
           <span style={{ fontSize: '20px' }}>{isPinned ? '📌' : '📍'}</span>
           <span>{isPinned ? 'Открепить' : 'Закрепить'}</span>
@@ -149,6 +169,7 @@ export default function TaskActionsMenu({
           onClick={handleDelete}
           style={{
             padding: '16px 20px',
+            minHeight: '44px',
             border: 'none',
             background: 'transparent',
             color: 'var(--tg-theme-destructive-text-color)',
@@ -159,9 +180,18 @@ export default function TaskActionsMenu({
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            borderTop: '1px solid var(--tg-theme-secondary-bg-color)'
+            borderTop: '1px solid var(--tg-theme-secondary-bg-color)',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+            width: '100%'
           }}
           onMouseDown={(e) => e.preventDefault()}
+          onTouchStart={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
+          }}
+          onTouchEnd={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+          }}
         >
           <span style={{ fontSize: '20px' }}>🗑️</span>
           <span>Удалить</span>

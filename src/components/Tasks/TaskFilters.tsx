@@ -469,13 +469,20 @@ export default function TaskFilters({
             style={{
               flex: 1,
               padding: '12px 24px',
+              minHeight: '44px',
               borderRadius: '10px',
               border: 'none',
               background: 'var(--tg-theme-secondary-bg-color)',
               color: 'var(--tg-theme-text-color)',
               fontSize: '16px',
               fontWeight: '500',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             Сбросить
@@ -485,13 +492,20 @@ export default function TaskFilters({
             style={{
               flex: 1,
               padding: '12px 24px',
+              minHeight: '44px',
               borderRadius: '10px',
               border: 'none',
               background: 'var(--tg-theme-button-color)',
               color: 'var(--tg-theme-button-text-color)',
               fontSize: '16px',
               fontWeight: '500',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             Применить

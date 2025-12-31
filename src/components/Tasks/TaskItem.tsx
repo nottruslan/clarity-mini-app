@@ -305,7 +305,8 @@ export default function TaskItem({
                       color: 'var(--tg-theme-text-color)',
                       lineHeight: '1.5',
                       whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word'
+                      wordBreak: 'break-word',
+                      textAlign: 'center'
                     }}>
                       {task.description}
                     </div>
@@ -322,7 +323,8 @@ export default function TaskItem({
                         fontSize: '14px',
                         fontWeight: '500',
                         color: 'var(--tg-theme-text-color)',
-                        marginBottom: '4px'
+                        marginBottom: '4px',
+                        textAlign: 'center'
                       }}>
                         Подзадачи ({completedSubtasks}/{subtasksCount})
                       </div>
@@ -358,7 +360,8 @@ export default function TaskItem({
                                 ? 'var(--tg-theme-hint-color)' 
                                 : 'var(--tg-theme-text-color)',
                               textDecoration: subtask.completed ? 'line-through' : 'none',
-                              opacity: subtask.completed ? 0.6 : 1
+                              opacity: subtask.completed ? 0.6 : 1,
+                              textAlign: 'center'
                             }}
                           >
                             {subtask.text}
@@ -374,10 +377,11 @@ export default function TaskItem({
                     flexDirection: 'column',
                     gap: '8px',
                     fontSize: '13px',
-                    color: 'var(--tg-theme-hint-color)'
+                    color: 'var(--tg-theme-hint-color)',
+                    alignItems: 'center'
                   }}>
                     {task.priority && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                         <span>Приоритет:</span>
                         <span style={{ 
                           color: priorityColors[task.priority],
@@ -389,7 +393,7 @@ export default function TaskItem({
                     )}
                     
                     {category && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                         <span>Категория:</span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <span>{category.icon}</span>
@@ -399,14 +403,14 @@ export default function TaskItem({
                     )}
                     
                     {task.energyLevel && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                         <span>Энергия:</span>
                         <span>{energyIcons[task.energyLevel]}</span>
                       </div>
                     )}
                     
                     {task.dueDate && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                         <span>Срок:</span>
                         <span>{new Date(task.dueDate).toLocaleDateString('ru-RU', { 
                           day: 'numeric', 
@@ -417,7 +421,7 @@ export default function TaskItem({
                     )}
                     
                     {startMinutes !== null && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                         <span>Время:</span>
                         <span>⏰ {formatTime(startMinutes)}</span>
                         {duration && <span>⏱️ {formatDuration(duration)}</span>}

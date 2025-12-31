@@ -413,13 +413,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
           flex: 1,
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
           borderRadius: '12px',
-          padding: '4px'
+          padding: '4px',
+          minWidth: 0
         }}>
           <button
             onClick={() => setViewMode('inbox')}
             style={{
-              flex: 1,
+              flex: '1 1 0',
+              minWidth: 0,
               padding: '8px 12px',
+              minHeight: '44px',
               borderRadius: '8px',
               border: 'none',
               background: viewMode === 'inbox' 
@@ -429,7 +432,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
               fontSize: '13px',
               fontWeight: viewMode === 'inbox' ? '600' : '400',
               cursor: 'pointer',
-              boxShadow: viewMode === 'inbox' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: viewMode === 'inbox' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             📥 InBox
@@ -437,8 +449,10 @@ export default function TasksPage({ storage }: TasksPageProps) {
           <button
             onClick={() => setViewMode('list')}
             style={{
-              flex: 1,
+              flex: '1 1 0',
+              minWidth: 0,
               padding: '8px 12px',
+              minHeight: '44px',
               borderRadius: '8px',
               border: 'none',
               background: viewMode === 'list' 
@@ -448,7 +462,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
               fontSize: '13px',
               fontWeight: viewMode === 'list' ? '600' : '400',
               cursor: 'pointer',
-              boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             📋 Список
@@ -456,8 +479,10 @@ export default function TasksPage({ storage }: TasksPageProps) {
           <button
             onClick={() => setViewMode('day')}
             style={{
-              flex: 1,
+              flex: '1 1 0',
+              minWidth: 0,
               padding: '8px 12px',
+              minHeight: '44px',
               borderRadius: '8px',
               border: 'none',
               background: viewMode === 'day' 
@@ -467,7 +492,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
               fontSize: '13px',
               fontWeight: viewMode === 'day' ? '600' : '400',
               cursor: 'pointer',
-              boxShadow: viewMode === 'day' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: viewMode === 'day' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             📅 День
@@ -475,15 +509,23 @@ export default function TasksPage({ storage }: TasksPageProps) {
           <button
             onClick={() => setShowFilters(true)}
             style={{
-              flex: 1,
-              padding: '8px 12px',
+              flexShrink: 0,
+              width: '44px',
+              minHeight: '44px',
+              padding: '0',
               borderRadius: '8px',
               border: 'none',
               background: 'var(--tg-theme-button-color)',
               color: 'var(--tg-theme-button-text-color)',
-              fontSize: '13px',
+              fontSize: '18px',
               fontWeight: '500',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             🔍
@@ -538,7 +580,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
           tasks={filteredTasks}
           categories={storage.taskCategories}
           date={selectedDate}
-          onTaskDelete={handleDelete}
+          onTaskConfirmDelete={handleConfirmDelete}
         />
       )}
 

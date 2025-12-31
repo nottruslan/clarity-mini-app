@@ -99,6 +99,7 @@ export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8Sub
             disabled={!newSubtaskText.trim()}
             style={{
               padding: '12px 20px',
+              minHeight: '44px',
               borderRadius: '10px',
               border: 'none',
               background: newSubtaskText.trim()
@@ -111,7 +112,13 @@ export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8Sub
               fontWeight: '500',
               cursor: newSubtaskText.trim() ? 'pointer' : 'not-allowed',
               whiteSpace: 'nowrap',
-              flexShrink: 0
+              flexShrink: 0,
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             Добавить
@@ -164,14 +171,22 @@ export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8Sub
                 <button
                   onClick={() => handleDeleteSubtask(subtask.id)}
                   style={{
-                    padding: '4px 8px',
-                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    minHeight: '36px',
+                    borderRadius: '8px',
                     border: 'none',
                     background: 'var(--tg-theme-destructive-text-color)',
                     color: '#ffffff',
                     fontSize: '12px',
+                    fontWeight: '500',
                     cursor: 'pointer',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    transition: 'opacity 0.2s',
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
                   Удалить

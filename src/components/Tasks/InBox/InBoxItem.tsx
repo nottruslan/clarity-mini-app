@@ -101,20 +101,28 @@ export default function InBoxItem({
         <div style={{
           display: 'flex',
           gap: '8px',
-          marginTop: '8px'
+          marginTop: '8px',
+          justifyContent: 'center'
         }}>
           <button
             onClick={handleSave}
             style={{
               flex: 1,
-              padding: '8px 16px',
-              borderRadius: '8px',
+              padding: '12px 16px',
+              minHeight: '44px',
+              borderRadius: '10px',
               border: 'none',
               background: 'var(--tg-theme-button-color)',
               color: 'var(--tg-theme-button-text-color)',
-              fontSize: '14px',
+              fontSize: '16px',
               fontWeight: '500',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             Сохранить
@@ -123,14 +131,21 @@ export default function InBoxItem({
             onClick={handleCancel}
             style={{
               flex: 1,
-              padding: '8px 16px',
-              borderRadius: '8px',
+              padding: '12px 16px',
+              minHeight: '44px',
+              borderRadius: '10px',
               border: 'none',
               background: 'var(--tg-theme-secondary-bg-color)',
               color: 'var(--tg-theme-text-color)',
-              fontSize: '14px',
+              fontSize: '16px',
               fontWeight: '500',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             Отмена
@@ -189,8 +204,9 @@ export default function InBoxItem({
                   onMove(task.id);
                 }}
                 style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
+                  padding: '10px 16px',
+                  minHeight: '44px',
+                  borderRadius: '10px',
                   border: 'none',
                   background: task.movedToList 
                     ? '#4caf50' // зеленый цвет когда уже в списке
@@ -198,9 +214,15 @@ export default function InBoxItem({
                   color: task.movedToList 
                     ? '#ffffff' // белый текст на зеленом фоне
                     : 'var(--tg-theme-button-text-color)',
-                  fontSize: '12px',
+                  fontSize: '14px',
                   fontWeight: '500',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 {task.movedToList ? '✓ В списке' : 'В список'}
