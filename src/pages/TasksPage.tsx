@@ -414,12 +414,9 @@ export default function TasksPage({ storage }: TasksPageProps) {
           onTaskDelete={async (id) => {
             await storage.deleteTask(id);
           }}
-          onTaskMove={(id) => {
-            // Перемещаем задачу в обычный список - открываем редактирование
-            const task = storage.tasks.find(t => t.id === id);
-            if (task) {
-              handleEditTask(id);
-            }
+          onTaskMove={async (id) => {
+            // Помечаем задачу как перемещенную в список
+            await storage.updateTask(id, { movedToList: true });
           }}
         />
       ) : viewMode === 'list' ? (
@@ -439,6 +436,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
           tasks={filteredTasks}
           categories={storage.taskCategories}
           date={selectedDate}
+          onTaskDelete={handleDelete}
         />
       )}
 

@@ -166,6 +166,8 @@ export default function InBoxItem({
             fontSize: '16px',
             color: task.completed || task.status === 'completed' 
               ? 'var(--tg-theme-hint-color)' 
+              : task.movedToList
+              ? '#4caf50' // зеленый цвет для перемещенных задач
               : 'var(--tg-theme-text-color)',
             lineHeight: '1.5',
             whiteSpace: 'pre-wrap',
@@ -190,14 +192,18 @@ export default function InBoxItem({
                   padding: '6px 12px',
                   borderRadius: '6px',
                   border: 'none',
-                  background: 'var(--tg-theme-button-color)',
-                  color: 'var(--tg-theme-button-text-color)',
+                  background: task.movedToList 
+                    ? '#4caf50' // зеленый цвет когда уже в списке
+                    : 'var(--tg-theme-button-color)',
+                  color: task.movedToList 
+                    ? '#ffffff' // белый текст на зеленом фоне
+                    : 'var(--tg-theme-button-text-color)',
                   fontSize: '12px',
                   fontWeight: '500',
                   cursor: 'pointer'
                 }}
               >
-                В список
+                {task.movedToList ? '✓ В списке' : 'В список'}
               </button>
             </div>
           )}

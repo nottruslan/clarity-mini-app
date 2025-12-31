@@ -160,6 +160,9 @@ export default function InBoxView({
                 <p style={{ margin: 0 }}>
                   <strong style={{ color: 'var(--tg-theme-text-color)' }}>📅 День</strong> — размести задачу в календаре на конкретный день и время.
                 </p>
+                <p style={{ margin: 0, marginTop: '8px', paddingTop: '12px', borderTop: '1px solid var(--tg-theme-secondary-bg-color)' }}>
+                  <strong style={{ color: 'var(--tg-theme-text-color)' }}>💡 Подсказка:</strong> Чтобы удалить задачу, проведи по ней пальцем влево.
+                </p>
               </div>
             </div>
           </div>

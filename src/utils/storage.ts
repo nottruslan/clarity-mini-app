@@ -84,6 +84,9 @@ export interface Task {
   
   // Планирование
   plannedDate?: number; // дата планирования задачи (timestamp)
+  
+  // InBox флаги
+  movedToList?: boolean; // помечена как перемещенная в список
 }
 
 export interface Habit {

@@ -9,6 +9,7 @@ interface DayViewProps {
   tags?: TaskTag[];
   date: Date;
   onTaskClick?: (task: Task) => void;
+  onTaskDelete?: (taskId: string) => void;
   dayStartMinutes?: number;
   dayEndMinutes?: number;
 }
@@ -19,6 +20,7 @@ export default function DayView({
   tags = [],
   date,
   onTaskClick,
+  onTaskDelete,
   dayStartMinutes = 360, // 6:00
   dayEndMinutes = 1440 // 24:00
 }: DayViewProps) {
@@ -104,6 +106,7 @@ export default function DayView({
               top={`${Math.max(0, top)}%`}
               height={`${Math.min(100 - top, height)}%`}
               onClick={() => onTaskClick?.(task)}
+              onDelete={onTaskDelete ? () => onTaskDelete(task.id) : undefined}
             />
           );
         })}

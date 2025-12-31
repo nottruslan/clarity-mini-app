@@ -70,7 +70,7 @@ export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8Sub
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
         {/* Добавление новой подзадачи */}
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
           <input
             ref={inputRef}
             type="text"
@@ -84,6 +84,7 @@ export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8Sub
             }}
             style={{
               flex: 1,
+              minWidth: 0,
               padding: '12px 16px',
               borderRadius: '10px',
               border: '1px solid var(--tg-theme-secondary-bg-color)',
@@ -97,7 +98,7 @@ export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8Sub
             onClick={handleAddSubtask}
             disabled={!newSubtaskText.trim()}
             style={{
-              padding: '12px 24px',
+              padding: '12px 20px',
               borderRadius: '10px',
               border: 'none',
               background: newSubtaskText.trim()
@@ -108,7 +109,9 @@ export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8Sub
                 : 'var(--tg-theme-hint-color)',
               fontSize: '16px',
               fontWeight: '500',
-              cursor: newSubtaskText.trim() ? 'pointer' : 'not-allowed'
+              cursor: newSubtaskText.trim() ? 'pointer' : 'not-allowed',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             Добавить
@@ -150,6 +153,7 @@ export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8Sub
                 <span
                   style={{
                     flex: 1,
+                    textAlign: 'center',
                     textDecoration: subtask.completed ? 'line-through' : 'none',
                     opacity: subtask.completed ? 0.6 : 1,
                     color: 'var(--tg-theme-text-color)'
@@ -166,7 +170,8 @@ export default function Step8Subtasks({ onNext, onBack, initialValue }: Step8Sub
                     background: 'var(--tg-theme-destructive-text-color)',
                     color: '#ffffff',
                     fontSize: '12px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    flexShrink: 0
                   }}
                 >
                   Удалить

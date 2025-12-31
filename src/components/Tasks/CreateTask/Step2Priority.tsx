@@ -15,24 +15,18 @@ export default function Step2Priority({ onNext, onBack, initialValue }: Step2Pri
   const priorities = [
     { 
       id: 'low' as const, 
-      label: 'Спокойный', 
-      icon: '🟢',
-      description: 'Низкий приоритет',
-      badge: 'Низкий'
+      label: 'Низкий', 
+      icon: '🟢'
     },
     { 
       id: 'medium' as const, 
-      label: 'Крепкий', 
-      icon: '🟡',
-      description: 'Средний приоритет',
-      badge: 'Средний'
+      label: 'Средний', 
+      icon: '🟡'
     },
     { 
       id: 'high' as const, 
-      label: 'Уверенный', 
-      icon: '🔴',
-      description: 'Высокий приоритет',
-      badge: 'Высокий'
+      label: 'Высокий', 
+      icon: '🔴'
     }
   ];
 
@@ -63,8 +57,6 @@ export default function Step2Priority({ onNext, onBack, initialValue }: Step2Pri
             key={p.id}
             icon={p.icon}
             title={p.label}
-            description={p.description}
-            badge={p.badge}
             selected={priority === p.id}
             onClick={() => setPriority(p.id)}
           />
