@@ -263,7 +263,6 @@ const STORAGE_KEYS = {
  * Получить данные из Cloud Storage
  */
 export async function getStorageData<T>(key: string): Promise<T | null> {
-  console.log('[DEBUG] getStorageData: entry', { key });
   // Проверяем доступность CloudStorage и версию WebApp
   const cloudStorage = window.Telegram?.WebApp?.CloudStorage;
   const webAppVersion = window.Telegram?.WebApp?.version;
@@ -272,24 +271,14 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
   const isCloudStorageSupported = hasCloudStorage && (versionNum === null || versionNum >= 6.1);
 
   if (!hasCloudStorage || !isCloudStorageSupported) {
-    console.warn('[DEBUG] Cloud Storage not available or not supported, using localStorage fallback', {
-      hasCloudStorage,
-      webAppVersion,
-      versionNum,
-      isCloudStorageSupported
-    });
     try {
       const data = localStorage.getItem(key);
       if (data) {
-        const parsed = JSON.parse(data);
-        console.log('[DEBUG] Data loaded from localStorage', { key, dataLength: data.length, parsedType: Array.isArray(parsed) ? 'array' : typeof parsed });
-        return parsed;
-      } else {
-        console.log('[DEBUG] No data in localStorage for key', { key });
-        return null;
+        return JSON.parse(data);
       }
+      return null;
     } catch (parseError) {
-      console.error('[DEBUG] Error parsing localStorage data:', parseError);
+      console.error('Error parsing localStorage data:', parseError);
       return null;
     }
   }
@@ -298,7 +287,6 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     try {
       cloudStorage.getItem(key, (error, value) => {
         if (error) {
-          console.error('[DEBUG] Error getting from Cloud Storage:', error);
           // Fallback to localStorage
           try {
             const data = localStorage.getItem(key);
@@ -313,7 +301,6 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
       });
     } catch (syncError) {
       // Синхронная ошибка при вызове getItem
-      console.error('[DEBUG] Synchronous error calling CloudStorage.getItem:', syncError);
       try {
         const data = localStorage.getItem(key);
         resolve(data ? JSON.parse(data) : null);
@@ -341,40 +328,11 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
   const isCloudStorageSupported = hasCloudStorage && (versionNum === null || versionNum >= 6.1);
 
   if (!hasCloudStorage || !isCloudStorageSupported) {
-    console.warn('[DEBUG] Cloud Storage not available or not supported, using localStorage fallback', { 
-      hasCloudStorage, 
-      webAppVersion,
-      versionNum,
-      isCloudStorageSupported 
-    });
     try {
       localStorage.setItem(key, jsonData);
-      // Проверяем, что данные действительно сохранились
-      const saved = localStorage.getItem(key);
-      if (saved === jsonData) {
-        console.log('[DEBUG] Data saved to localStorage (direct fallback) - verified', { key, dataLength: jsonData.length });
-        // Для задач проверяем содержимое
-        if (key === 'tasks') {
-          try {
-            const parsed = JSON.parse(saved);
-            console.log('[DEBUG] Tasks saved to localStorage verified', { 
-              tasksCount: Array.isArray(parsed) ? parsed.length : 0,
-              taskIds: Array.isArray(parsed) ? parsed.map((t: any) => ({ id: t.id, text: t.text })) : []
-            });
-          } catch (e) {
-            console.error('[DEBUG] Error parsing saved tasks for verification:', e);
-          }
-        }
-      } else {
-        console.warn('[DEBUG] Data saved to localStorage but verification failed', { 
-          key,
-          expectedLength: jsonData.length, 
-          savedLength: saved?.length 
-        });
-      }
       return;
     } catch (localStorageError) {
-      console.error('[DEBUG] Error saving to localStorage:', localStorageError);
+      console.error('Error saving to localStorage:', localStorageError);
       throw localStorageError;
     }
   }
@@ -383,55 +341,25 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
     try {
       cloudStorage.setItem(key, jsonData, (error) => {
         if (error) {
-          console.error('[DEBUG] Error saving to Cloud Storage:', error);
-          // Проверяем, является ли ошибка WebAppMethodUnsupported
-          const errorStr = error?.toString() || String(error);
-          const isUnsupportedError = errorStr.includes('WebAppMethodUnsupported') || 
-                                     errorStr.includes('not supported') ||
-                                     errorStr.includes('MethodUnsupported');
-          
-          if (isUnsupportedError) {
-            console.warn('[DEBUG] CloudStorage method not supported, falling back to localStorage');
-          }
-          
           // Fallback to localStorage при любой ошибке
           try {
             localStorage.setItem(key, jsonData);
-            // Проверяем, что данные действительно сохранились
-            const saved = localStorage.getItem(key);
-            if (saved === jsonData) {
-              console.log('[DEBUG] Data saved to localStorage as fallback successfully - verified');
-            } else {
-              console.warn('[DEBUG] Data saved to localStorage but verification failed', { 
-                expectedLength: jsonData.length, 
-                savedLength: saved?.length 
-              });
-            }
-            resolve(); // Успешно сохранили в localStorage, разрешаем промис
+            resolve();
           } catch (localStorageError) {
-            console.error('[DEBUG] Error saving to localStorage:', localStorageError);
+            console.error('Error saving to localStorage:', localStorageError);
             reject(localStorageError);
           }
           return;
         }
-        console.log('[DEBUG] Data saved to Cloud Storage successfully');
         resolve();
       });
     } catch (syncError) {
-      // Синхронная ошибка при вызове setItem (например, метод не поддерживается)
-      console.error('[DEBUG] Synchronous error calling CloudStorage.setItem:', syncError);
+      // Синхронная ошибка при вызове setItem
       try {
         localStorage.setItem(key, jsonData);
-        // Проверяем, что данные действительно сохранились
-        const saved = localStorage.getItem(key);
-        if (saved === jsonData) {
-          console.log('[DEBUG] Data saved to localStorage as fallback (sync error) - verified');
-        } else {
-          console.warn('[DEBUG] Data saved to localStorage but verification failed (sync error)');
-        }
         resolve();
       } catch (localStorageError) {
-        console.error('[DEBUG] Error saving to localStorage:', localStorageError);
+        console.error('Error saving to localStorage:', localStorageError);
         reject(localStorageError);
       }
     }
@@ -442,28 +370,17 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
  * Получить все задачи
  */
 export async function getTasks(): Promise<Task[]> {
-  console.log('[DEBUG] getTasks CALLED - reading from storage', { timestamp: Date.now() });
   const tasks = await getStorageData<Task[]>(STORAGE_KEYS.TASKS);
   const loadedTasks = tasks || [];
-  
-  console.log('[DEBUG] getTasks: loaded from storage', { 
-    tasksCount: loadedTasks.length,
-    taskIds: loadedTasks.map(t => ({ id: t.id, text: t.text }))
-  });
   
   // Миграция существующих задач к новой структуре
   const migratedTasks = migrateTasks(loadedTasks);
   
   // Если была миграция, сохраняем обновленные задачи
   if (JSON.stringify(migratedTasks) !== JSON.stringify(loadedTasks)) {
-    console.log('[DEBUG] getTasks: migration detected, saving migrated tasks');
     await saveTasks(migratedTasks);
   }
   
-  console.log('[DEBUG] getTasks: returning tasks', { 
-    tasksCount: migratedTasks.length,
-    taskIds: migratedTasks.map(t => ({ id: t.id, text: t.text }))
-  });
   return migratedTasks;
 }
 
