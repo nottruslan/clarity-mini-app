@@ -45,8 +45,22 @@ export function useTelegram() {
       }
 
       const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
+      
+      // Инициализируем Telegram WebApp с обработкой ошибок
+      try {
+        tg.ready();
+      } catch (error) {
+        console.error('Error calling tg.ready():', error);
+        // Продолжаем работу даже при ошибке
+      }
+      
+      try {
+        tg.expand();
+      } catch (error) {
+        console.error('Error calling tg.expand():', error);
+        // Продолжаем работу даже при ошибке
+      }
+      
       setWebApp(tg);
       
       // Получаем данные пользователя
@@ -111,13 +125,21 @@ export function useTelegram() {
         if (tg.setHeaderColor) {
           try {
             // Устанавливаем цвет из темы или белый по умолчанию
-            // Убираем # из цвета, так как Telegram WebApp API принимает цвет без #
+            // Убираем # из цвета, так как Telegram WebApp API принимает цвет в формате RRGGBB (без #)
             let headerColor = tg.themeParams?.header_bg_color || 'ffffff';
             if (headerColor.startsWith('#')) {
               headerColor = headerColor.substring(1);
             }
-            tg.setHeaderColor(headerColor);
-            console.log('Initial header color set to', headerColor, 'isExpanded:', tg.isExpanded);
+            
+            // Валидация: цвет должен быть в формате RRGGBB (6 символов) или специальное значение
+            if (headerColor === 'bg_color' || headerColor === 'secondary_bg_color' || 
+                (headerColor.length === 6 && /^[0-9A-Fa-f]{6}$/.test(headerColor))) {
+              tg.setHeaderColor(headerColor);
+              console.log('Initial header color set to', headerColor, 'isExpanded:', tg.isExpanded);
+            } else {
+              console.warn('Invalid header color format:', headerColor, 'using default');
+              tg.setHeaderColor('ffffff');
+            }
           } catch (error) {
             console.error('Error setting initial header color:', error);
           }
@@ -170,13 +192,22 @@ export function useTelegram() {
       };
     };
 
+    // Функция проверки готовности Telegram WebApp API
+    const isTelegramWebAppReady = (): boolean => {
+      return !!(
+        window.Telegram?.WebApp &&
+        typeof window.Telegram.WebApp.ready === 'function' &&
+        typeof window.Telegram.WebApp.expand === 'function'
+      );
+    };
+
     // Ожидаем загрузки скрипта Telegram WebApp
     // Скрипт может загружаться асинхронно, поэтому проверяем несколько раз
     let cleanup: (() => void) | undefined;
     let checkInterval: ReturnType<typeof setInterval> | undefined;
 
-    if (window.Telegram?.WebApp) {
-      // Скрипт уже загружен, инициализируем сразу
+    if (isTelegramWebAppReady()) {
+      // Скрипт уже загружен и готов, инициализируем сразу
       cleanup = initTelegramWebApp();
     } else {
       // Ждем загрузки скрипта
@@ -184,7 +215,7 @@ export function useTelegram() {
       const maxAttempts = 50; // 5 секунд максимум (50 * 100ms)
       checkInterval = setInterval(() => {
         attempts++;
-        if (window.Telegram?.WebApp) {
+        if (isTelegramWebAppReady()) {
           if (checkInterval) clearInterval(checkInterval);
           cleanup = initTelegramWebApp();
         } else if (attempts >= maxAttempts) {

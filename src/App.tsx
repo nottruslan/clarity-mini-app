@@ -23,32 +23,53 @@ function App() {
   useEffect(() => {
     if (!tg?.BackButton) return;
 
+    // Сохраняем ссылку на обработчик для правильной отписки
     const handleBack = () => {
-      if (navigationHistory.length > 1) {
-        // Удаляем текущий раздел из истории
-        const newHistory = [...navigationHistory];
-        newHistory.pop();
-        const previousSection = newHistory[newHistory.length - 1];
-        setNavigationHistory(newHistory);
-        setCurrentSection(previousSection);
-      } else {
-        // Если мы на главной, закрываем приложение
-        tg.close();
+      try {
+        if (navigationHistory.length > 1) {
+          // Удаляем текущий раздел из истории
+          const newHistory = [...navigationHistory];
+          newHistory.pop();
+          const previousSection = newHistory[newHistory.length - 1];
+          setNavigationHistory(newHistory);
+          setCurrentSection(previousSection);
+        } else {
+          // Если мы на главной, закрываем приложение
+          if (tg?.close) {
+            tg.close();
+          }
+        }
+      } catch (error) {
+        console.error('Error in handleBack:', error);
       }
     };
 
-    tg.BackButton.onClick(handleBack);
+    // Регистрируем обработчик с обработкой ошибок
+    try {
+      tg.BackButton.onClick(handleBack);
+    } catch (error) {
+      console.error('Error setting BackButton onClick:', error);
+    }
 
     // Показываем кнопку назад если не на главной
-    if (currentSection !== 'home') {
-      tg.BackButton.show();
-    } else {
-      tg.BackButton.hide();
+    try {
+      if (currentSection !== 'home') {
+        tg.BackButton.show();
+      } else {
+        tg.BackButton.hide();
+      }
+    } catch (error) {
+      console.error('Error showing/hiding BackButton:', error);
     }
 
     return () => {
-      if (tg.BackButton) {
-        tg.BackButton.offClick(handleBack);
+      if (tg?.BackButton) {
+        try {
+          // Используем сохраненную ссылку на функцию для правильной отписки
+          tg.BackButton.offClick(handleBack);
+        } catch (error) {
+          console.error('Error removing BackButton onClick:', error);
+        }
       }
     };
   }, [currentSection, navigationHistory, tg]);
@@ -70,11 +91,18 @@ function App() {
       try {
         if (currentSection !== 'home') {
           const colors = sectionColors[currentSection];
-          // Убираем # из цвета, если он есть, так как Telegram WebApp API принимает цвет без #
-          const colorWithoutHash = colors.primary.startsWith('#') 
+          // Убираем # из цвета, если он есть, так как Telegram WebApp API принимает цвет в формате RRGGBB (без #)
+          let colorWithoutHash = colors.primary.startsWith('#') 
             ? colors.primary.substring(1) 
             : colors.primary;
-          tg.setHeaderColor(colorWithoutHash);
+          
+          // Валидация: цвет должен быть в формате RRGGBB (6 символов)
+          if (colorWithoutHash.length === 6 && /^[0-9A-Fa-f]{6}$/.test(colorWithoutHash)) {
+            tg.setHeaderColor(colorWithoutHash);
+          } else {
+            console.warn('Invalid color format for setHeaderColor:', colorWithoutHash, 'using default');
+            tg.setHeaderColor('ffffff');
+          }
         } else {
           // На главной странице возвращаем стандартный цвет
           tg.setHeaderColor('ffffff');
