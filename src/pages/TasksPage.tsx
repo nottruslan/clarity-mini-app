@@ -361,6 +361,9 @@ export default function TasksPage({ storage }: TasksPageProps) {
           completed: originalTask.completed,
           pinned: originalTask.pinned
         },
+        taskDataName: taskData.name,
+        modifiedFieldsHasName: modifiedFields.has('name'),
+        updatesText: updates.text,
         updates,
         taskData
       });
