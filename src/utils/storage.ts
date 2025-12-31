@@ -431,14 +431,18 @@ export async function getTasks(): Promise<Task[]> {
   const tasks = await getStorageData<Task[]>(STORAGE_KEYS.TASKS);
   const loadedTasks = tasks || [];
   
+  console.log('[DEBUG] getTasks: loaded from storage', { tasksCount: loadedTasks.length });
+  
   // Миграция существующих задач к новой структуре
   const migratedTasks = migrateTasks(loadedTasks);
   
   // Если была миграция, сохраняем обновленные задачи
   if (JSON.stringify(migratedTasks) !== JSON.stringify(loadedTasks)) {
+    console.log('[DEBUG] getTasks: migration detected, saving migrated tasks');
     await saveTasks(migratedTasks);
   }
   
+  console.log('[DEBUG] getTasks: returning tasks', { tasksCount: migratedTasks.length });
   return migratedTasks;
 }
 

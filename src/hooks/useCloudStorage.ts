@@ -108,15 +108,29 @@ export function useCloudStorage() {
       });
       
       // Генерируем экземпляры повторяющихся задач
+      // ВАЖНО: не перезаписываем существующие задачи при генерации экземпляров
+      console.log('[DEBUG] loadAllData: loaded tasks', { tasksCount: tasksData.length });
       const newInstances = generateUpcomingInstances(tasksData, 30);
+      
+      // Объединяем задачи: сначала существующие, потом новые экземпляры
+      // Это гарантирует, что существующие задачи (включая отредактированные) не перезаписываются
       const allTasks = [...tasksData, ...newInstances];
       
+      console.log('[DEBUG] loadAllData: after generating instances', { 
+        originalCount: tasksData.length, 
+        newInstancesCount: newInstances.length, 
+        totalCount: allTasks.length 
+      });
+      
       // Сохраняем новые экземпляры, если они есть
+      // ВАЖНО: сохраняем только если есть новые экземпляры, чтобы не перезаписать отредактированные задачи
       if (newInstances.length > 0) {
+        console.log('[DEBUG] Saving new recurrence instances', { count: newInstances.length });
         await saveTasks(allTasks);
       }
       
       setTasks(allTasks);
+      console.log('[DEBUG] loadAllData: setTasks called', { tasksCount: allTasks.length });
       setHabits(migratedHabits);
       setFinance(financeData);
       setOnboarding(onboardingData);
@@ -248,15 +262,30 @@ export function useCloudStorage() {
             if (saved) {
               const parsed = JSON.parse(saved);
               const savedTask = parsed.find((t: Task) => t.id === id);
-              if (savedTask && savedTask.text === updatedTask.text) {
-                console.log('[DEBUG] Task verified in localStorage after save');
-              } else {
-                console.warn('[DEBUG] Task not found or different in localStorage after save', {
-                  found: !!savedTask,
-                  savedText: savedTask?.text,
+              if (savedTask) {
+                const textMatches = savedTask.text === updatedTask.text;
+                const allFieldsMatch = JSON.stringify(savedTask) === JSON.stringify(updatedTask);
+                console.log('[DEBUG] Task verified in localStorage after save', {
+                  found: true,
+                  textMatches,
+                  allFieldsMatch,
+                  savedText: savedTask.text,
                   expectedText: updatedTask.text
                 });
+                if (!textMatches || !allFieldsMatch) {
+                  console.warn('[DEBUG] Task data mismatch in localStorage!', {
+                    savedTask,
+                    expectedTask: updatedTask
+                  });
+                }
+              } else {
+                console.warn('[DEBUG] Task NOT found in localStorage after save!', {
+                  taskId: id,
+                  totalTasksInStorage: parsed.length
+                });
               }
+            } else {
+              console.error('[DEBUG] No tasks data in localStorage after save!');
             }
           } catch (e) {
             console.error('[DEBUG] Error verifying task in localStorage:', e);
