@@ -176,19 +176,45 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
     if (isEditing && editingTaskId) {
       // Редактирование существующей задачи
+      // Получаем исходную задачу, чтобы сохранить все её поля
+      const originalTask = storage.tasks.find(t => t.id === editingTaskId);
+      if (!originalTask) {
+        setIsCreating(false);
+        setIsEditing(false);
+        setEditingTaskId(null);
+        setCreateStep(0);
+        setTaskData({});
+        return;
+      }
+
+      // Объединяем исходные данные с изменениями
       const updates: Partial<Task> = {
-        text: taskData.name!,
-        priority: taskData.priority,
-        dueDate,
-        plannedDate: dueDate,
-        startTime,
-        endTime,
-        duration: taskData.duration,
-        categoryId: taskData.categoryId,
-        description: taskData.description,
-        subtasks: taskData.subtasks,
-        recurrence: taskData.recurrence,
-        energyLevel
+        // Сохраняем все важные поля исходной задачи
+        id: originalTask.id,
+        completed: originalTask.completed,
+        createdAt: originalTask.createdAt,
+        status: originalTask.status,
+        pinned: originalTask.pinned,
+        movedToList: originalTask.movedToList,
+        timeSpent: originalTask.timeSpent,
+        parentTaskId: originalTask.parentTaskId,
+        recurrenceInstanceDate: originalTask.recurrenceInstanceDate,
+        tags: originalTask.tags,
+        
+        // Обновляем поля из taskData
+        // Используем значения из taskData, если они определены, иначе сохраняем исходные значения
+        text: taskData.name !== undefined ? taskData.name : originalTask.text,
+        priority: taskData.priority !== undefined ? taskData.priority : originalTask.priority,
+        dueDate: taskData.dueDate !== undefined ? dueDate : originalTask.dueDate,
+        plannedDate: taskData.dueDate !== undefined ? dueDate : originalTask.plannedDate,
+        startTime: taskData.startTime !== undefined ? startTime : originalTask.startTime,
+        endTime: taskData.startTime !== undefined ? endTime : originalTask.endTime,
+        duration: taskData.duration !== undefined ? taskData.duration : originalTask.duration,
+        categoryId: taskData.categoryId !== undefined ? taskData.categoryId : originalTask.categoryId,
+        description: taskData.description !== undefined ? taskData.description : originalTask.description,
+        subtasks: taskData.subtasks !== undefined ? taskData.subtasks : originalTask.subtasks,
+        recurrence: taskData.recurrence !== undefined ? taskData.recurrence : originalTask.recurrence,
+        energyLevel: energyLevel !== undefined ? energyLevel : originalTask.energyLevel
       };
 
       await storage.updateTask(editingTaskId, updates);
