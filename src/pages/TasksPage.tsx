@@ -165,7 +165,6 @@ export default function TasksPage({ storage }: TasksPageProps) {
   };
 
   const handleStep9Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
-    // Создаем задачу со всеми данными
     const dueDate = taskData.dueDate || selectedDate.getTime();
     const startTime = taskData.startTime 
       ? minutesOfDayToTimestamp(dueDate, taskData.startTime)
@@ -175,27 +174,51 @@ export default function TasksPage({ storage }: TasksPageProps) {
       ? minutesOfDayToTimestamp(dueDate, taskData.startTime + taskData.duration)
       : undefined;
 
-    const newTask: Task = {
-      id: generateId(),
-      text: taskData.name!,
-      completed: false,
-      createdAt: Date.now(),
-      priority: taskData.priority,
-      dueDate,
-      plannedDate: dueDate,
-      startTime,
-      endTime,
-      duration: taskData.duration,
-      categoryId: taskData.categoryId,
-      description: taskData.description,
-      subtasks: taskData.subtasks,
-      recurrence: taskData.recurrence,
-      energyLevel,
-      status: 'todo'
-    };
+    if (isEditing && editingTaskId) {
+      // Редактирование существующей задачи
+      const updates: Partial<Task> = {
+        text: taskData.name!,
+        priority: taskData.priority,
+        dueDate,
+        plannedDate: dueDate,
+        startTime,
+        endTime,
+        duration: taskData.duration,
+        categoryId: taskData.categoryId,
+        description: taskData.description,
+        subtasks: taskData.subtasks,
+        recurrence: taskData.recurrence,
+        energyLevel
+      };
 
-    await storage.addTask(newTask);
+      await storage.updateTask(editingTaskId, updates);
+    } else {
+      // Создание новой задачи
+      const newTask: Task = {
+        id: generateId(),
+        text: taskData.name!,
+        completed: false,
+        createdAt: Date.now(),
+        priority: taskData.priority,
+        dueDate,
+        plannedDate: dueDate,
+        startTime,
+        endTime,
+        duration: taskData.duration,
+        categoryId: taskData.categoryId,
+        description: taskData.description,
+        subtasks: taskData.subtasks,
+        recurrence: taskData.recurrence,
+        energyLevel,
+        status: 'todo'
+      };
+
+      await storage.addTask(newTask);
+    }
+
     setIsCreating(false);
+    setIsEditing(false);
+    setEditingTaskId(null);
     setCreateStep(0);
     setTaskData({});
   };
