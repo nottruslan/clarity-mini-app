@@ -216,19 +216,17 @@ export default function FinancePage({ storage }: FinancePageProps) {
 
   const handleBack = () => {
     if (createStep > 1) {
-      // Если редактирование и не на первом шаге редактирования (сумма)
+      // Если не на первом шаге, идем назад
       setCreateStep(createStep - 1);
-    } else if (createStep === 1 && isEditing) {
-      // Если редактирование на первом шаге (сумма), закрываем визард
+    } else if (createStep === 1) {
+      // На шаге суммы (первый шаг при создании через кнопки или при редактировании)
+      // Закрываем визард и возвращаемся в раздел финансов
       setIsCreating(false);
       setIsEditing(false);
       setEditingTransaction(null);
       setTransactionData({});
-    } else if (createStep > 0) {
-      // Обычное создание
-      setCreateStep(createStep - 1);
     } else {
-      // На шаге выбора типа
+      // На шаге выбора типа (если создание без выбранного типа)
       setIsCreating(false);
       setTransactionData({});
     }
@@ -489,26 +487,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
           zIndex: 100
         }}>
           <button 
-            onClick={() => handleStartCreate('expense')}
-            className="fab"
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            💸
-          </button>
-          <button 
             onClick={() => handleStartCreate('income')}
             className="fab"
             style={{
@@ -527,6 +505,26 @@ export default function FinancePage({ storage }: FinancePageProps) {
             }}
           >
             💰
+          </button>
+          <button 
+            onClick={() => handleStartCreate('expense')}
+            className="fab"
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            💸
           </button>
         </div>
       </div>
