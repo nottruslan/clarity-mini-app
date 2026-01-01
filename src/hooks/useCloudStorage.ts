@@ -55,16 +55,9 @@ export function useCloudStorage() {
       setLoading(true);
       const loadStartTime = Date.now();
       
-      // Общий таймаут 8 секунд на всю загрузку данных
-      const globalTimeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Global timeout: загрузка данных превысила 8 секунд'));
-        }, 8000);
-      });
-      
-      // Каждый getStorageData() имеет свой таймаут 1.5 секунды
-      // Если какой-то ключ зависает, он автоматически переключится на localStorage
-      const dataPromise = Promise.all([
+      // Загружаем данные из localStorage (быстро и надежно)
+      // Cloud Storage синхронизируется в фоне автоматически
+      const [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData, notesData] = await Promise.all([
         getTasks().catch(err => {
           console.error('Error loading tasks:', err);
           return [];
@@ -99,35 +92,8 @@ export function useCloudStorage() {
         })
       ]);
       
-      // Ждем либо загрузку данных, либо общий таймаут
-      let tasksData: Task[], habitsData: Habit[], financeData: FinanceData, onboardingData: OnboardingFlags, reportsData: YearlyReport[], categoriesData: TaskCategory[], tagsData: TaskTag[], notesData: InBoxNote[];
-      
-      try {
-        [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData, notesData] = await Promise.race([
-          dataPromise,
-          globalTimeoutPromise
-        ]) as any;
-        
-        const loadTime = Date.now() - loadStartTime;
-        console.log(`✅ Данные загружены за ${loadTime}ms`);
-      } catch (error) {
-        if (error instanceof Error && error.message.includes('Global timeout')) {
-          const loadTime = Date.now() - loadStartTime;
-          console.warn(`⚠️ Общий таймаут загрузки данных (${loadTime}ms). Устанавливаю пустые данные.`);
-          
-          // Устанавливаем пустые данные при общем таймауте
-          tasksData = [];
-          habitsData = [];
-          financeData = { transactions: [], categories: [], budgets: [] };
-          onboardingData = { tasks: false, habits: false, finance: false, languages: false, 'yearly-report': false };
-          reportsData = [];
-          categoriesData = [];
-          tagsData = [];
-          notesData = [];
-        } else {
-          throw error;
-        }
-      }
+      const loadTime = Date.now() - loadStartTime;
+      console.log(`✅ Данные загружены за ${loadTime}ms`);
       
       // Миграция привычек при загрузке
       const migratedHabits = habitsData.map((habit: Habit) => {

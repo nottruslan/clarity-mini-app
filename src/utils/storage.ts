@@ -260,144 +260,93 @@ const STORAGE_KEYS = {
 } as const;
 
 /**
- * Получить список проблемных ключей из sessionStorage
- */
-function getProblematicKeys(): Set<string> {
-  try {
-    const problematic = sessionStorage.getItem('clarity_problematic_keys');
-    return problematic ? new Set(JSON.parse(problematic)) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-/**
- * Добавить ключ в список проблемных
- */
-function markKeyAsProblematic(key: string): void {
-  try {
-    const problematic = getProblematicKeys();
-    problematic.add(key);
-    sessionStorage.setItem('clarity_problematic_keys', JSON.stringify(Array.from(problematic)));
-    console.warn(`⚠️ Ключ "${key}" помечен как проблемный и будет пропущен в Cloud Storage`);
-  } catch (error) {
-    console.error('Error marking key as problematic:', error);
-  }
-}
-
-/**
- * Получить данные из Cloud Storage с автоматическим таймаутом и fallback
+ * Получить данные из хранилища
+ * Приоритет: localStorage (мгновенно) -> Cloud Storage (в фоне для синхронизации)
  */
 export async function getStorageData<T>(key: string): Promise<T | null> {
-  // Проверяем, не является ли ключ проблемным
-  const problematicKeys = getProblematicKeys();
-  if (problematicKeys.has(key)) {
-    // Пропускаем Cloud Storage для проблемных ключей, используем только localStorage
-    try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
-    } catch (parseError) {
-      console.error(`Error parsing localStorage data for problematic key "${key}":`, parseError);
-      return null;
+  // Сначала загружаем из localStorage (быстро и надежно)
+  let localData: T | null = null;
+  try {
+    const data = localStorage.getItem(key);
+    if (data) {
+      localData = JSON.parse(data);
     }
+  } catch (parseError) {
+    console.error('Error parsing localStorage data:', parseError);
   }
 
-  // Проверяем доступность CloudStorage и версию WebApp
+  // Проверяем доступность CloudStorage для синхронизации
   const cloudStorage = window.Telegram?.WebApp?.CloudStorage;
   const webAppVersion = window.Telegram?.WebApp?.version;
   const versionNum = webAppVersion ? parseFloat(webAppVersion) : null;
   const hasCloudStorage = cloudStorage && typeof cloudStorage.getItem === 'function';
   const isCloudStorageSupported = hasCloudStorage && (versionNum === null || versionNum >= 6.1);
 
+  // Если Cloud Storage недоступен, возвращаем данные из localStorage
   if (!hasCloudStorage || !isCloudStorageSupported) {
-    try {
-      const data = localStorage.getItem(key);
-      if (data) {
-        return JSON.parse(data);
-      }
-      return null;
-    } catch (parseError) {
-      console.error('Error parsing localStorage data:', parseError);
-      return null;
-    }
+    return localData;
   }
 
-  // Создаем Promise с таймаутом
-  return new Promise((resolve) => {
+  // Пытаемся загрузить из Cloud Storage в фоне (не блокируем загрузку)
+  // Используем короткий таймаут, чтобы не ждать долго
+  const cloudPromise = new Promise<T | null>((resolve) => {
     let resolved = false;
-    let timeoutId: ReturnType<typeof setTimeout>;
-    
-    // Таймаут 1.5 секунды на каждый вызов getItem
-    timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       if (!resolved) {
         resolved = true;
-        console.warn(`⏱️ Таймаут загрузки ключа "${key}" из Cloud Storage. Использую localStorage.`);
-        
-        // Помечаем ключ как проблемный после 2 таймаутов
-        const timeoutCount = parseInt(sessionStorage.getItem(`clarity_timeout_${key}`) || '0', 10);
-        const newCount = timeoutCount + 1;
-        sessionStorage.setItem(`clarity_timeout_${key}`, newCount.toString());
-        
-        if (newCount >= 2) {
-          markKeyAsProblematic(key);
-          sessionStorage.removeItem(`clarity_timeout_${key}`);
-        }
-        
-        // Fallback to localStorage
-        try {
-          const data = localStorage.getItem(key);
-          resolve(data ? JSON.parse(data) : null);
-        } catch (parseError) {
-          console.error('Error parsing localStorage data:', parseError);
-          resolve(null);
-        }
+        resolve(null); // Таймаут - возвращаем null, используем localStorage
       }
-    }, 1500);
+    }, 2000); // 2 секунды таймаут для Cloud Storage
 
     try {
       cloudStorage.getItem(key, (error, value) => {
-        if (resolved) return; // Уже обработано таймаутом
+        if (resolved) return;
         
         clearTimeout(timeoutId);
         resolved = true;
         
-        // Сбрасываем счетчик таймаутов при успешной загрузке
-        sessionStorage.removeItem(`clarity_timeout_${key}`);
-        
         if (error) {
-          // Fallback to localStorage
-          try {
-            const data = localStorage.getItem(key);
-            resolve(data ? JSON.parse(data) : null);
-          } catch (parseError) {
-            console.error('Error parsing localStorage data:', parseError);
-            resolve(null);
-          }
+          resolve(null); // Ошибка - используем localStorage
           return;
         }
         
-        resolve(value ? JSON.parse(value) : null);
+        try {
+          resolve(value ? JSON.parse(value) : null);
+        } catch (parseError) {
+          console.error('Error parsing Cloud Storage data:', parseError);
+          resolve(null);
+        }
       });
     } catch (syncError) {
       if (resolved) return;
-      
       clearTimeout(timeoutId);
       resolved = true;
-      
-      // Синхронная ошибка при вызове getItem
-      try {
-        const data = localStorage.getItem(key);
-        resolve(data ? JSON.parse(data) : null);
-      } catch (parseError) {
-        console.error('Error parsing localStorage data:', parseError);
-        resolve(null);
-      }
+      resolve(null);
     }
   });
+
+  // Сразу возвращаем данные из localStorage (не ждем Cloud Storage)
+  // Cloud Storage загружается в фоне для синхронизации
+  cloudPromise.then((cloudData) => {
+    if (cloudData !== null) {
+      // Если Cloud Storage вернул данные, синхронизируем с localStorage
+      // В будущем можно добавить сравнение по timestamp для выбора более свежих данных
+      try {
+        localStorage.setItem(key, JSON.stringify(cloudData));
+      } catch (error) {
+        console.error('Error syncing Cloud Storage data to localStorage:', error);
+      }
+    }
+  }).catch(() => {
+    // Игнорируем ошибки Cloud Storage - используем localStorage
+  });
+
+  return localData;
 }
 
 /**
- * Сохранить данные в Cloud Storage
+ * Сохранить данные в хранилище
+ * Сохраняет в оба хранилища: localStorage (приоритетно) и Cloud Storage (для синхронизации)
  */
 export async function setStorageData<T>(key: string, data: T): Promise<void> {
   const jsonData = JSON.stringify(data);
@@ -409,72 +358,48 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
   }
   // #endregion
 
-  // Проверяем доступность CloudStorage и метода setItem
+  // Сначала сохраняем в localStorage (быстро и надежно)
+  try {
+    localStorage.setItem(key, jsonData);
+    // #region agent log
+    if (key === 'tasks') {
+      console.log('[DEBUG]', JSON.stringify({location:'storage.ts:333',message:'setStorageData saved to localStorage',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+    }
+    // #endregion
+  } catch (localStorageError) {
+    console.error('Error saving to localStorage:', localStorageError);
+    throw localStorageError; // Если localStorage не работает - это критическая ошибка
+  }
+
+  // Параллельно пытаемся сохранить в Cloud Storage (в фоне, не блокируем)
   const cloudStorage = window.Telegram?.WebApp?.CloudStorage;
-  const hasCloudStorage = cloudStorage && typeof cloudStorage.setItem === 'function';
-  
-  // Дополнительная проверка: если версия WebApp 6.0, CloudStorage не поддерживается
   const webAppVersion = window.Telegram?.WebApp?.version;
   const versionNum = webAppVersion ? parseFloat(webAppVersion) : null;
+  const hasCloudStorage = cloudStorage && typeof cloudStorage.setItem === 'function';
   const isCloudStorageSupported = hasCloudStorage && (versionNum === null || versionNum >= 6.1);
 
   if (!hasCloudStorage || !isCloudStorageSupported) {
-    try {
-      localStorage.setItem(key, jsonData);
-      // #region agent log
-      if (key === 'tasks') {
-        console.log('[DEBUG]', JSON.stringify({location:'storage.ts:333',message:'setStorageData saved to localStorage',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-      }
-      // #endregion
-      return;
-    } catch (localStorageError) {
-      console.error('Error saving to localStorage:', localStorageError);
-      throw localStorageError;
-    }
+    return; // Cloud Storage недоступен - данные уже сохранены в localStorage
   }
 
-  return new Promise((resolve, reject) => {
-    try {
-      cloudStorage.setItem(key, jsonData, (error) => {
-        if (error) {
-          // Fallback to localStorage при любой ошибке
-          try {
-            localStorage.setItem(key, jsonData);
-            // #region agent log
-            if (key === 'tasks') {
-              console.log('[DEBUG]', JSON.stringify({location:'storage.ts:347',message:'setStorageData fallback to localStorage',data:{key,error:error.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-            }
-            // #endregion
-            resolve();
-          } catch (localStorageError) {
-            console.error('Error saving to localStorage:', localStorageError);
-            reject(localStorageError);
-          }
-          return;
-        }
+  // Сохраняем в Cloud Storage в фоне (не ждем результата)
+  try {
+    cloudStorage.setItem(key, jsonData, (error) => {
+      if (error) {
+        console.warn(`Failed to save to Cloud Storage for key "${key}":`, error);
+        // Данные уже сохранены в localStorage, так что это не критично
+      } else {
         // #region agent log
         if (key === 'tasks') {
           console.log('[DEBUG]', JSON.stringify({location:'storage.ts:354',message:'setStorageData saved to CloudStorage',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         }
         // #endregion
-        resolve();
-      });
-    } catch (syncError) {
-      // Синхронная ошибка при вызове setItem
-      try {
-        localStorage.setItem(key, jsonData);
-        // #region agent log
-        if (key === 'tasks') {
-          console.log('[DEBUG]', JSON.stringify({location:'storage.ts:361',message:'setStorageData sync error fallback to localStorage',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-        }
-        // #endregion
-        resolve();
-      } catch (localStorageError) {
-        console.error('Error saving to localStorage:', localStorageError);
-        reject(localStorageError);
       }
-    }
-  });
+    });
+  } catch (syncError) {
+    console.warn(`Sync error saving to Cloud Storage for key "${key}":`, syncError);
+    // Данные уже сохранены в localStorage, так что это не критично
+  }
 }
 
 /**
