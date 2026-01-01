@@ -31,6 +31,7 @@ import { generateUpcomingInstances } from '../utils/taskRecurrence';
 export function useCloudStorage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const tasksRef = useRef<Task[]>([]);
+  const addingTasksRef = useRef<Set<string>>(new Set()); // Защита от множественных вызовов addTask
   const [habits, setHabits] = useState<Habit[]>([]);
   const [finance, setFinance] = useState<FinanceData>({ transactions: [], categories: [], budgets: [] });
   const [onboarding, setOnboarding] = useState<OnboardingFlags>({
@@ -51,6 +52,28 @@ export function useCloudStorage() {
   useEffect(() => {
     loadAllData();
   }, []);
+  
+  // Синхронизация tasksRef.current с актуальным состоянием tasks
+  // Применяем дедупликацию при синхронизации
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const deduplicated = deduplicateTasks(tasks);
+      if (deduplicated.length !== tasks.length) {
+        console.log('[CHECK] sync tasksRef - deduplicated tasks during sync:', {
+          originalCount: tasks.length,
+          deduplicatedCount: deduplicated.length,
+          duplicatesRemoved: tasks.length - deduplicated.length
+        });
+        // Если были дубликаты, обновляем состояние
+        setTasks(deduplicated);
+        tasksRef.current = deduplicated;
+      } else {
+        tasksRef.current = tasks;
+      }
+    } else {
+      tasksRef.current = tasks;
+    }
+  }, [tasks]);
 
   const loadAllData = async () => {
     // Защита от множественных одновременных вызовов
@@ -140,8 +163,9 @@ export function useCloudStorage() {
         await saveTasks(deduplicatedTasks);
       }
       
-      setTasks(allTasks);
-      tasksRef.current = allTasks;
+      // Используем дедуплицированные задачи для состояния
+      setTasks(deduplicatedTasks);
+      tasksRef.current = deduplicatedTasks;
       
       // #region agent log
       console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:121',message:'loadAllData setTasks called',data:{allTasksCount:allTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
@@ -259,11 +283,25 @@ export function useCloudStorage() {
   }, []);
 
   const updateTasks = useCallback(async (newTasks: Task[]) => {
-    setTasks(newTasks);
-    await saveTasksToStorage(newTasks);
+    // Применяем дедупликацию перед обновлением
+    const deduplicated = deduplicateTasks(newTasks);
+    setTasks(deduplicated);
+    tasksRef.current = deduplicated;
+    await saveTasksToStorage(deduplicated);
   }, [saveTasksToStorage]);
 
   const addTask = useCallback(async (task: Task) => {
+    // Защита от множественных одновременных вызовов с одним и тем же ID
+    if (addingTasksRef.current.has(task.id)) {
+      console.warn('[WARN] addTask - Task is already being added, skipping duplicate call:', {
+        taskId: task.id,
+        taskText: task.text
+      });
+      return;
+    }
+    
+    addingTasksRef.current.add(task.id);
+    
     console.log('[CHECK] addTask called:', {
       taskId: task.id,
       taskText: task.text,
@@ -277,7 +315,35 @@ export function useCloudStorage() {
       // КРИТИЧЕСКИ ВАЖНО: сначала сохраняем в хранилище, потом обновляем состояние
       // Это гарантирует, что если сохранение не удалось, состояние не обновится
       const currentTasks = tasksRef.current.length > 0 ? tasksRef.current : tasks;
-      const newTasks = [...currentTasks, task];
+      
+      // Применяем дедупликацию к currentTasks перед добавлением новой задачи
+      const deduplicatedCurrentTasks = deduplicateTasks(currentTasks);
+      if (deduplicatedCurrentTasks.length < currentTasks.length) {
+        console.log('[CHECK] addTask - removed duplicates from currentTasks:', {
+          originalCount: currentTasks.length,
+          deduplicatedCount: deduplicatedCurrentTasks.length,
+          duplicatesRemoved: currentTasks.length - deduplicatedCurrentTasks.length
+        });
+      }
+      
+      // Проверяем, не существует ли уже задача с таким ID
+      const existingTaskIndex = deduplicatedCurrentTasks.findIndex(t => t.id === task.id);
+      if (existingTaskIndex >= 0) {
+        console.warn('[WARN] addTask - Task already exists, updating instead of adding:', {
+          taskId: task.id,
+          taskText: task.text,
+          existingTaskText: deduplicatedCurrentTasks[existingTaskIndex].text
+        });
+        // Обновляем существующую задачу
+        const updatedTasks = [...deduplicatedCurrentTasks];
+        updatedTasks[existingTaskIndex] = task;
+        await saveTasksToStorage(updatedTasks, task.id);
+        setTasks(updatedTasks);
+        tasksRef.current = updatedTasks;
+        return;
+      }
+      
+      const newTasks = [...deduplicatedCurrentTasks, task];
       
       console.log('[CHECK] addTask - current tasks:', {
         currentTasksCount: currentTasks.length,
@@ -316,8 +382,11 @@ export function useCloudStorage() {
       });
       // Если сохранение не удалось, состояние не обновляется
       throw error;
+    } finally {
+      // Удаляем ID из множества обрабатываемых задач
+      addingTasksRef.current.delete(task.id);
     }
-  }, [saveTasksToStorage, tasks]);
+  }, [saveTasksToStorage, tasks, deduplicateTasks]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     // #region agent log
@@ -392,9 +461,12 @@ export function useCloudStorage() {
     try {
       setTasks(prevTasks => {
         const newTasks = prevTasks.filter(task => task.id !== id);
+        // Применяем дедупликацию (на случай, если были дубликаты)
+        const deduplicated = deduplicateTasks(newTasks);
+        tasksRef.current = deduplicated;
         // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
-        saveTasksToStorage(newTasks).catch(err => console.error('Error saving task:', err));
-        return newTasks;
+        saveTasksToStorage(deduplicated).catch(err => console.error('Error saving task:', err));
+        return deduplicated;
       });
     } catch (error) {
       console.error('Error deleting task:', error);
