@@ -459,12 +459,23 @@ export default function TasksPage({ storage }: TasksPageProps) {
         console.log('Task updated successfully:', editingTaskId);
         
         // Проверяем, что задача действительно обновилась в состоянии
+        // Используем несколько проверок с разными задержками
         setTimeout(() => {
           const updatedTask = storage.tasks.find(t => t.id === editingTaskId);
+          const updatedTaskInList = tasksForList.find(t => t.id === editingTaskId);
           // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:435',message:'handleStep9Complete task in state after update',data:{editingTaskId,found:!!updatedTask,updatedTaskText:updatedTask?.text,expectedText:taskData.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+          console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:463',message:'handleStep9Complete task in state after update (200ms)',data:{editingTaskId,found:!!updatedTask,updatedTaskText:updatedTask?.text,foundInList:!!updatedTaskInList,updatedTaskInListText:updatedTaskInList?.text,expectedText:taskData.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
           // #endregion
         }, 200);
+        
+        // Проверяем еще раз через больший интервал, чтобы дать React время обновить компонент
+        setTimeout(() => {
+          const updatedTask = storage.tasks.find(t => t.id === editingTaskId);
+          const updatedTaskInList = tasksForList.find(t => t.id === editingTaskId);
+          // #region agent log
+          console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:471',message:'handleStep9Complete task in state after update (500ms)',data:{editingTaskId,found:!!updatedTask,updatedTaskText:updatedTask?.text,foundInList:!!updatedTaskInList,updatedTaskInListText:updatedTaskInList?.text,expectedText:taskData.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+          // #endregion
+        }, 500);
       } catch (error) {
         console.error('Error updating task:', error);
         // #region agent log
