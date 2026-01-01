@@ -288,7 +288,7 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
   }
 
   // Пытаемся загрузить из Cloud Storage в фоне (не блокируем загрузку)
-  // Используем короткий таймаут, чтобы не ждать долго
+  // Используем короткий таймаут для быстрой синхронизации
   const cloudPromise = new Promise<T | null>((resolve) => {
     let resolved = false;
     const timeoutId = setTimeout(() => {
@@ -296,7 +296,7 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
         resolved = true;
         resolve(null); // Таймаут - возвращаем null, используем localStorage
       }
-    }, 2000); // 2 секунды таймаут для Cloud Storage
+    }, 500); // 500ms таймаут для быстрой синхронизации Cloud Storage
 
     try {
       cloudStorage.getItem(key, (error, value) => {
@@ -388,8 +388,10 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
     return; // Cloud Storage недоступен - данные уже сохранены в localStorage
   }
 
-  // Сохраняем в Cloud Storage в фоне (не ждем результата)
+  // Сохраняем в Cloud Storage немедленно (в фоне, не блокируем)
+  // Используем setImmediate или setTimeout(0) для немедленного выполнения
   try {
+    // Вызываем сразу, без задержек
     cloudStorage.setItem(key, jsonData, (error) => {
       if (error) {
         console.warn(`Failed to save to Cloud Storage for key "${key}":`, error);
