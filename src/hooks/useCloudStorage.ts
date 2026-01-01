@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getTasks,
   saveTasks,
@@ -29,6 +29,7 @@ import { generateUpcomingInstances } from '../utils/taskRecurrence';
 
 export function useCloudStorage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const tasksRef = useRef<Task[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [finance, setFinance] = useState<FinanceData>({ transactions: [], categories: [], budgets: [] });
   const [onboarding, setOnboarding] = useState<OnboardingFlags>({
@@ -121,9 +122,10 @@ export function useCloudStorage() {
       }
       
       setTasks(allTasks);
+      tasksRef.current = allTasks;
       
       // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:120',message:'loadAllData setTasks called',data:{allTasksCount:allTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:121',message:'loadAllData setTasks called',data:{allTasksCount:allTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
       setHabits(migratedHabits);
       setFinance(financeData);
@@ -253,16 +255,31 @@ export function useCloudStorage() {
         console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:189',message:'updateTask newTasks created',data:{id,newTasksCount:newTasks.length,taskIndexInNewTasks,updatedTaskInState:{id:updatedTaskInNewTasks?.id,text:updatedTaskInNewTasks?.text,dueDate:updatedTaskInNewTasks?.dueDate,plannedDate:updatedTaskInNewTasks?.plannedDate},originalTaskText:originalTask.text,updatedTaskText:updatedTask.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         // #endregion
         
+        // Обновляем ref для проверки состояния
+        tasksRef.current = newTasks;
+        
         // Асинхронно сохраняем в хранилище
         // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:251',message:'updateTask calling saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:261',message:'updateTask calling saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         // #endregion
         saveTasksToStorage(newTasks, id).catch(err => {
           console.error('Error saving task:', err);
           // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:254',message:'updateTask saveTasksToStorage error',data:{id,error:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:265',message:'updateTask saveTasksToStorage error',data:{id,error:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
           // #endregion
         });
+        
+        // #region agent log
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:270',message:'updateTask returning newTasks',data:{id,newTasksCount:newTasks.length,updatedTaskInReturn:{id:updatedTask.id,text:updatedTask.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        // #endregion
+        
+        // Проверяем состояние после обновления (в следующем тике)
+        setTimeout(() => {
+          // #region agent log
+          const updatedTaskInRef = tasksRef.current.find((t: Task) => t.id === id);
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:275',message:'updateTask state after update (ref)',data:{id,refTasksCount:tasksRef.current.length,updatedTaskInRef:{id:updatedTaskInRef?.id,text:updatedTaskInRef?.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+          // #endregion
+        }, 100);
         
         return newTasks;
       });

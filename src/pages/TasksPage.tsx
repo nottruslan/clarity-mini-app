@@ -457,6 +457,14 @@ export default function TasksPage({ storage }: TasksPageProps) {
         console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:430',message:'handleStep9Complete updateTask success',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
         // #endregion
         console.log('Task updated successfully:', editingTaskId);
+        
+        // Проверяем, что задача действительно обновилась в состоянии
+        setTimeout(() => {
+          const updatedTask = storage.tasks.find(t => t.id === editingTaskId);
+          // #region agent log
+          console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:435',message:'handleStep9Complete task in state after update',data:{editingTaskId,found:!!updatedTask,updatedTaskText:updatedTask?.text,expectedText:taskData.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+          // #endregion
+        }, 200);
       } catch (error) {
         console.error('Error updating task:', error);
         // #region agent log
