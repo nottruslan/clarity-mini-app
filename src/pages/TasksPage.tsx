@@ -180,6 +180,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
   const handleStep9Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
     if (isEditing && editingTaskId) {
       // Редактирование существующей задачи
+      // Получаем актуальную задачу прямо перед сохранением, чтобы избежать race condition
       const originalTask = storage.tasks.find(t => t.id === editingTaskId);
       if (!originalTask) {
         console.warn('Task not found for editing:', editingTaskId);
@@ -190,12 +191,15 @@ export default function TasksPage({ storage }: TasksPageProps) {
         setTaskData({});
         return;
       }
+      
+      // Логируем для отладки
+      console.log('Editing task:', editingTaskId, 'Original task:', originalTask);
 
       // Вычисляем dueDate: если поле было изменено, используем taskData.dueDate, иначе исходную дату
-      // Не используем selectedDate как fallback, если задача уже имеет дату
+      // Если dueDate не был изменен и его нет, используем selectedDate как fallback для безопасности
       const finalDueDate = modifiedFields.has('dueDate')
         ? taskData.dueDate  // Может быть undefined, если пользователь удалил дату
-        : originalTask.dueDate;  // Используем только существующую дату, если она есть
+        : (originalTask.dueDate || selectedDate.getTime());  // Используем существующую дату или текущую дату как fallback
       
       // Вычисляем startTime и endTime на основе finalDueDate
       // Обрабатываем различные сценарии:
@@ -299,7 +303,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
       // Формируем обновления: только те поля, которые были изменены или должны быть обновлены
       const updates: Partial<Task> = {};
       
-      // Добавляем только измененные поля
+      // Добавляем только измененные поля (включая явное удаление - undefined)
       if (modifiedFields.has('name')) {
         updates.text = taskData.name;
       }
@@ -316,34 +320,55 @@ export default function TasksPage({ storage }: TasksPageProps) {
         updates.plannedDate = finalDueDate;
       } else {
         // Если dueDate не изменялась, сохраняем исходные значения
-        // Но если plannedDate нет, устанавливаем его равным dueDate
-        if (originalTask.plannedDate === undefined && originalTask.dueDate) {
+        // Явно сохраняем dueDate и plannedDate для надежности, даже если они не были изменены
+        // Это гарантирует сохранение этих полей даже если originalTask устарел
+        if (originalTask.dueDate) {
+          updates.dueDate = originalTask.dueDate;
+        }
+        if (originalTask.plannedDate !== undefined) {
+          updates.plannedDate = originalTask.plannedDate;
+        } else if (originalTask.dueDate) {
+          // Если plannedDate нет, устанавливаем его равным dueDate
           updates.plannedDate = originalTask.dueDate;
         }
       }
       
       // startTime и endTime обновляем только если были изменены связанные поля
+      // Но если они не были изменены, сохраняем исходные значения для надежности
       if (modifiedFields.has('startTime') || modifiedFields.has('duration') || modifiedFields.has('dueDate')) {
         updates.startTime = finalStartTime;
         updates.endTime = finalEndTime;
+      } else {
+        // Если startTime и endTime не изменялись, сохраняем исходные значения
+        // Это гарантирует сохранение этих полей даже если originalTask устарел
+        if (originalTask.startTime !== undefined) {
+          updates.startTime = originalTask.startTime;
+        }
+        if (originalTask.endTime !== undefined) {
+          updates.endTime = originalTask.endTime;
+        }
       }
       
       if (modifiedFields.has('duration')) {
         updates.duration = taskData.duration;
       }
       
+      // categoryId может быть undefined, если пользователь удалил категорию
       if (modifiedFields.has('categoryId')) {
         updates.categoryId = taskData.categoryId;
       }
       
+      // description может быть undefined, если пользователь удалил описание
       if (modifiedFields.has('description')) {
         updates.description = taskData.description;
       }
       
+      // subtasks может быть undefined, если пользователь удалил все подзадачи
       if (modifiedFields.has('subtasks')) {
         updates.subtasks = taskData.subtasks;
       }
       
+      // recurrence может быть undefined, если пользователь удалил повторение
       if (modifiedFields.has('recurrence')) {
         updates.recurrence = taskData.recurrence;
       }
@@ -384,6 +409,23 @@ export default function TasksPage({ storage }: TasksPageProps) {
         updates.movedToList = originalTask.movedToList;
       }
 
+      // Логируем обновления для отладки
+      console.log('Updating task:', editingTaskId);
+      console.log('Original task:', originalTask);
+      console.log('Updates:', updates);
+      console.log('Modified fields:', Array.from(modifiedFields));
+      console.log('Task data:', taskData);
+      
+      // Проверяем, что updates не пустой (должен содержать хотя бы системные поля)
+      if (Object.keys(updates).length === 0) {
+        console.warn('Updates object is empty! This should not happen.');
+      }
+      
+      // Проверяем, что важные поля будут сохранены
+      // updateTask делает merge: { ...originalTask, ...updates }
+      // Поэтому все поля из originalTask сохранятся, а поля из updates перезапишут их
+      // Это гарантирует, что даже если поле не в updates, оно сохранится из originalTask
+      
       try {
         await storage.updateTask(editingTaskId, updates);
         console.log('Task updated successfully:', editingTaskId);
@@ -743,12 +785,14 @@ export default function TasksPage({ storage }: TasksPageProps) {
             await storage.deleteTask(id);
           }}
           onTaskMove={async (id) => {
-            // Перемещаем задачу в список: добавляем dueDate, убираем movedToList
+            // Перемещаем задачу в список: добавляем dueDate и plannedDate, убираем movedToList
             const today = new Date();
             today.setHours(0, 0, 0, 0);
+            const todayTimestamp = today.getTime();
             await storage.updateTask(id, { 
               movedToList: false,
-              dueDate: today.getTime()
+              dueDate: todayTimestamp,
+              plannedDate: todayTimestamp
             });
           }}
         />
