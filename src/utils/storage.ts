@@ -409,11 +409,11 @@ function migrateTasks(tasks: Task[]): Task[] {
  */
 export async function saveTasks(tasks: Task[]): Promise<void> {
   // #region agent log
-  fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:410',message:'saveTasks called',data:{tasksCount:tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  console.log('[DEBUG]', JSON.stringify({location:'storage.ts:410',message:'saveTasks called',data:{tasksCount:tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
   // #endregion
   await setStorageData(STORAGE_KEYS.TASKS, tasks);
   // #region agent log
-  fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:412',message:'saveTasks success',data:{tasksCount:tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  console.log('[DEBUG]', JSON.stringify({location:'storage.ts:412',message:'saveTasks success',data:{tasksCount:tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
   // #endregion
 }
 

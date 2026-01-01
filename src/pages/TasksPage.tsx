@@ -88,11 +88,11 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
   const handleEditTask = (taskId: string) => {
     // #region agent log
-    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:89',message:'handleEditTask called',data:{taskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:89',message:'handleEditTask called',data:{taskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
     // #endregion
     const task = storage.tasks.find(t => t.id === taskId);
     // #region agent log
-    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:91',message:'handleEditTask task found',data:{taskId,taskFound:!!task,task:task?{id:task.id,text:task.text,dueDate:task.dueDate,plannedDate:task.plannedDate,status:task.status,completed:task.completed}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:91',message:'handleEditTask task found',data:{taskId,taskFound:!!task,task:task?{id:task.id,text:task.text,dueDate:task.dueDate,plannedDate:task.plannedDate,status:task.status,completed:task.completed}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
     // #endregion
     if (!task) return;
     
@@ -185,19 +185,19 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
   const handleStep9Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
     // #region agent log
-    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:180',message:'handleStep9Complete called',data:{isEditing,editingTaskId,energyLevel,modifiedFields:Array.from(modifiedFields)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:180',message:'handleStep9Complete called',data:{isEditing,editingTaskId,energyLevel,modifiedFields:Array.from(modifiedFields)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
     // #endregion
     if (isEditing && editingTaskId) {
       // Редактирование существующей задачи
       // Получаем актуальную задачу прямо перед сохранением, чтобы избежать race condition
       const originalTask = storage.tasks.find(t => t.id === editingTaskId);
       // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:184',message:'handleStep9Complete originalTask found',data:{editingTaskId,taskFound:!!originalTask,originalTask:originalTask?{id:originalTask.id,text:originalTask.text,dueDate:originalTask.dueDate,plannedDate:originalTask.plannedDate,status:originalTask.status,completed:originalTask.completed,movedToList:originalTask.movedToList}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:184',message:'handleStep9Complete originalTask found',data:{editingTaskId,taskFound:!!originalTask,originalTask:originalTask?{id:originalTask.id,text:originalTask.text,dueDate:originalTask.dueDate,plannedDate:originalTask.plannedDate,status:originalTask.status,completed:originalTask.completed,movedToList:originalTask.movedToList}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
       // #endregion
       if (!originalTask) {
         console.warn('Task not found for editing:', editingTaskId);
         // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:186',message:'handleStep9Complete task not found',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:186',message:'handleStep9Complete task not found',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
         // #endregion
         setIsCreating(false);
         setIsEditing(false);
@@ -432,14 +432,14 @@ export default function TasksPage({ storage }: TasksPageProps) {
       console.log('Task data:', taskData);
       
       // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:412',message:'handleStep9Complete before updateTask',data:{editingTaskId,updatesKeys:Object.keys(updates),updates,modifiedFields:Array.from(modifiedFields)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:435',message:'handleStep9Complete before updateTask',data:{editingTaskId,updatesKeys:Object.keys(updates),updates,modifiedFields:Array.from(modifiedFields),originalTaskDueDate:originalTask.dueDate,originalTaskPlannedDate:originalTask.plannedDate,updatesDueDate:updates.dueDate,updatesPlannedDate:updates.plannedDate},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}));
       // #endregion
       
       // Проверяем, что updates не пустой (должен содержать хотя бы системные поля)
       if (Object.keys(updates).length === 0) {
         console.warn('Updates object is empty! This should not happen.');
         // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:420',message:'WARNING updates empty',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:420',message:'WARNING updates empty',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}));
         // #endregion
       }
       
@@ -450,17 +450,17 @@ export default function TasksPage({ storage }: TasksPageProps) {
       
       try {
         // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:428',message:'handleStep9Complete calling updateTask',data:{editingTaskId,updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:428',message:'handleStep9Complete calling updateTask',data:{editingTaskId,updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
         // #endregion
         await storage.updateTask(editingTaskId, updates);
         // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:430',message:'handleStep9Complete updateTask success',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:430',message:'handleStep9Complete updateTask success',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
         // #endregion
         console.log('Task updated successfully:', editingTaskId);
       } catch (error) {
         console.error('Error updating task:', error);
         // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:433',message:'handleStep9Complete updateTask error',data:{editingTaskId,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:433',message:'handleStep9Complete updateTask error',data:{editingTaskId,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
         // #endregion
         // Состояние уже обновлено в updateTask, продолжаем
       }
@@ -818,13 +818,13 @@ export default function TasksPage({ storage }: TasksPageProps) {
           onTaskMove={async (id) => {
             // Перемещаем задачу в список: добавляем dueDate и plannedDate, убираем movedToList
             // #region agent log
-            fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:787',message:'onTaskMove called',data:{taskId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:787',message:'onTaskMove called',data:{taskId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}));
             // #endregion
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const todayTimestamp = today.getTime();
             // #region agent log
-            fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:792',message:'onTaskMove before updateTask',data:{taskId:id,todayTimestamp,dueDate:todayTimestamp,plannedDate:todayTimestamp},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:792',message:'onTaskMove before updateTask',data:{taskId:id,todayTimestamp,dueDate:todayTimestamp,plannedDate:todayTimestamp},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}));
             // #endregion
             await storage.updateTask(id, { 
               movedToList: false,
@@ -832,7 +832,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
               plannedDate: todayTimestamp
             });
             // #region agent log
-            fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:800',message:'onTaskMove after updateTask',data:{taskId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:800',message:'onTaskMove after updateTask',data:{taskId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}));
             // #endregion
           }}
         />

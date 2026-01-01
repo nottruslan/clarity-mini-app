@@ -140,17 +140,17 @@ export function useCloudStorage() {
   // Функция только для сохранения в хранилище (без обновления состояния)
   const saveTasksToStorage = useCallback(async (newTasks: Task[]) => {
     // #region agent log
-    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:141',message:'saveTasksToStorage called',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:141',message:'saveTasksToStorage called',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
     // #endregion
     try {
       await saveTasks(newTasks);
       // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:144',message:'saveTasksToStorage success',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:144',message:'saveTasksToStorage success',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
     } catch (error) {
       console.error('Error saving tasks:', error);
       // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:146',message:'saveTasksToStorage error',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:146',message:'saveTasksToStorage error',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
       throw error;
     }
@@ -180,18 +180,18 @@ export function useCloudStorage() {
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     // #region agent log
-    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:172',message:'updateTask called',data:{id,updatesKeys:Object.keys(updates),updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:172',message:'updateTask called',data:{id,updatesKeys:Object.keys(updates),updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
     // #endregion
     try {
       setTasks(prevTasks => {
         const taskIndex = prevTasks.findIndex(task => task.id === id);
         // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:175',message:'updateTask taskIndex found',data:{id,taskIndex,totalTasks:prevTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:175',message:'updateTask taskIndex found',data:{id,taskIndex,totalTasks:prevTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
         // #endregion
         if (taskIndex === -1) {
           console.warn('Task not found:', id);
           // #region agent log
-          fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:177',message:'updateTask task not found',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:177',message:'updateTask task not found',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
           // #endregion
           return prevTasks;
         }
@@ -199,7 +199,7 @@ export function useCloudStorage() {
         const originalTask = prevTasks[taskIndex];
         const updatedTask = { ...originalTask, ...updates };
         // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:182',message:'updateTask merge complete',data:{id,originalTask:{id:originalTask.id,text:originalTask.text,dueDate:originalTask.dueDate,plannedDate:originalTask.plannedDate},updatedTask:{id:updatedTask.id,text:updatedTask.text,dueDate:updatedTask.dueDate,plannedDate:updatedTask.plannedDate}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:182',message:'updateTask merge complete',data:{id,originalTask:{id:originalTask.id,text:originalTask.text,dueDate:originalTask.dueDate,plannedDate:originalTask.plannedDate},updatedTask:{id:updatedTask.id,text:updatedTask.text,dueDate:updatedTask.dueDate,plannedDate:updatedTask.plannedDate}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
         // #endregion
         
         const newTasks = prevTasks.map(task => 
@@ -208,12 +208,12 @@ export function useCloudStorage() {
         
         // Асинхронно сохраняем в хранилище
         // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:189',message:'updateTask calling saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:189',message:'updateTask calling saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         // #endregion
         saveTasksToStorage(newTasks).catch(err => {
           console.error('Error saving task:', err);
           // #region agent log
-          fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:191',message:'updateTask saveTasksToStorage error',data:{id,error:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:191',message:'updateTask saveTasksToStorage error',data:{id,error:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
           // #endregion
         });
         
@@ -222,7 +222,7 @@ export function useCloudStorage() {
     } catch (error) {
       console.error('Error updating task:', error);
       // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:196',message:'updateTask catch error',data:{id,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:196',message:'updateTask catch error',data:{id,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
       // #endregion
       throw error;
     }
