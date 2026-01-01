@@ -145,8 +145,9 @@ export default function FinancePage({ storage }: FinancePageProps) {
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
-    const result = await storage.deleteCategory(categoryId);
-    if (!result) {
+    try {
+      await storage.deleteCategory(categoryId);
+    } catch (error) {
       alert('Нельзя удалить категорию, которая используется в транзакциях');
     }
   };

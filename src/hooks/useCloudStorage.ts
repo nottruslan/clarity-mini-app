@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getTasks,
   saveTasks,
@@ -127,6 +127,7 @@ export function useCloudStorage() {
       // #region agent log
       console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:121',message:'loadAllData setTasks called',data:{allTasksCount:allTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
+      
       setHabits(migratedHabits);
       setFinance(financeData);
       setOnboarding(onboardingData);
@@ -135,7 +136,7 @@ export function useCloudStorage() {
       setTaskTags(tagsData);
       setInBoxNotes(notesData);
       
-      // Сохраняем мигрированные данные, если была миграция
+      // Сохраняем мигрированные привычки, если они изменились
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
         await saveHabits(migratedHabits);
       }
@@ -199,11 +200,8 @@ export function useCloudStorage() {
     }
   }, []);
 
-  // Функция для обновления состояния и сохранения (используется напрямую, когда нужно)
   const updateTasks = useCallback(async (newTasks: Task[]) => {
-    // Сначала обновляем состояние, чтобы UI сразу отобразил изменения
     setTasks(newTasks);
-    // Затем пытаемся сохранить в хранилище
     await saveTasksToStorage(newTasks);
   }, [saveTasksToStorage]);
 
@@ -226,22 +224,18 @@ export function useCloudStorage() {
     console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:226',message:'updateTask called',data:{id,updatesKeys:Object.keys(updates),updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
     // #endregion
     try {
-      // Сохраняем текущее состояние для сравнения
-      const currentTasksBeforeUpdate = tasks;
-      // #region agent log
-      const taskBeforeUpdate = currentTasksBeforeUpdate.find(t => t.id === id);
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:231',message:'updateTask before setTasks',data:{id,currentTasksCount:currentTasksBeforeUpdate.length,taskBeforeUpdate:{id:taskBeforeUpdate?.id,text:taskBeforeUpdate?.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-      // #endregion
+      let newTasks: Task[] = [];
       
+      // Обновляем состояние
       setTasks(prevTasks => {
         const taskIndex = prevTasks.findIndex(task => task.id === id);
         // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:175',message:'updateTask taskIndex found',data:{id,taskIndex,totalTasks:prevTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:237',message:'updateTask taskIndex found',data:{id,taskIndex,totalTasks:prevTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
         // #endregion
         if (taskIndex === -1) {
           console.warn('Task not found:', id);
           // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:177',message:'updateTask task not found',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:241',message:'updateTask task not found',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
           // #endregion
           return prevTasks;
         }
@@ -249,64 +243,36 @@ export function useCloudStorage() {
         const originalTask = prevTasks[taskIndex];
         const updatedTask = { ...originalTask, ...updates };
         // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:182',message:'updateTask merge complete',data:{id,originalTask:{id:originalTask.id,text:originalTask.text,dueDate:originalTask.dueDate,plannedDate:originalTask.plannedDate},updatedTask:{id:updatedTask.id,text:updatedTask.text,dueDate:updatedTask.dueDate,plannedDate:updatedTask.plannedDate}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:248',message:'updateTask merge complete',data:{id,originalTask:{id:originalTask.id,text:originalTask.text,dueDate:originalTask.dueDate,plannedDate:originalTask.plannedDate},updatedTask:{id:updatedTask.id,text:updatedTask.text,dueDate:updatedTask.dueDate,plannedDate:updatedTask.plannedDate}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
         // #endregion
         
-        const newTasks = prevTasks.map(task => 
-          task.id === id ? updatedTask : task
-        );
+        // Создаем НОВЫЙ массив, чтобы React увидел изменения
+        newTasks = [...prevTasks];
+        newTasks[taskIndex] = updatedTask;
         
-        // #region agent log
-        const updatedTaskInNewTasks = newTasks.find(t => t.id === id);
-        const taskIndexInNewTasks = newTasks.findIndex(t => t.id === id);
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:189',message:'updateTask newTasks created',data:{id,newTasksCount:newTasks.length,taskIndexInNewTasks,updatedTaskInState:{id:updatedTaskInNewTasks?.id,text:updatedTaskInNewTasks?.text,dueDate:updatedTaskInNewTasks?.dueDate,plannedDate:updatedTaskInNewTasks?.plannedDate},originalTaskText:originalTask.text,updatedTaskText:updatedTask.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-        // #endregion
-        
-        // Обновляем ref для проверки состояния
+        // Обновляем ref
         tasksRef.current = newTasks;
         
-        // Асинхронно сохраняем в хранилище
         // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:261',message:'updateTask calling saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:260',message:'updateTask newTasks created',data:{id,newTasksCount:newTasks.length,updatedTaskText:updatedTask.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         // #endregion
-        saveTasksToStorage(newTasks, id).catch(err => {
-          console.error('Error saving task:', err);
-          // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:265',message:'updateTask saveTasksToStorage error',data:{id,error:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-          // #endregion
-        });
-        
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:270',message:'updateTask returning newTasks',data:{id,newTasksCount:newTasks.length,updatedTaskInReturn:{id:updatedTask.id,text:updatedTask.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-        // #endregion
-        
-        // Проверяем состояние после обновления (в следующем тике)
-        setTimeout(() => {
-          // #region agent log
-          const updatedTaskInRef = tasksRef.current.find((t: Task) => t.id === id);
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:275',message:'updateTask state after update (ref)',data:{id,refTasksCount:tasksRef.current.length,updatedTaskInRef:{id:updatedTaskInRef?.id,text:updatedTaskInRef?.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-          // #endregion
-        }, 100);
         
         return newTasks;
       });
       
-      // Проверяем состояние React после setTasks (через больший интервал)
-      // Используем useEffect для отслеживания изменений состояния
-      setTimeout(() => {
-        // #region agent log
-        // Проверяем состояние через функцию setTasks (не изменяя его)
-        setTasks(currentTasks => {
-          const updatedTaskInState = currentTasks.find((t: Task) => t.id === id);
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:293',message:'updateTask state after setTasks (callback)',data:{id,currentTasksCount:currentTasks.length,updatedTaskInState:{id:updatedTaskInState?.id,text:updatedTaskInState?.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-          return currentTasks; // Не изменяем состояние, только проверяем
-        });
-        // #endregion
-      }, 300);
+      // Сохраняем в хранилище СИНХРОННО после обновления состояния
+      // Это гарантирует, что данные будут сохранены до того, как что-то еще может их перезаписать
+      // #region agent log
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:268',message:'updateTask calling saveTasksToStorage (await)',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      // #endregion
+      await saveTasksToStorage(newTasks, id);
+      // #region agent log
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:271',message:'updateTask saveTasksToStorage completed',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      // #endregion
     } catch (error) {
       console.error('Error updating task:', error);
       // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:196',message:'updateTask catch error',data:{id,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:275',message:'updateTask catch error',data:{id,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
       // #endregion
       throw error;
     }
@@ -328,50 +294,58 @@ export function useCloudStorage() {
 
   // Habits
   const updateHabits = useCallback(async (newHabits: Habit[]) => {
-    // Миграция старой структуры history (boolean) в новую (объект)
-    const migratedHabits = newHabits.map(habit => {
-      if (habit.history && Object.keys(habit.history).length > 0) {
-        const firstValue = Object.values(habit.history)[0];
-        if (typeof firstValue === 'boolean') {
-          const newHistory: Habit['history'] = {};
-          Object.keys(habit.history).forEach(date => {
-            const oldValue = habit.history[date];
-            if (typeof oldValue === 'boolean') {
-              newHistory[date] = { completed: oldValue };
-            } else {
-              newHistory[date] = oldValue;
-            }
-          });
-          return { ...habit, history: newHistory };
-        }
-      }
-      // Убеждаемся, что history всегда объект с правильной структурой
-      if (!habit.history) {
-        return { ...habit, history: {} };
-      }
-      return habit;
-    });
-    
-    setHabits(migratedHabits);
-    await saveHabits(migratedHabits);
+    setHabits(newHabits);
+    await saveHabits(newHabits);
   }, []);
 
   const addHabit = useCallback(async (habit: Habit) => {
-    const newHabits = [...habits, habit];
-    await updateHabits(newHabits);
-  }, [habits, updateHabits]);
+    try {
+      setHabits(prevHabits => {
+        const newHabits = [...prevHabits, habit];
+        saveHabits(newHabits).catch(err => console.error('Error saving habit:', err));
+        return newHabits;
+      });
+    } catch (error) {
+      console.error('Error adding habit:', error);
+      throw error;
+    }
+  }, []);
 
   const updateHabit = useCallback(async (id: string, updates: Partial<Habit>) => {
-    const newHabits = habits.map(habit => 
-      habit.id === id ? { ...habit, ...updates } : habit
-    );
-    await updateHabits(newHabits);
-  }, [habits, updateHabits]);
+    try {
+      setHabits(prevHabits => {
+        const habitIndex = prevHabits.findIndex(habit => habit.id === id);
+        if (habitIndex === -1) {
+          console.warn('Habit not found:', id);
+          return prevHabits;
+        }
+        
+        const updatedHabit = { ...prevHabits[habitIndex], ...updates };
+        const newHabits = prevHabits.map(habit => 
+          habit.id === id ? updatedHabit : habit
+        );
+        
+        saveHabits(newHabits).catch(err => console.error('Error saving habit:', err));
+        return newHabits;
+      });
+    } catch (error) {
+      console.error('Error updating habit:', error);
+      throw error;
+    }
+  }, []);
 
   const deleteHabit = useCallback(async (id: string) => {
-    const newHabits = habits.filter(habit => habit.id !== id);
-    await updateHabits(newHabits);
-  }, [habits, updateHabits]);
+    try {
+      setHabits(prevHabits => {
+        const newHabits = prevHabits.filter(habit => habit.id !== id);
+        saveHabits(newHabits).catch(err => console.error('Error saving habit:', err));
+        return newHabits;
+      });
+    } catch (error) {
+      console.error('Error deleting habit:', error);
+      throw error;
+    }
+  }, []);
 
   // Finance
   const updateFinance = useCallback(async (newFinance: FinanceData) => {
@@ -380,90 +354,161 @@ export function useCloudStorage() {
   }, []);
 
   const addTransaction = useCallback(async (transaction: FinanceData['transactions'][0]) => {
-    const newFinance: FinanceData = {
-      ...finance,
-      transactions: [...finance.transactions, transaction]
-    };
-    await updateFinance(newFinance);
-  }, [finance, updateFinance]);
+    try {
+      setFinance(prevFinance => {
+        const newFinance = {
+          ...prevFinance,
+          transactions: [...prevFinance.transactions, transaction]
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      throw error;
+    }
+  }, []);
 
   const updateTransaction = useCallback(async (id: string, updates: Partial<FinanceData['transactions'][0]>) => {
-    const newFinance: FinanceData = {
-      ...finance,
-      transactions: finance.transactions.map(t => 
-        t.id === id ? { ...t, ...updates } : t
-      )
-    };
-    await updateFinance(newFinance);
-  }, [finance, updateFinance]);
+    try {
+      setFinance(prevFinance => {
+        const transactionIndex = prevFinance.transactions.findIndex(t => t.id === id);
+        if (transactionIndex === -1) {
+          console.warn('Transaction not found:', id);
+          return prevFinance;
+        }
+        
+        const updatedTransaction = { ...prevFinance.transactions[transactionIndex], ...updates };
+        const newFinance = {
+          ...prevFinance,
+          transactions: prevFinance.transactions.map(t => 
+            t.id === id ? updatedTransaction : t
+          )
+        };
+        
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      throw error;
+    }
+  }, []);
 
   const deleteTransaction = useCallback(async (id: string) => {
-    const newFinance: FinanceData = {
-      ...finance,
-      transactions: finance.transactions.filter(t => t.id !== id)
-    };
-    await updateFinance(newFinance);
-  }, [finance, updateFinance]);
+    try {
+      setFinance(prevFinance => {
+        const newFinance = {
+          ...prevFinance,
+          transactions: prevFinance.transactions.filter(t => t.id !== id)
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      throw error;
+    }
+  }, []);
 
   const addCategory = useCallback(async (category: FinanceData['categories'][0]) => {
-    const newFinance: FinanceData = {
-      ...finance,
-      categories: [...finance.categories, category]
-    };
-    await updateFinance(newFinance);
-  }, [finance, updateFinance]);
-
-  const deleteCategory = useCallback(async (categoryId: string) => {
-    // Проверяем, используется ли категория в транзакциях
-    const category = finance.categories.find(c => c.id === categoryId);
-    if (!category) return;
-
-    const isUsed = finance.transactions.some(t => t.category === category.name);
-    if (isUsed) {
-      // Категория используется, не удаляем
-      return false;
+    try {
+      setFinance(prevFinance => {
+        const newFinance = {
+          ...prevFinance,
+          categories: [...prevFinance.categories, category]
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error adding category:', error);
+      throw error;
     }
+  }, []);
 
-    const newFinance: FinanceData = {
-      ...finance,
-      categories: finance.categories.filter(c => c.id !== categoryId)
-    };
-    await updateFinance(newFinance);
-    return true;
-  }, [finance, updateFinance]);
+  const deleteCategory = useCallback(async (id: string) => {
+    try {
+      setFinance(prevFinance => {
+        const newFinance = {
+          ...prevFinance,
+          categories: prevFinance.categories.filter(c => c.id !== id),
+          transactions: prevFinance.transactions.map(t => 
+            t.category === id ? { ...t, category: '' } : t
+          )
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      throw error;
+    }
+  }, []);
 
   const addBudget = useCallback(async (budget: FinanceData['budgets'][0]) => {
-    const newFinance: FinanceData = {
-      ...finance,
-      budgets: [...(finance.budgets || []), budget]
-    };
-    await updateFinance(newFinance);
-  }, [finance, updateFinance]);
+    try {
+      setFinance(prevFinance => {
+        const newFinance = {
+          ...prevFinance,
+          budgets: [...(prevFinance.budgets || []), budget]
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error adding budget:', error);
+      throw error;
+    }
+  }, []);
 
   const updateBudget = useCallback(async (budget: FinanceData['budgets'][0]) => {
-    const newFinance: FinanceData = {
-      ...finance,
-      budgets: (finance.budgets || []).map(b => 
-        b.categoryId === budget.categoryId ? budget : b
-      )
-    };
-    await updateFinance(newFinance);
-  }, [finance, updateFinance]);
+    try {
+      setFinance(prevFinance => {
+        const newFinance = {
+          ...prevFinance,
+          budgets: (prevFinance.budgets || []).map(b => 
+            b.categoryId === budget.categoryId ? budget : b
+          )
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error updating budget:', error);
+      throw error;
+    }
+  }, []);
 
   const deleteBudget = useCallback(async (categoryId: string) => {
-    const newFinance: FinanceData = {
-      ...finance,
-      budgets: (finance.budgets || []).filter(b => b.categoryId !== categoryId)
-    };
-    await updateFinance(newFinance);
-  }, [finance, updateFinance]);
+    try {
+      setFinance(prevFinance => {
+        const newFinance = {
+          ...prevFinance,
+          budgets: (prevFinance.budgets || []).filter(b => b.categoryId !== categoryId)
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error deleting budget:', error);
+      throw error;
+    }
+  }, []);
 
   // Onboarding
   const markOnboardingShown = useCallback(async (section: keyof OnboardingFlags) => {
-    const newOnboarding = { ...onboarding, [section]: true };
-    setOnboarding(newOnboarding);
-    await saveOnboardingFlags(newOnboarding);
-  }, [onboarding]);
+    try {
+      setOnboarding(prev => {
+        const newOnboarding = { ...prev, [section]: true };
+        saveOnboardingFlags(newOnboarding).catch(err => console.error('Error saving onboarding:', err));
+        return newOnboarding;
+      });
+    } catch (error) {
+      console.error('Error marking onboarding as shown:', error);
+      throw error;
+    }
+  }, []);
 
   // Yearly Reports
   const updateYearlyReports = useCallback(async (newReports: YearlyReport[]) => {
@@ -472,21 +517,53 @@ export function useCloudStorage() {
   }, []);
 
   const addYearlyReport = useCallback(async (report: YearlyReport) => {
-    const newReports = [...yearlyReports, report];
-    await updateYearlyReports(newReports);
-  }, [yearlyReports, updateYearlyReports]);
+    try {
+      setYearlyReports(prevReports => {
+        const newReports = [...prevReports, report];
+        saveYearlyReports(newReports).catch(err => console.error('Error saving reports:', err));
+        return newReports;
+      });
+    } catch (error) {
+      console.error('Error adding yearly report:', error);
+      throw error;
+    }
+  }, []);
 
   const updateYearlyReport = useCallback(async (id: string, updates: Partial<YearlyReport>) => {
-    const newReports = yearlyReports.map(report => 
-      report.id === id ? { ...report, ...updates, updatedAt: Date.now() } : report
-    );
-    await updateYearlyReports(newReports);
-  }, [yearlyReports, updateYearlyReports]);
+    try {
+      setYearlyReports(prevReports => {
+        const reportIndex = prevReports.findIndex(r => r.id === id);
+        if (reportIndex === -1) {
+          console.warn('Yearly report not found:', id);
+          return prevReports;
+        }
+        
+        const updatedReport = { ...prevReports[reportIndex], ...updates };
+        const newReports = prevReports.map(r => 
+          r.id === id ? updatedReport : r
+        );
+        
+        saveYearlyReports(newReports).catch(err => console.error('Error saving reports:', err));
+        return newReports;
+      });
+    } catch (error) {
+      console.error('Error updating yearly report:', error);
+      throw error;
+    }
+  }, []);
 
   const deleteYearlyReport = useCallback(async (id: string) => {
-    const newReports = yearlyReports.filter(report => report.id !== id);
-    await updateYearlyReports(newReports);
-  }, [yearlyReports, updateYearlyReports]);
+    try {
+      setYearlyReports(prevReports => {
+        const newReports = prevReports.filter(r => r.id !== id);
+        saveYearlyReports(newReports).catch(err => console.error('Error saving reports:', err));
+        return newReports;
+      });
+    } catch (error) {
+      console.error('Error deleting yearly report:', error);
+      throw error;
+    }
+  }, []);
 
   // Task Categories
   const updateTaskCategories = useCallback(async (newCategories: TaskCategory[]) => {
@@ -495,21 +572,53 @@ export function useCloudStorage() {
   }, []);
 
   const addTaskCategory = useCallback(async (category: TaskCategory) => {
-    const newCategories = [...taskCategories, category];
-    await updateTaskCategories(newCategories);
-  }, [taskCategories, updateTaskCategories]);
+    try {
+      setTaskCategories(prevCategories => {
+        const newCategories = [...prevCategories, category];
+        saveTaskCategories(newCategories).catch(err => console.error('Error saving categories:', err));
+        return newCategories;
+      });
+    } catch (error) {
+      console.error('Error adding task category:', error);
+      throw error;
+    }
+  }, []);
 
   const updateTaskCategory = useCallback(async (id: string, updates: Partial<TaskCategory>) => {
-    const newCategories = taskCategories.map(cat => 
-      cat.id === id ? { ...cat, ...updates } : cat
-    );
-    await updateTaskCategories(newCategories);
-  }, [taskCategories, updateTaskCategories]);
+    try {
+      setTaskCategories(prevCategories => {
+        const categoryIndex = prevCategories.findIndex(c => c.id === id);
+        if (categoryIndex === -1) {
+          console.warn('Task category not found:', id);
+          return prevCategories;
+        }
+        
+        const updatedCategory = { ...prevCategories[categoryIndex], ...updates };
+        const newCategories = prevCategories.map(c => 
+          c.id === id ? updatedCategory : c
+        );
+        
+        saveTaskCategories(newCategories).catch(err => console.error('Error saving categories:', err));
+        return newCategories;
+      });
+    } catch (error) {
+      console.error('Error updating task category:', error);
+      throw error;
+    }
+  }, []);
 
   const deleteTaskCategory = useCallback(async (id: string) => {
-    const newCategories = taskCategories.filter(cat => cat.id !== id);
-    await updateTaskCategories(newCategories);
-  }, [taskCategories, updateTaskCategories]);
+    try {
+      setTaskCategories(prevCategories => {
+        const newCategories = prevCategories.filter(c => c.id !== id);
+        saveTaskCategories(newCategories).catch(err => console.error('Error saving categories:', err));
+        return newCategories;
+      });
+    } catch (error) {
+      console.error('Error deleting task category:', error);
+      throw error;
+    }
+  }, []);
 
   // Task Tags
   const updateTaskTags = useCallback(async (newTags: TaskTag[]) => {
@@ -518,21 +627,53 @@ export function useCloudStorage() {
   }, []);
 
   const addTaskTag = useCallback(async (tag: TaskTag) => {
-    const newTags = [...taskTags, tag];
-    await updateTaskTags(newTags);
-  }, [taskTags, updateTaskTags]);
+    try {
+      setTaskTags(prevTags => {
+        const newTags = [...prevTags, tag];
+        saveTaskTags(newTags).catch(err => console.error('Error saving tags:', err));
+        return newTags;
+      });
+    } catch (error) {
+      console.error('Error adding task tag:', error);
+      throw error;
+    }
+  }, []);
 
   const updateTaskTag = useCallback(async (id: string, updates: Partial<TaskTag>) => {
-    const newTags = taskTags.map(tag => 
-      tag.id === id ? { ...tag, ...updates } : tag
-    );
-    await updateTaskTags(newTags);
-  }, [taskTags, updateTaskTags]);
+    try {
+      setTaskTags(prevTags => {
+        const tagIndex = prevTags.findIndex(t => t.id === id);
+        if (tagIndex === -1) {
+          console.warn('Task tag not found:', id);
+          return prevTags;
+        }
+        
+        const updatedTag = { ...prevTags[tagIndex], ...updates };
+        const newTags = prevTags.map(t => 
+          t.id === id ? updatedTag : t
+        );
+        
+        saveTaskTags(newTags).catch(err => console.error('Error saving tags:', err));
+        return newTags;
+      });
+    } catch (error) {
+      console.error('Error updating task tag:', error);
+      throw error;
+    }
+  }, []);
 
   const deleteTaskTag = useCallback(async (id: string) => {
-    const newTags = taskTags.filter(tag => tag.id !== id);
-    await updateTaskTags(newTags);
-  }, [taskTags, updateTaskTags]);
+    try {
+      setTaskTags(prevTags => {
+        const newTags = prevTags.filter(t => t.id !== id);
+        saveTaskTags(newTags).catch(err => console.error('Error saving tags:', err));
+        return newTags;
+      });
+    } catch (error) {
+      console.error('Error deleting task tag:', error);
+      throw error;
+    }
+  }, []);
 
   // InBox Notes
   const updateInBoxNotes = useCallback(async (newNotes: InBoxNote[]) => {
@@ -541,21 +682,53 @@ export function useCloudStorage() {
   }, []);
 
   const addInBoxNote = useCallback(async (note: InBoxNote) => {
-    const newNotes = [...inBoxNotes, note];
-    await updateInBoxNotes(newNotes);
-  }, [inBoxNotes, updateInBoxNotes]);
+    try {
+      setInBoxNotes(prevNotes => {
+        const newNotes = [...prevNotes, note];
+        saveInBoxNotes(newNotes).catch(err => console.error('Error saving notes:', err));
+        return newNotes;
+      });
+    } catch (error) {
+      console.error('Error adding inbox note:', error);
+      throw error;
+    }
+  }, []);
 
   const updateInBoxNote = useCallback(async (id: string, updates: Partial<InBoxNote>) => {
-    const newNotes = inBoxNotes.map(note => 
-      note.id === id ? { ...note, ...updates } : note
-    );
-    await updateInBoxNotes(newNotes);
-  }, [inBoxNotes, updateInBoxNotes]);
+    try {
+      setInBoxNotes(prevNotes => {
+        const noteIndex = prevNotes.findIndex(n => n.id === id);
+        if (noteIndex === -1) {
+          console.warn('Inbox note not found:', id);
+          return prevNotes;
+        }
+        
+        const updatedNote = { ...prevNotes[noteIndex], ...updates };
+        const newNotes = prevNotes.map(n => 
+          n.id === id ? updatedNote : n
+        );
+        
+        saveInBoxNotes(newNotes).catch(err => console.error('Error saving notes:', err));
+        return newNotes;
+      });
+    } catch (error) {
+      console.error('Error updating inbox note:', error);
+      throw error;
+    }
+  }, []);
 
   const deleteInBoxNote = useCallback(async (id: string) => {
-    const newNotes = inBoxNotes.filter(note => note.id !== id);
-    await updateInBoxNotes(newNotes);
-  }, [inBoxNotes, updateInBoxNotes]);
+    try {
+      setInBoxNotes(prevNotes => {
+        const newNotes = prevNotes.filter(n => n.id !== id);
+        saveInBoxNotes(newNotes).catch(err => console.error('Error saving notes:', err));
+        return newNotes;
+      });
+    } catch (error) {
+      console.error('Error deleting inbox note:', error);
+      throw error;
+    }
+  }, [updateInBoxNotes]);
 
   // Возвращаем объект напрямую - React увидит изменения в tasks, так как это новое состояние
   return {
@@ -624,4 +797,3 @@ export function useCloudStorage() {
     reload: loadAllData
   };
 }
-
