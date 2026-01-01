@@ -433,24 +433,25 @@ export default function TasksPage({ storage }: TasksPageProps) {
       // КРИТИЧЕСКИ ВАЖНО: если dueDate был установлен пользователем, явно включаем его в обновления
       // ВАЖНО: всегда устанавливаем dueDate, даже если он undefined (это означает сброс даты)
       if (modifiedFields.has('dueDate')) {
-        // Пользователь явно установил или сбросил дату - используем это значение
-        // ВАЖНО: устанавливаем явно, даже если finalDueDate === undefined (это означает сброс)
-        // НО: если finalDueDate === undefined, но taskData.dueDate установлен, используем taskData.dueDate
-        const dueDateToSet = finalDueDate !== undefined ? finalDueDate : taskData.dueDate;
-        taskUpdates.dueDate = dueDateToSet;
-        taskUpdates.plannedDate = dueDateToSet; // plannedDate всегда равен dueDate
+        // Пользователь явно установил или сбросил дату
+        // finalDueDate уже установлен в taskData.dueDate (строка 231), используем его напрямую
+        taskUpdates.dueDate = finalDueDate;
+        taskUpdates.plannedDate = finalDueDate; // plannedDate всегда равен dueDate
         console.log('[DEBUG] Explicitly setting dueDate in updates:', { 
           finalDueDate,
           taskDataDueDate: taskData.dueDate,
-          dueDateToSet,
-          isUndefined: dueDateToSet === undefined,
-          isNumber: typeof dueDateToSet === 'number'
+          isUndefined: finalDueDate === undefined,
+          isNumber: typeof finalDueDate === 'number',
+          modifiedFields: Array.from(modifiedFields)
         });
       } else if (finalDueDate !== undefined) {
-        // Если дата не была изменена пользователем, но есть значение, сохраняем его
+        // Если дата не была изменена пользователем, но есть значение (например, из dateForTime), сохраняем его
         taskUpdates.dueDate = finalDueDate;
         taskUpdates.plannedDate = finalDueDate;
-        console.log('[DEBUG] Setting dueDate from original task:', { dueDate: finalDueDate });
+        console.log('[DEBUG] Setting dueDate from original task or dateForTime:', { 
+          dueDate: finalDueDate,
+          source: originalTask.dueDate === finalDueDate ? 'originalTask' : 'dateForTime'
+        });
       } else {
         // Если дата не была изменена и нет значения, не трогаем её
         console.log('[DEBUG] Not setting dueDate - not modified and no value');
@@ -555,13 +556,33 @@ export default function TasksPage({ storage }: TasksPageProps) {
       let dueDate: number | undefined;
       if (modifiedFields.has('dueDate')) {
         // Пользователь явно установил или сбросил дату
+        // Если taskData.dueDate определен - используем его (пользователь установил дату)
+        // Если taskData.dueDate undefined - это означает, что пользователь сбросил дату
         dueDate = taskData.dueDate;
+        console.log('[DEBUG] Creating task - dueDate from modifiedFields:', {
+          hasDueDateInModified: true,
+          taskDataDueDate: taskData.dueDate,
+          finalDueDate: dueDate
+        });
       } else if (taskData.startTime || taskData.duration) {
         // Если установлено время или длительность, но не дата, используем selectedDate
         dueDate = selectedDate.getTime();
+        console.log('[DEBUG] Creating task - dueDate from selectedDate (time/duration set):', {
+          hasDueDateInModified: false,
+          hasStartTime: !!taskData.startTime,
+          hasDuration: !!taskData.duration,
+          selectedDate: selectedDate.getTime(),
+          finalDueDate: dueDate
+        });
       } else {
         // Если ничего не установлено, dueDate остается undefined
         dueDate = undefined;
+        console.log('[DEBUG] Creating task - dueDate undefined (nothing set):', {
+          hasDueDateInModified: false,
+          hasStartTime: !!taskData.startTime,
+          hasDuration: !!taskData.duration,
+          finalDueDate: dueDate
+        });
       }
       
       const startTime = taskData.startTime && dueDate
@@ -607,7 +628,35 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
       try {
         await storage.addTask(newTask);
-        console.log('Task added successfully');
+        console.log('[DEBUG] Task added successfully:', {
+          taskId: newTask.id,
+          taskDueDate: newTask.dueDate,
+          taskPlannedDate: newTask.plannedDate
+        });
+        
+        // Проверяем, что задача действительно сохранилась с dueDate
+        // Читаем напрямую из хранилища, чтобы убедиться, что данные сохранились
+        const { getTasks } = await import('../utils/storage');
+        const tasksFromStorage = await getTasks();
+        const savedTaskFromStorage = tasksFromStorage.find(t => t.id === newTask.id);
+        
+        console.log('[DEBUG] After addTask - checking saved task:', {
+          taskId: newTask.id,
+          expectedDueDate: newTask.dueDate,
+          savedTaskFromStorageFound: !!savedTaskFromStorage,
+          savedTaskFromStorageDueDate: savedTaskFromStorage?.dueDate,
+          savedTaskFromStoragePlannedDate: savedTaskFromStorage?.plannedDate
+        });
+        
+        // Если дата не сохранилась, выводим ошибку
+        if (savedTaskFromStorage?.dueDate !== newTask.dueDate) {
+          console.error('[ERROR] DueDate was not saved correctly when creating new task!', {
+            expected: newTask.dueDate,
+            savedInStorage: savedTaskFromStorage?.dueDate,
+            newTaskFull: newTask,
+            savedTaskFromStorageFull: savedTaskFromStorage
+          });
+        }
       } catch (error) {
         console.error('Error adding task:', error);
         // Состояние уже обновлено в addTask, продолжаем

@@ -354,7 +354,13 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
   // #region agent log
   if (key === 'tasks') {
     const tasks = data as any[];
-    console.log('[DEBUG]', JSON.stringify({location:'storage.ts:319',message:'setStorageData called for tasks',data:{key,tasksCount:tasks?.length,firstTaskId:tasks?.[0]?.id,firstTaskText:tasks?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+    const firstTask = tasks?.[0];
+    const lastTask = tasks?.[tasks.length - 1];
+    // Проверяем, что dueDate присутствует в JSON после сериализации
+    const parsedData = JSON.parse(jsonData);
+    const firstTaskInJson = parsedData?.[0];
+    const lastTaskInJson = parsedData?.[parsedData.length - 1];
+    console.log('[DEBUG]', JSON.stringify({location:'storage.ts:319',message:'setStorageData called for tasks',data:{key,tasksCount:tasks?.length,firstTaskId:firstTask?.id,firstTaskText:firstTask?.text,firstTaskDueDate:firstTask?.dueDate,firstTaskDueDateInJson:firstTaskInJson?.dueDate,lastTaskId:lastTask?.id,lastTaskText:lastTask?.text,lastTaskDueDate:lastTask?.dueDate,lastTaskDueDateInJson:lastTaskInJson?.dueDate},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
   }
   // #endregion
 
@@ -409,8 +415,34 @@ export async function getTasks(): Promise<Task[]> {
   const tasks = await getStorageData<Task[]>(STORAGE_KEYS.TASKS);
   const loadedTasks = tasks || [];
   
+  // Логирование для отладки dueDate
+  if (loadedTasks.length > 0) {
+    const firstTask = loadedTasks[0];
+    const lastTask = loadedTasks[loadedTasks.length - 1];
+    console.log('[DEBUG] getTasks - loaded from storage:', {
+      tasksCount: loadedTasks.length,
+      firstTaskId: firstTask?.id,
+      firstTaskDueDate: firstTask?.dueDate,
+      lastTaskId: lastTask?.id,
+      lastTaskDueDate: lastTask?.dueDate
+    });
+  }
+  
   // Миграция существующих задач к новой структуре
   const migratedTasks = migrateTasks(loadedTasks);
+  
+  // Логирование после миграции
+  if (migratedTasks.length > 0) {
+    const firstTask = migratedTasks[0];
+    const lastTask = migratedTasks[migratedTasks.length - 1];
+    console.log('[DEBUG] getTasks - after migration:', {
+      tasksCount: migratedTasks.length,
+      firstTaskId: firstTask?.id,
+      firstTaskDueDate: firstTask?.dueDate,
+      lastTaskId: lastTask?.id,
+      lastTaskDueDate: lastTask?.dueDate
+    });
+  }
   
   // Если была миграция, сохраняем обновленные задачи
   if (JSON.stringify(migratedTasks) !== JSON.stringify(loadedTasks)) {

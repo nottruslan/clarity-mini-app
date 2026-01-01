@@ -16,9 +16,23 @@ export default function Step3Date({ onComplete, onBack, initialValue }: Step3Dat
 
   const handleComplete = () => {
     if (hasDueDate && dueDate) {
-      const date = new Date(dueDate);
-      onComplete(date.getTime());
+      // Создаем дату в UTC, чтобы избежать проблем с часовыми поясами
+      // Формат dueDate: "YYYY-MM-DD"
+      const [year, month, day] = dueDate.split('-').map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+      // Конвертируем в локальное время (начало дня в локальном времени)
+      const localDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+      console.log('[DEBUG] Step3Date handleComplete:', {
+        dueDateString: dueDate,
+        year,
+        month,
+        day,
+        localDateTimestamp: localDate.getTime(),
+        utcDateTimestamp: date.getTime()
+      });
+      onComplete(localDate.getTime());
     } else {
+      console.log('[DEBUG] Step3Date handleComplete: no date set');
       onComplete();
     }
   };

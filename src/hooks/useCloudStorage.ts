@@ -235,11 +235,24 @@ export function useCloudStorage() {
   }, [saveTasksToStorage]);
 
   const addTask = useCallback(async (task: Task) => {
+    console.log('[DEBUG] addTask called with:', {
+      taskId: task.id,
+      taskText: task.text,
+      taskDueDate: task.dueDate,
+      taskPlannedDate: task.plannedDate,
+      taskFull: task
+    });
     try {
       setTasks(prevTasks => {
         const newTasks = [...prevTasks, task];
+        console.log('[DEBUG] addTask - newTasks created:', {
+          newTasksCount: newTasks.length,
+          addedTaskDueDate: task.dueDate,
+          addedTaskPlannedDate: task.plannedDate,
+          lastTaskInArray: newTasks[newTasks.length - 1]?.dueDate
+        });
         // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
-        saveTasksToStorage(newTasks).catch(err => console.error('Error saving task:', err));
+        saveTasksToStorage(newTasks, task.id).catch(err => console.error('Error saving task:', err));
         return newTasks;
       });
     } catch (error) {
