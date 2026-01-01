@@ -116,7 +116,7 @@ export default function HabitDetailsBottomSheet({
     onHistoryUpdate(newHistory);
   };
 
-  const handleCancel = (e?: React.MouseEvent) => {
+  const handleCancel = (e?: React.MouseEvent<HTMLButtonElement>) => {
     if (e) {
       e.stopPropagation();
       e.preventDefault();
@@ -125,6 +125,9 @@ export default function HabitDetailsBottomSheet({
     // Сбрасываем выбор даты и введенное значение
     setSelectedDate('');
     setInputValue('');
+    
+    // Принудительно обновляем компонент календаря
+    // Это должно работать через обновление пропса selectedDate
   };
 
   return (
@@ -279,6 +282,7 @@ export default function HabitDetailsBottomSheet({
           {/* Календарь */}
           <div style={{ marginTop: '20px' }}>
             <MonthCalendar 
+              key={`calendar-${selectedDate || 'none'}`}
               habit={habit}
               selectedDate={selectedDate}
               onDateClick={(dateKey, value) => {
@@ -350,7 +354,12 @@ export default function HabitDetailsBottomSheet({
                 </button>
                 <button
                   className="tg-button"
-                  onClick={(e) => handleCancel(e)}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleCancel(e);
+                  }}
                   style={{
                     background: 'var(--tg-theme-secondary-bg-color)',
                     color: 'var(--tg-theme-text-color)',

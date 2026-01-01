@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Habit } from '../../utils/storage';
 import HabitItem from './HabitItem';
 import EmptyState from '../EmptyState';
@@ -37,13 +36,7 @@ export default function HabitList({
   onOpenMenu,
   onEdit
 }: HabitListProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-
-  const filteredHabits = selectedCategory === 'all' 
-    ? habits 
-    : habits.filter(h => h.category === selectedCategory);
-
-  const sortedHabits = [...filteredHabits].sort((a, b) => {
+  const sortedHabits = [...habits].sort((a, b) => {
     const orderA = a.order ?? 0;
     const orderB = b.order ?? 0;
     return orderA - orderB;
@@ -64,58 +57,15 @@ export default function HabitList({
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        padding: '12px 16px',
-        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-        background: 'var(--tg-theme-bg-color)',
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch'
-      }}>
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          minWidth: 'max-content'
-        }}>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '20px',
-                border: 'none',
-                background: selectedCategory === cat.id
-                  ? 'var(--tg-theme-button-color)'
-                  : 'var(--tg-theme-secondary-bg-color)',
-                color: selectedCategory === cat.id
-                  ? 'var(--tg-theme-button-text-color)'
-                  : 'var(--tg-theme-text-color)',
-                fontSize: '14px',
-                fontWeight: selectedCategory === cat.id ? '600' : '400',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                userSelect: 'none',
-                touchAction: 'pan-y'
-              }}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div style={{ 
         flex: 1, 
         overflowY: 'auto' as const,
         paddingTop: '0px',
         WebkitOverflowScrolling: 'touch' as any
       }}>
-        {filteredHabits.length === 0 ? (
+        {sortedHabits.length === 0 ? (
           <EmptyState 
-            message={`Нет привычек в категории "${categories.find(c => c.id === selectedCategory)?.name}"`}
+            message="У вас пока нет привычек. Создайте первую привычку!"
           />
         ) : (
           sortedHabits.map((habit) => (

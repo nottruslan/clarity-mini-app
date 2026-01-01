@@ -729,7 +729,8 @@ body {
 /* Gradient Button */
 .gradient-button {
   flex: 1;
-  min-height: 52px;
+  min-height: 56px;
+  padding: 16px 24px;
   border: none;
   border-radius: 12px;
   font-size: 17px;
@@ -868,6 +869,26 @@ body {
 
 *::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Убираем outline и выделение у графиков */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-wrapper:active {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.recharts-wrapper * {
+  outline: none !important;
+}
+
+.recharts-wrapper svg {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 /* Анимации для просмотра отчетов */
