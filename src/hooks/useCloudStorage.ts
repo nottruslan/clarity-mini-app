@@ -220,37 +220,61 @@ export function useCloudStorage() {
   }, [saveTasksToStorage]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:222',message:'updateTask called',data:{id,updatesKeys:Object.keys(updates),updatesText:updates.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     try {
-      // Получаем текущее состояние задач
-      const currentTasks = tasks;
-      const taskIndex = currentTasks.findIndex(task => task.id === id);
+      // Используем функциональное обновление, чтобы получить актуальное состояние
+      let newTasks: Task[] = [];
       
-      if (taskIndex === -1) {
-        console.warn('Task not found:', id);
-        return;
-      }
+      setTasks(prevTasks => {
+        // #region agent log
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:230',message:'updateTask setTasks callback',data:{id,prevTasksCount:prevTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        const taskIndex = prevTasks.findIndex(task => task.id === id);
+        
+        if (taskIndex === -1) {
+          console.warn('Task not found:', id);
+          // #region agent log
+          fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:237',message:'updateTask task not found',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
+          return prevTasks;
+        }
+        
+        // Создаем обновленную задачу
+        const originalTask = prevTasks[taskIndex];
+        const updatedTask = { ...originalTask, ...updates };
+        
+        // Создаем НОВЫЙ массив с обновленной задачей
+        newTasks = [...prevTasks];
+        newTasks[taskIndex] = updatedTask;
+        
+        // Обновляем ref
+        tasksRef.current = newTasks;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:252',message:'updateTask newTasks created',data:{id,newTasksCount:newTasks.length,updatedTaskText:updatedTask.text,updatedTaskId:updatedTask.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        
+        return newTasks;
+      });
       
-      // Создаем обновленную задачу
-      const originalTask = currentTasks[taskIndex];
-      const updatedTask = { ...originalTask, ...updates };
-      
-      // Создаем НОВЫЙ массив с обновленной задачей
-      const newTasks = [...currentTasks];
-      newTasks[taskIndex] = updatedTask;
-      
-      // Обновляем ref
-      tasksRef.current = newTasks;
-      
-      // Обновляем состояние React
-      setTasks(newTasks);
-      
-      // Сохраняем в хранилище СИНХРОННО
+      // Сохраняем в хранилище СИНХРОННО после обновления состояния
+      // #region agent log
+      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:260',message:'updateTask before saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       await saveTasksToStorage(newTasks, id);
+      // #region agent log
+      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:263',message:'updateTask after saveTasksToStorage',data:{id,tasksRefCount:tasksRef.current.length,tasksRefFirstId:tasksRef.current[0]?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
     } catch (error) {
       console.error('Error updating task:', error);
+      // #region agent log
+      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:267',message:'updateTask error',data:{id,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       throw error;
     }
-  }, [tasks, saveTasksToStorage]);
+  }, [saveTasksToStorage]);
 
   const deleteTask = useCallback(async (id: string) => {
     try {

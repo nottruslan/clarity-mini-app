@@ -29,8 +29,7 @@ type ViewMode = 'day' | 'list' | 'inbox';
 
 export default function TasksPage({ storage }: TasksPageProps) {
   // #region agent log
-  // Логируем каждый рендер компонента для отладки
-  console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:30',message:'TasksPage render',data:{tasksCount:storage.tasks.length,firstTaskId:storage.tasks[0]?.id,firstTaskText:storage.tasks[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+  fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:30',message:'TasksPage render',data:{tasksCount:storage.tasks.length,firstTaskId:storage.tasks[0]?.id,firstTaskText:storage.tasks[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
   // #endregion
   
   const [isCreating, setIsCreating] = useState(false);
@@ -291,7 +290,13 @@ export default function TasksPage({ storage }: TasksPageProps) {
       };
       
       // Обновляем задачу
+      // #region agent log
+      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:293',message:'handleStep9Complete before updateTask',data:{editingTaskId,updatedTaskText:updatedTask.text,storageTasksCount:storage.tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       await storage.updateTask(editingTaskId, updatedTask);
+      // #region agent log
+      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:296',message:'handleStep9Complete after updateTask',data:{editingTaskId,storageTasksCount:storage.tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       
       // Закрываем визард
       setIsCreating(false);
