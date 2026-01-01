@@ -319,11 +319,11 @@ export default function FinancePage({ storage }: FinancePageProps) {
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
-        zIndex: 1000
+        zIndex: 10001,
+        pointerEvents: 'auto'
       }}>
         <button 
           onClick={() => handleStartCreate('income')}
-          className="fab"
           style={{
             width: '56px',
             height: '56px',
@@ -336,14 +336,15 @@ export default function FinancePage({ storage }: FinancePageProps) {
             boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            position: 'relative',
+            zIndex: 10001
           }}
         >
           💰
         </button>
         <button 
           onClick={() => handleStartCreate('expense')}
-          className="fab"
           style={{
             width: '56px',
             height: '56px',
@@ -356,7 +357,9 @@ export default function FinancePage({ storage }: FinancePageProps) {
             boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            position: 'relative',
+            zIndex: 10001
           }}
         >
           💸
@@ -491,7 +494,8 @@ export default function FinancePage({ storage }: FinancePageProps) {
               position: 'relative',
               paddingTop: '0px',
               paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
-              overflow: 'hidden'
+              overflowY: 'auto',
+              overflowX: 'hidden'
             }}>
               <div style={{
                 padding: '12px 16px',

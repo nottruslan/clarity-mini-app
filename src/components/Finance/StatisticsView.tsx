@@ -25,7 +25,8 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
     <div style={{
       background: 'var(--tg-theme-section-bg-color)',
       padding: '20px 16px',
-      borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
+      paddingBottom: '40px',
+      minHeight: '100%'
     }}>
       <div style={{
         display: 'flex',
