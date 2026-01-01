@@ -176,8 +176,30 @@ export function useCloudStorage() {
         if (editingTaskId && editingTask) {
           const savedTask = verifyTasks.find(t => t.id === editingTaskId);
           // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:163',message:'saveTasksToStorage verification for editingTask',data:{editingTaskId,editingTaskText:editingTask.text,savedTaskFound:!!savedTask,savedTaskText:savedTask?.text,textMatches:editingTask.text === savedTask?.text,allFieldsMatch:JSON.stringify(editingTask) === JSON.stringify(savedTask)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:163',message:'saveTasksToStorage verification for editingTask',data:{
+            editingTaskId,
+            editingTaskText:editingTask.text,
+            editingTaskDueDate:editingTask.dueDate,
+            editingTaskPlannedDate:editingTask.plannedDate,
+            savedTaskFound:!!savedTask,
+            savedTaskText:savedTask?.text,
+            savedTaskDueDate:savedTask?.dueDate,
+            savedTaskPlannedDate:savedTask?.plannedDate,
+            textMatches:editingTask.text === savedTask?.text,
+            dueDateMatches:editingTask.dueDate === savedTask?.dueDate,
+            allFieldsMatch:JSON.stringify(editingTask) === JSON.stringify(savedTask)
+          },timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
           // #endregion
+          
+          // Дополнительная проверка dueDate
+          if (editingTask.dueDate !== savedTask?.dueDate) {
+            console.error('[ERROR] DueDate mismatch after save!', {
+              editingTaskDueDate: editingTask.dueDate,
+              savedTaskDueDate: savedTask?.dueDate,
+              editingTaskFull: editingTask,
+              savedTaskFull: savedTask
+            });
+          }
         }
         // Проверяем все задачи, которые были в newTasks
         const savedTasksInfo = newTasks.slice(0, 3).map(originalTask => {
