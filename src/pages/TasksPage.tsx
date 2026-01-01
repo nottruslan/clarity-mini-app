@@ -463,24 +463,14 @@ export default function TasksPage({ storage }: TasksPageProps) {
         // #endregion
         console.log('Task updated successfully:', editingTaskId);
         
-        // Проверяем, что задача действительно обновилась в состоянии
-        // Используем несколько проверок с разными задержками
-        setTimeout(() => {
-          const updatedTask = storage.tasks.find(t => t.id === editingTaskId);
-          const updatedTaskInList = tasksForList.find(t => t.id === editingTaskId);
-          // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:463',message:'handleStep9Complete task in state after update (200ms)',data:{editingTaskId,found:!!updatedTask,updatedTaskText:updatedTask?.text,foundInList:!!updatedTaskInList,updatedTaskInListText:updatedTaskInList?.text,expectedText:taskData.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-          // #endregion
-        }, 200);
-        
-        // Проверяем еще раз через больший интервал, чтобы дать React время обновить компонент
-        setTimeout(() => {
-          const updatedTask = storage.tasks.find(t => t.id === editingTaskId);
-          const updatedTaskInList = tasksForList.find(t => t.id === editingTaskId);
-          // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:471',message:'handleStep9Complete task in state after update (500ms)',data:{editingTaskId,found:!!updatedTask,updatedTaskText:updatedTask?.text,foundInList:!!updatedTaskInList,updatedTaskInListText:updatedTaskInList?.text,expectedText:taskData.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-          // #endregion
-        }, 500);
+        // Закрываем визард редактирования сразу после успешного обновления
+        // Это заставит компонент перерисоваться с актуальными данными
+        setIsCreating(false);
+        setIsEditing(false);
+        setEditingTaskId(null);
+        setCreateStep(0);
+        setTaskData({});
+        setModifiedFields(new Set());
       } catch (error) {
         console.error('Error updating task:', error);
         // #region agent log
