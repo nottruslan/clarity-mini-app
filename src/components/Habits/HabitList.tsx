@@ -170,7 +170,7 @@ export default function HabitList({
       <div style={{
         position: 'sticky',
         top: 0,
-        zIndex: 10,
+        zIndex: 100,
         padding: '12px 16px',
         borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
         background: 'var(--tg-theme-bg-color)',
