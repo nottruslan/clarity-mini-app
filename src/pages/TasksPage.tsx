@@ -488,11 +488,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
           updatedTaskDueDate: updatedTask.dueDate,
           updatedTaskPlannedDate: updatedTask.plannedDate,
           taskUpdatesDueDate: taskUpdates.dueDate,
+          taskUpdatesPlannedDate: taskUpdates.plannedDate,
           updatedTaskKeys: Object.keys(updatedTask),
-          updatedTaskFull: updatedTask
+          taskUpdatesKeys: Object.keys(taskUpdates),
+          updatedTaskFull: updatedTask,
+          taskUpdatesFull: taskUpdates
         });
         
-        await storage.updateTask(editingTaskId, updatedTask);
+        // ВАЖНО: передаем только изменения (taskUpdates), а не весь объект updatedTask
+        // Это гарантирует, что все поля из taskUpdates будут применены
+        await storage.updateTask(editingTaskId, taskUpdates);
         
         // Проверяем, что задача действительно сохранилась с dueDate
         const savedTask = storage.tasks.find(t => t.id === editingTaskId);
