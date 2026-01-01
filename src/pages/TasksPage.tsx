@@ -216,12 +216,28 @@ export default function TasksPage({ storage }: TasksPageProps) {
       // Если пользователь явно изменил дату, используем новое значение (даже если оно undefined - это означает сброс даты)
       let finalDueDate: number | undefined;
       if (modifiedFields.has('dueDate')) {
-        // Пользователь явно изменил дату - используем новое значение
+        // Пользователь явно изменил дату - используем новое значение из taskData
+        // Важно: используем taskData.dueDate напрямую, даже если оно undefined (это означает сброс даты)
         finalDueDate = taskData.dueDate;
+        console.log('[DEBUG] DueDate from taskData:', {
+          hasDueDate: modifiedFields.has('dueDate'),
+          taskDataDueDate: taskData.dueDate,
+          finalDueDate,
+          taskDataKeys: Object.keys(taskData),
+          taskDataFull: taskData
+        });
       } else {
         // Пользователь не изменял дату - используем старое значение
         finalDueDate = originalTask.dueDate;
+        console.log('[DEBUG] DueDate from originalTask:', {
+          hasDueDate: modifiedFields.has('dueDate'),
+          originalTaskDueDate: originalTask.dueDate,
+          finalDueDate
+        });
       }
+      
+      // ЗАЩИТА: если finalDueDate был установлен из taskData, не перезаписываем его
+      // Это важно, чтобы явно установленная дата не была потеряна
       
       // Вычисляем startTime и endTime
       // Используем finalDueDate или selectedDate как дату по умолчанию для вычисления timestamp
@@ -372,28 +388,70 @@ export default function TasksPage({ storage }: TasksPageProps) {
       }
       
       // Если была добавлена дата или время, обновляем dueDate и plannedDate
-      // Но только если пользователь не установил дату явно (чтобы не перезаписать явно установленную дату)
+      // НО: НИКОГДА не перезаписываем finalDueDate, если пользователь явно установил дату
+      // Это критически важно для сохранения явно установленной даты
       if (dateForTime && finalDueDate === undefined && !modifiedFields.has('dueDate')) {
+        // Только если дата не была установлена пользователем, используем dateForTime
         finalDueDate = dateForTime;
+        console.log('[DEBUG] Setting finalDueDate from dateForTime:', { dateForTime, finalDueDate });
+      } else {
+        console.log('[DEBUG] NOT setting finalDueDate from dateForTime:', {
+          dateForTime,
+          finalDueDate,
+          hasDueDateInModified: modifiedFields.has('dueDate'),
+          reason: modifiedFields.has('dueDate') ? 'dueDate was explicitly set by user' : 'finalDueDate is already set'
+        });
       }
       
       // Создаем обновленную задачу: берем originalTask и применяем изменения
-      const updatedTask: Task = {
-        ...originalTask,
+      console.log('[DEBUG] Creating updatedTask:', {
+        finalDueDate,
+        taskDataDueDate: taskData.dueDate,
+        originalTaskDueDate: originalTask.dueDate,
+        hasDueDateInModified: modifiedFields.has('dueDate'),
+        modifiedFields: Array.from(modifiedFields),
+        taskDataFull: JSON.stringify(taskData)
+      });
+      
+      // Создаем объект обновлений, явно включая dueDate если он был установлен
+      const taskUpdates: Partial<Task> = {
         // Применяем изменения из taskData
         text: modifiedFields.has('name') ? (taskData.name || originalTask.text) : originalTask.text,
         priority: modifiedFields.has('priority') ? taskData.priority : originalTask.priority,
-        dueDate: finalDueDate,
-        plannedDate: finalDueDate, // plannedDate всегда равен dueDate (может быть undefined если дата сброшена)
-        startTime: finalStartTime,
-        endTime: finalEndTime,
-        duration: modifiedFields.has('duration') ? taskData.duration : originalTask.duration,
-        categoryId: modifiedFields.has('categoryId') ? taskData.categoryId : originalTask.categoryId,
-        description: modifiedFields.has('description') ? taskData.description : originalTask.description,
-        subtasks: modifiedFields.has('subtasks') ? taskData.subtasks : originalTask.subtasks,
-        recurrence: modifiedFields.has('recurrence') ? taskData.recurrence : originalTask.recurrence,
-        energyLevel: energyLevel !== undefined ? energyLevel : originalTask.energyLevel
       };
+      
+      // КРИТИЧЕСКИ ВАЖНО: если dueDate был установлен пользователем, явно включаем его в обновления
+      if (modifiedFields.has('dueDate')) {
+        // Пользователь явно установил или сбросил дату - используем это значение
+        taskUpdates.dueDate = finalDueDate;
+        taskUpdates.plannedDate = finalDueDate; // plannedDate всегда равен dueDate
+        console.log('[DEBUG] Explicitly setting dueDate in updates:', { dueDate: finalDueDate });
+      } else if (finalDueDate !== undefined) {
+        // Если дата не была изменена пользователем, но есть значение, сохраняем его
+        taskUpdates.dueDate = finalDueDate;
+        taskUpdates.plannedDate = finalDueDate;
+      }
+      
+      // Добавляем остальные поля
+      taskUpdates.startTime = finalStartTime;
+      taskUpdates.endTime = finalEndTime;
+      taskUpdates.duration = modifiedFields.has('duration') ? taskData.duration : originalTask.duration;
+      taskUpdates.categoryId = modifiedFields.has('categoryId') ? taskData.categoryId : originalTask.categoryId;
+      taskUpdates.description = modifiedFields.has('description') ? taskData.description : originalTask.description;
+      taskUpdates.subtasks = modifiedFields.has('subtasks') ? taskData.subtasks : originalTask.subtasks;
+      taskUpdates.recurrence = modifiedFields.has('recurrence') ? taskData.recurrence : originalTask.recurrence;
+      taskUpdates.energyLevel = energyLevel !== undefined ? energyLevel : originalTask.energyLevel;
+      
+      const updatedTask: Task = {
+        ...originalTask,
+        ...taskUpdates
+      };
+      
+      console.log('[DEBUG] Final updatedTask:', {
+        dueDate: updatedTask.dueDate,
+        plannedDate: updatedTask.plannedDate,
+        taskUpdatesDueDate: taskUpdates.dueDate
+      });
       
       // Обновляем задачу
       try {
