@@ -22,40 +22,23 @@ export default function Step1Name({ onNext, onBack }: Step1NameProps) {
       title="Название привычки"
       description="Введите название вашей привычки"
       actions={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {onBack && (
-            <button
+        onBack ? (
+          <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+            <GradientButton
+              variant="secondary"
               onClick={onBack}
-              style={{
-                padding: '16px 24px',
-                minHeight: '56px',
-                borderRadius: '12px',
-                border: '1px solid var(--tg-theme-secondary-bg-color)',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)',
-                fontSize: '17px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'opacity 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.7';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1';
-              }}
             >
               Назад
-            </button>
-          )}
+            </GradientButton>
+            <GradientButton onClick={handleNext}>
+              Продолжить
+            </GradientButton>
+          </div>
+        ) : (
           <GradientButton onClick={handleNext}>
             Продолжить
           </GradientButton>
-        </div>
+        )
       }
     >
       <input

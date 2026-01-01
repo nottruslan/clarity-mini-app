@@ -282,7 +282,6 @@ export default function HabitDetailsBottomSheet({
           {/* Календарь */}
           <div style={{ marginTop: '20px' }}>
             <MonthCalendar 
-              key={`calendar-${selectedDate || 'none'}`}
               habit={habit}
               selectedDate={selectedDate}
               onDateClick={(dateKey, value) => {
