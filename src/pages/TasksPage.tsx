@@ -296,38 +296,86 @@ export default function TasksPage({ storage }: TasksPageProps) {
       }
 
       // Формируем обновления: только те поля, которые были изменены или должны быть обновлены
-      const updates: Partial<Task> = {
-        text: modifiedFields.has('name') ? taskData.name : originalTask.text,
-        priority: modifiedFields.has('priority') ? taskData.priority : originalTask.priority,
-        dueDate: finalDueDate,
-        // plannedDate должна соответствовать dueDate, если dueDate была изменена
-        // Если dueDate удалена, plannedDate тоже удаляется
-        // Если dueDate не изменялась, сохраняем исходное значение plannedDate
-        plannedDate: modifiedFields.has('dueDate') 
-          ? finalDueDate  // Если дата изменена, plannedDate = новой дате (может быть undefined)
-          : originalTask.plannedDate,  // Если дата не изменялась, сохраняем исходное значение
-        startTime: finalStartTime,
-        endTime: finalEndTime,
-        duration: modifiedFields.has('duration') ? taskData.duration : originalTask.duration,
-        categoryId: modifiedFields.has('categoryId') ? taskData.categoryId : originalTask.categoryId,
-        description: modifiedFields.has('description') ? taskData.description : originalTask.description,
-        subtasks: modifiedFields.has('subtasks') ? taskData.subtasks : originalTask.subtasks,
-        recurrence: modifiedFields.has('recurrence') ? taskData.recurrence : originalTask.recurrence,
-        // energyLevel передается как параметр, если он undefined, значит пользователь не выбрал значение
-        // В этом случае сохраняем исходное значение
-        energyLevel: energyLevel !== undefined ? energyLevel : originalTask.energyLevel,
-        // Явно сохраняем важные поля из originalTask, которые не редактируются в визарде
-        // но могут быть изменены в других местах (например, статус через чекбокс)
-        // Включаем их только если они определены и не null, чтобы не перезаписывать на undefined/null
-        ...(originalTask.status !== undefined && originalTask.status !== null && { status: originalTask.status }),
-        ...(originalTask.completed !== undefined && originalTask.completed !== null && { completed: originalTask.completed }),
-        ...(originalTask.pinned !== undefined && originalTask.pinned !== null && { pinned: originalTask.pinned }),
-        ...(originalTask.parentTaskId !== undefined && originalTask.parentTaskId !== null && { parentTaskId: originalTask.parentTaskId }),
-        ...(originalTask.recurrenceInstanceDate !== undefined && originalTask.recurrenceInstanceDate !== null && { recurrenceInstanceDate: originalTask.recurrenceInstanceDate }),
-        ...(originalTask.tags !== undefined && originalTask.tags !== null && { tags: originalTask.tags }),
-        ...(originalTask.timeSpent !== undefined && originalTask.timeSpent !== null && { timeSpent: originalTask.timeSpent }),
-        ...(originalTask.movedToList !== undefined && originalTask.movedToList !== null && { movedToList: originalTask.movedToList })
-      };
+      const updates: Partial<Task> = {};
+      
+      // Добавляем только измененные поля
+      if (modifiedFields.has('name')) {
+        updates.text = taskData.name;
+      }
+      
+      if (modifiedFields.has('priority')) {
+        updates.priority = taskData.priority;
+      }
+      
+      // dueDate и plannedDate обрабатываем отдельно, так как они могут быть изменены косвенно
+      // dueDate всегда обновляем, так как это может быть изменено
+      updates.dueDate = finalDueDate;
+      // plannedDate должна соответствовать dueDate, если dueDate была изменена
+      updates.plannedDate = modifiedFields.has('dueDate') 
+        ? finalDueDate  // Если дата изменена, plannedDate = новой дате (может быть undefined)
+        : originalTask.plannedDate;  // Если дата не изменялась, сохраняем исходное значение
+      
+      // startTime и endTime обновляем только если были изменены связанные поля
+      if (modifiedFields.has('startTime') || modifiedFields.has('duration') || modifiedFields.has('dueDate')) {
+        updates.startTime = finalStartTime;
+        updates.endTime = finalEndTime;
+      }
+      
+      if (modifiedFields.has('duration')) {
+        updates.duration = taskData.duration;
+      }
+      
+      if (modifiedFields.has('categoryId')) {
+        updates.categoryId = taskData.categoryId;
+      }
+      
+      if (modifiedFields.has('description')) {
+        updates.description = taskData.description;
+      }
+      
+      if (modifiedFields.has('subtasks')) {
+        updates.subtasks = taskData.subtasks;
+      }
+      
+      if (modifiedFields.has('recurrence')) {
+        updates.recurrence = taskData.recurrence;
+      }
+      
+      // energyLevel передается как параметр, если он undefined, значит пользователь не выбрал значение
+      // В этом случае сохраняем исходное значение только если оно было изменено
+      if (energyLevel !== undefined) {
+        updates.energyLevel = energyLevel;
+      }
+      
+      // Всегда сохраняем важные системные поля из originalTask
+      // Эти поля не редактируются в визарде, но могут быть изменены в других местах
+      if (originalTask.status !== undefined && originalTask.status !== null) {
+        updates.status = originalTask.status;
+      }
+      if (originalTask.completed !== undefined && originalTask.completed !== null) {
+        updates.completed = originalTask.completed;
+      }
+      if (originalTask.createdAt !== undefined && originalTask.createdAt !== null) {
+        updates.createdAt = originalTask.createdAt;
+      }
+      if (originalTask.pinned !== undefined && originalTask.pinned !== null) {
+        updates.pinned = originalTask.pinned;
+      }
+      if (originalTask.parentTaskId !== undefined && originalTask.parentTaskId !== null) {
+        updates.parentTaskId = originalTask.parentTaskId;
+      }
+      if (originalTask.recurrenceInstanceDate !== undefined && originalTask.recurrenceInstanceDate !== null) {
+        updates.recurrenceInstanceDate = originalTask.recurrenceInstanceDate;
+      }
+      if (originalTask.tags !== undefined && originalTask.tags !== null) {
+        updates.tags = originalTask.tags;
+      }
+      if (originalTask.timeSpent !== undefined && originalTask.timeSpent !== null) {
+        updates.timeSpent = originalTask.timeSpent;
+      }
+      if (originalTask.movedToList !== undefined && originalTask.movedToList !== null) {
+        updates.movedToList = originalTask.movedToList;
+      }
 
       try {
         await storage.updateTask(editingTaskId, updates);
