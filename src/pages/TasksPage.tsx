@@ -213,14 +213,22 @@ export default function TasksPage({ storage }: TasksPageProps) {
       // Берем originalTask как основу и применяем все изменения из taskData
       
       // Вычисляем dueDate
-      let finalDueDate = modifiedFields.has('dueDate') 
-        ? taskData.dueDate 
-        : originalTask.dueDate;
+      // Если пользователь явно изменил дату, используем новое значение (даже если оно undefined - это означает сброс даты)
+      let finalDueDate: number | undefined;
+      if (modifiedFields.has('dueDate')) {
+        // Пользователь явно изменил дату - используем новое значение
+        finalDueDate = taskData.dueDate;
+      } else {
+        // Пользователь не изменял дату - используем старое значение
+        finalDueDate = originalTask.dueDate;
+      }
       
       // Вычисляем startTime и endTime
       // Используем finalDueDate или selectedDate как дату по умолчанию для вычисления timestamp
       // Если пользователь добавил дату, время или длительность, используем эту дату
-      const dateForTime = finalDueDate || (modifiedFields.has('startTime') || modifiedFields.has('duration') || modifiedFields.has('dueDate') ? selectedDate.getTime() : undefined);
+      const dateForTime = finalDueDate !== undefined 
+        ? finalDueDate 
+        : (modifiedFields.has('startTime') || modifiedFields.has('duration') ? selectedDate.getTime() : undefined);
       
       let finalStartTime: number | undefined;
       let finalEndTime: number | undefined;
@@ -364,7 +372,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
       }
       
       // Если была добавлена дата или время, обновляем dueDate и plannedDate
-      if (dateForTime && !finalDueDate) {
+      // Но только если пользователь не установил дату явно (чтобы не перезаписать явно установленную дату)
+      if (dateForTime && finalDueDate === undefined && !modifiedFields.has('dueDate')) {
         finalDueDate = dateForTime;
       }
       
@@ -375,7 +384,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
         text: modifiedFields.has('name') ? (taskData.name || originalTask.text) : originalTask.text,
         priority: modifiedFields.has('priority') ? taskData.priority : originalTask.priority,
         dueDate: finalDueDate,
-        plannedDate: finalDueDate || originalTask.plannedDate, // plannedDate всегда равен dueDate
+        plannedDate: finalDueDate, // plannedDate всегда равен dueDate (может быть undefined если дата сброшена)
         startTime: finalStartTime,
         endTime: finalEndTime,
         duration: modifiedFields.has('duration') ? taskData.duration : originalTask.duration,
