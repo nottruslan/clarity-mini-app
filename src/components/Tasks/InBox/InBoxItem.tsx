@@ -1,24 +1,26 @@
 import { useState, useRef } from 'react';
-import { Task } from '../../../utils/storage';
+import { InBoxNote } from '../../../utils/storage';
 
 interface InBoxItemProps {
-  task: Task;
+  note: InBoxNote;
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
+  onMoveToList: (id: string) => void;
   isEditing?: boolean;
   onStartEdit?: (id: string) => void;
   onCancelEdit?: () => void;
 }
 
 export default function InBoxItem({
-  task,
+  note,
   onEdit,
   onDelete,
+  onMoveToList,
   isEditing = false,
   onStartEdit,
   onCancelEdit
 }: InBoxItemProps) {
-  const [localText, setLocalText] = useState(task.text);
+  const [localText, setLocalText] = useState(note.text);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const maxSwipe = 80;
@@ -42,7 +44,7 @@ export default function InBoxItem({
 
   const handleTouchEnd = () => {
     if (swipeOffset > maxSwipe / 2) {
-      onDelete(task.id);
+      onDelete(note.id);
     } else {
       setSwipeOffset(0);
     }
@@ -51,14 +53,19 @@ export default function InBoxItem({
 
   const handleSave = () => {
     if (localText.trim()) {
-      onEdit(task.id, localText.trim());
+      onEdit(note.id, localText.trim());
       onCancelEdit?.();
     }
   };
 
   const handleCancel = () => {
-    setLocalText(task.text);
+    setLocalText(note.text);
     onCancelEdit?.();
+  };
+
+  const handleMoveToList = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMoveToList(note.id);
   };
 
   if (isEditing) {
@@ -170,23 +177,49 @@ export default function InBoxItem({
             padding: '12px 16px',
             backgroundColor: 'var(--tg-theme-section-bg-color)',
             borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-            cursor: 'pointer'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
           }}
-          onClick={() => onStartEdit?.(task.id)}
         >
-          {/* Минимальный вид - только текст задачи */}
-          <div style={{
-            fontSize: '16px',
-            color: task.completed || task.status === 'completed' 
-              ? 'var(--tg-theme-hint-color)' 
-              : 'var(--tg-theme-text-color)',
-            lineHeight: '1.5',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            textDecoration: task.completed || task.status === 'completed' ? 'line-through' : 'none'
-          }}>
-            {task.text}
+          {/* Текст заметки */}
+          <div 
+            style={{
+              flex: 1,
+              fontSize: '16px',
+              color: 'var(--tg-theme-text-color)',
+              lineHeight: '1.5',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              cursor: 'pointer'
+            }}
+            onClick={() => onStartEdit?.(note.id)}
+          >
+            {note.text}
           </div>
+          
+          {/* Кнопка "В список" */}
+          <button
+            onClick={handleMoveToList}
+            style={{
+              padding: '8px 16px',
+              minHeight: '36px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'var(--tg-theme-button-color)',
+              color: 'var(--tg-theme-button-text-color)',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}
+          >
+            В список
+          </button>
         </div>
       </div>
       {swipeOffset > 0 && (

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
-import { generateId, type Task, type Subtask, type RecurrenceRule, type TaskCategory } from '../utils/storage';
+import { generateId, type Task, type Subtask, type RecurrenceRule, type TaskCategory, type InBoxNote } from '../utils/storage';
 import TaskList from '../components/Tasks/TaskList';
 import DayView from '../components/Tasks/DayView/DayView';
 import InBoxView from '../components/Tasks/InBox/InBoxView';
@@ -433,6 +433,23 @@ export default function TasksPage({ storage }: TasksPageProps) {
     });
   };
 
+  const handleMoveNoteToList = async (noteId: string) => {
+    const note = storage.inBoxNotes.find(n => n.id === noteId);
+    if (!note) return;
+
+    // Создаем задачу только с полем text
+    const newTask: Task = {
+      id: generateId(),
+      text: note.text,
+      completed: false,
+      createdAt: Date.now()
+    };
+
+    // Добавляем задачу и удаляем заметку
+    await storage.addTask(newTask);
+    await storage.deleteInBoxNote(noteId);
+  };
+
   if (isCreating) {
     const colors = sectionColors.tasks;
     const totalSteps = 9;
@@ -643,16 +660,17 @@ export default function TasksPage({ storage }: TasksPageProps) {
       {/* Контент */}
       {viewMode === 'inbox' ? (
         <InBoxView
-          tasks={storage.tasks.filter(task => 
-            // Показываем только задачи без дат/времени
-            !task.dueDate && !task.startTime && !task.endTime
-          )}
-          onTaskEdit={async (id, text) => {
-            await storage.updateTask(id, { text });
+          notes={storage.inBoxNotes}
+          onNoteAdd={async (note) => {
+            await storage.addInBoxNote(note);
           }}
-          onTaskDelete={async (id) => {
-            await storage.deleteTask(id);
+          onNoteEdit={async (id, text) => {
+            await storage.updateInBoxNote(id, { text });
           }}
+          onNoteDelete={async (id) => {
+            await storage.deleteInBoxNote(id);
+          }}
+          onMoveToList={handleMoveNoteToList}
         />
       ) : viewMode === 'list' ? (
         <TaskList 
