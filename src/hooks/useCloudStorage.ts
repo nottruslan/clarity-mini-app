@@ -220,63 +220,37 @@ export function useCloudStorage() {
   }, [saveTasksToStorage]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
-    // #region agent log
-    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:226',message:'updateTask called',data:{id,updatesKeys:Object.keys(updates),updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-    // #endregion
     try {
-      let newTasks: Task[] = [];
+      // Получаем текущее состояние задач
+      const currentTasks = tasks;
+      const taskIndex = currentTasks.findIndex(task => task.id === id);
       
-      // Обновляем состояние
-      setTasks(prevTasks => {
-        const taskIndex = prevTasks.findIndex(task => task.id === id);
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:237',message:'updateTask taskIndex found',data:{id,taskIndex,totalTasks:prevTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
-        // #endregion
-        if (taskIndex === -1) {
-          console.warn('Task not found:', id);
-          // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:241',message:'updateTask task not found',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
-          // #endregion
-          return prevTasks;
-        }
-        
-        const originalTask = prevTasks[taskIndex];
-        const updatedTask = { ...originalTask, ...updates };
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:248',message:'updateTask merge complete',data:{id,originalTask:{id:originalTask.id,text:originalTask.text,dueDate:originalTask.dueDate,plannedDate:originalTask.plannedDate},updatedTask:{id:updatedTask.id,text:updatedTask.text,dueDate:updatedTask.dueDate,plannedDate:updatedTask.plannedDate}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-        // #endregion
-        
-        // Создаем НОВЫЙ массив, чтобы React увидел изменения
-        newTasks = [...prevTasks];
-        newTasks[taskIndex] = updatedTask;
-        
-        // Обновляем ref
-        tasksRef.current = newTasks;
-        
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:260',message:'updateTask newTasks created',data:{id,newTasksCount:newTasks.length,updatedTaskText:updatedTask.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-        // #endregion
-        
-        return newTasks;
-      });
+      if (taskIndex === -1) {
+        console.warn('Task not found:', id);
+        return;
+      }
       
-      // Сохраняем в хранилище СИНХРОННО после обновления состояния
-      // Это гарантирует, что данные будут сохранены до того, как что-то еще может их перезаписать
-      // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:268',message:'updateTask calling saveTasksToStorage (await)',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-      // #endregion
+      // Создаем обновленную задачу
+      const originalTask = currentTasks[taskIndex];
+      const updatedTask = { ...originalTask, ...updates };
+      
+      // Создаем НОВЫЙ массив с обновленной задачей
+      const newTasks = [...currentTasks];
+      newTasks[taskIndex] = updatedTask;
+      
+      // Обновляем ref
+      tasksRef.current = newTasks;
+      
+      // Обновляем состояние React
+      setTasks(newTasks);
+      
+      // Сохраняем в хранилище СИНХРОННО
       await saveTasksToStorage(newTasks, id);
-      // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:271',message:'updateTask saveTasksToStorage completed',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-      // #endregion
     } catch (error) {
       console.error('Error updating task:', error);
-      // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:275',message:'updateTask catch error',data:{id,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-      // #endregion
       throw error;
     }
-  }, [saveTasksToStorage]);
+  }, [tasks, saveTasksToStorage]);
 
   const deleteTask = useCallback(async (id: string) => {
     try {
