@@ -366,14 +366,25 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
 
   // Сначала сохраняем в localStorage (быстро и надежно)
   try {
+    console.log('[CHECK] setStorageData - saving to localStorage...');
     localStorage.setItem(key, jsonData);
-    // #region agent log
+    console.log('[CHECK] setStorageData - saved to localStorage successfully');
+    
+    // Проверяем, что данные действительно сохранились
     if (key === 'tasks') {
-      console.log('[DEBUG]', JSON.stringify({location:'storage.ts:333',message:'setStorageData saved to localStorage',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      const savedData = localStorage.getItem(key);
+      if (savedData) {
+        const parsedSaved = JSON.parse(savedData);
+        const lastTaskInSaved = parsedSaved?.[parsedSaved.length - 1];
+        console.log('[CHECK] setStorageData - verification from localStorage:', {
+          savedDataLength: savedData.length,
+          lastTaskDueDateInSaved: lastTaskInSaved?.dueDate,
+          lastTaskDueDateInSavedType: typeof lastTaskInSaved?.dueDate
+        });
+      }
     }
-    // #endregion
   } catch (localStorageError) {
-    console.error('Error saving to localStorage:', localStorageError);
+    console.error('[CHECK] setStorageData - ERROR saving to localStorage:', localStorageError);
     throw localStorageError; // Если localStorage не работает - это критическая ошибка
   }
 
@@ -478,13 +489,16 @@ function migrateTasks(tasks: Task[]): Task[] {
  * Сохранить задачи
  */
 export async function saveTasks(tasks: Task[]): Promise<void> {
-  // #region agent log
-  console.log('[DEBUG]', JSON.stringify({location:'storage.ts:410',message:'saveTasks called',data:{tasksCount:tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-  // #endregion
+  console.log('[CHECK] saveTasks called:', {
+    tasksCount: tasks.length,
+    firstTaskId: tasks[0]?.id,
+    firstTaskDueDate: tasks[0]?.dueDate,
+    lastTaskId: tasks[tasks.length - 1]?.id,
+    lastTaskDueDate: tasks[tasks.length - 1]?.dueDate,
+    allTasksHaveDueDate: tasks.every(t => t.dueDate !== undefined || t.dueDate === undefined) // Проверка что поле существует
+  });
   await setStorageData(STORAGE_KEYS.TASKS, tasks);
-  // #region agent log
-  console.log('[DEBUG]', JSON.stringify({location:'storage.ts:412',message:'saveTasks success',data:{tasksCount:tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-  // #endregion
+  console.log('[CHECK] saveTasks - setStorageData completed');
 }
 
 /**

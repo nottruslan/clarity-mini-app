@@ -15,6 +15,12 @@ export default function Step3Date({ onComplete, onBack, initialValue }: Step3Dat
   const [dueDate, setDueDate] = useState(initialDateStr);
 
   const handleComplete = () => {
+    console.log('[CHECK] Step3Date handleComplete called:', {
+      hasDueDate,
+      dueDate,
+      dueDateType: typeof dueDate,
+      dueDateLength: dueDate?.length
+    });
     if (hasDueDate && dueDate) {
       // Создаем дату в UTC, чтобы избежать проблем с часовыми поясами
       // Формат dueDate: "YYYY-MM-DD"
@@ -22,18 +28,22 @@ export default function Step3Date({ onComplete, onBack, initialValue }: Step3Dat
       const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
       // Конвертируем в локальное время (начало дня в локальном времени)
       const localDate = new Date(year, month - 1, day, 0, 0, 0, 0);
-      console.log('[DEBUG] Step3Date handleComplete:', {
+      const timestamp = localDate.getTime();
+      console.log('[CHECK] Step3Date creating date:', {
         dueDateString: dueDate,
         year,
         month,
         day,
-        localDateTimestamp: localDate.getTime(),
-        utcDateTimestamp: date.getTime()
+        localDateTimestamp: timestamp,
+        utcDateTimestamp: date.getTime(),
+        dateObject: localDate.toISOString()
       });
-      onComplete(localDate.getTime());
+      onComplete(timestamp);
+      console.log('[CHECK] Step3Date onComplete called with timestamp:', timestamp);
     } else {
-      console.log('[DEBUG] Step3Date handleComplete: no date set');
+      console.log('[CHECK] Step3Date handleComplete: no date set, calling onComplete() without argument');
       onComplete();
+      console.log('[CHECK] Step3Date onComplete called without argument (undefined)');
     }
   };
 

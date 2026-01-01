@@ -171,35 +171,51 @@ export function useCloudStorage() {
       
       // Проверяем, что данные действительно записались - читаем обратно
       try {
+        console.log('[CHECK] saveTasksToStorage - verifying save by reading back...');
         const verifyTasks = await getTasks();
+        console.log('[CHECK] saveTasksToStorage - verification read completed:', {
+          verifyTasksCount: verifyTasks.length,
+          newTasksCount: newTasks.length
+        });
         // Если есть editingTaskId, проверяем конкретно эту задачу
         if (editingTaskId && editingTask) {
           const savedTask = verifyTasks.find(t => t.id === editingTaskId);
-          // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:163',message:'saveTasksToStorage verification for editingTask',data:{
+          console.log('[CHECK] saveTasksToStorage - verification for editingTask:', {
             editingTaskId,
-            editingTaskText:editingTask.text,
-            editingTaskDueDate:editingTask.dueDate,
-            editingTaskPlannedDate:editingTask.plannedDate,
-            savedTaskFound:!!savedTask,
-            savedTaskText:savedTask?.text,
-            savedTaskDueDate:savedTask?.dueDate,
-            savedTaskPlannedDate:savedTask?.plannedDate,
-            textMatches:editingTask.text === savedTask?.text,
-            dueDateMatches:editingTask.dueDate === savedTask?.dueDate,
-            allFieldsMatch:JSON.stringify(editingTask) === JSON.stringify(savedTask)
-          },timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-          // #endregion
+            editingTaskText: editingTask.text,
+            editingTaskDueDate: editingTask.dueDate,
+            editingTaskPlannedDate: editingTask.plannedDate,
+            savedTaskFound: !!savedTask,
+            savedTaskText: savedTask?.text,
+            savedTaskDueDate: savedTask?.dueDate,
+            savedTaskPlannedDate: savedTask?.plannedDate,
+            textMatches: editingTask.text === savedTask?.text,
+            dueDateMatches: editingTask.dueDate === savedTask?.dueDate,
+            allFieldsMatch: JSON.stringify(editingTask) === JSON.stringify(savedTask)
+          });
           
           // Дополнительная проверка dueDate
           if (editingTask.dueDate !== savedTask?.dueDate) {
-            console.error('[ERROR] DueDate mismatch after save!', {
+            console.error('[CHECK] saveTasksToStorage - DueDate mismatch after save!', {
               editingTaskDueDate: editingTask.dueDate,
               savedTaskDueDate: savedTask?.dueDate,
               editingTaskFull: editingTask,
               savedTaskFull: savedTask
             });
+          } else {
+            console.log('[CHECK] saveTasksToStorage - DueDate matches!');
           }
+        } else {
+          // Проверяем последнюю задачу (которая была добавлена)
+          const lastTask = newTasks[newTasks.length - 1];
+          const savedLastTask = verifyTasks.find(t => t.id === lastTask.id);
+          console.log('[CHECK] saveTasksToStorage - verification for last task:', {
+            lastTaskId: lastTask.id,
+            lastTaskDueDate: lastTask.dueDate,
+            savedLastTaskFound: !!savedLastTask,
+            savedLastTaskDueDate: savedLastTask?.dueDate,
+            dueDateMatches: lastTask.dueDate === savedLastTask?.dueDate
+          });
         }
         // Проверяем все задачи, которые были в newTasks
         const savedTasksInfo = newTasks.slice(0, 3).map(originalTask => {
@@ -235,10 +251,11 @@ export function useCloudStorage() {
   }, [saveTasksToStorage]);
 
   const addTask = useCallback(async (task: Task) => {
-    console.log('[DEBUG] addTask called with:', {
+    console.log('[CHECK] addTask called:', {
       taskId: task.id,
       taskText: task.text,
       taskDueDate: task.dueDate,
+      taskDueDateType: typeof task.dueDate,
       taskPlannedDate: task.plannedDate,
       taskFull: task,
       timestamp: Date.now()
@@ -249,31 +266,35 @@ export function useCloudStorage() {
       const currentTasks = tasksRef.current.length > 0 ? tasksRef.current : tasks;
       const newTasks = [...currentTasks, task];
       
-      console.log('[DEBUG] addTask - preparing to save:', {
+      console.log('[CHECK] addTask - current tasks:', {
         currentTasksCount: currentTasks.length,
         newTasksCount: newTasks.length,
         addedTaskDueDate: task.dueDate,
         addedTaskPlannedDate: task.plannedDate,
         addedTaskId: task.id,
-        addedTaskText: task.text
+        addedTaskText: task.text,
+        taskInNewTasks: newTasks.find(t => t.id === task.id) ? 'YES' : 'NO',
+        taskDueDateInNewTasks: newTasks.find(t => t.id === task.id)?.dueDate
       });
       
       // Сохраняем в хранилище ПЕРЕД обновлением состояния
+      console.log('[CHECK] addTask - calling saveTasksToStorage...');
       await saveTasksToStorage(newTasks, task.id);
-      
-      console.log('[DEBUG] addTask - saved to storage successfully, now updating state');
+      console.log('[CHECK] addTask - saveTasksToStorage completed successfully');
       
       // Только после успешного сохранения обновляем состояние
+      console.log('[CHECK] addTask - updating React state...');
       setTasks(newTasks);
       tasksRef.current = newTasks;
       
-      console.log('[DEBUG] addTask - state updated successfully:', {
+      console.log('[CHECK] addTask - state updated successfully:', {
         taskId: task.id,
         tasksCount: newTasks.length,
-        taskInState: newTasks.find(t => t.id === task.id) ? 'YES' : 'NO'
+        taskInState: newTasks.find(t => t.id === task.id) ? 'YES' : 'NO',
+        taskDueDateInState: newTasks.find(t => t.id === task.id)?.dueDate
       });
     } catch (error) {
-      console.error('[ERROR] Error adding task:', {
+      console.error('[CHECK] addTask - ERROR:', {
         error: error instanceof Error ? error.message : String(error),
         errorStack: error instanceof Error ? error.stack : undefined,
         taskId: task.id,

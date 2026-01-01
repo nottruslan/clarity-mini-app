@@ -66,7 +66,14 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
   // Задачи для списка: показываем все задачи (с датами и без)
   const tasksForList = useMemo(() => {
-    return storage.tasks;
+    const tasks = storage.tasks;
+    console.log('[CHECK] tasksForList updated:', {
+      tasksCount: tasks.length,
+      tasksWithDueDate: tasks.filter(t => t.dueDate !== undefined).length,
+      lastTaskDueDate: tasks[tasks.length - 1]?.dueDate,
+      lastTaskId: tasks[tasks.length - 1]?.id
+    });
+    return tasks;
   }, [storage.tasks]);
 
   // Используем хук для фильтрации
@@ -78,14 +85,37 @@ export default function TasksPage({ storage }: TasksPageProps) {
     sortBy,
     date: selectedDate
   });
+  
+  // Логируем фильтрацию
+  useMemo(() => {
+    console.log('[CHECK] Filtering tasks:', {
+      tasksForListCount: tasksForList.length,
+      filteredTasksCount: filteredTasks.length,
+      currentFilters: filters,
+      dateFilter: filters.dateFilter,
+      tasksWithDueDate: tasksForList.filter(t => t.dueDate !== undefined).length,
+      filteredTasksWithDueDate: filteredTasks.filter(t => t.dueDate !== undefined).length,
+      lastTaskInFiltered: filteredTasks[filteredTasks.length - 1]?.id,
+      lastTaskDueDateInFiltered: filteredTasks[filteredTasks.length - 1]?.dueDate
+    });
+  }, [tasksForList, filteredTasks, filters]);
 
   const handleStartCreate = () => {
+    console.log('[CHECK] handleStartCreate called');
     setIsCreating(true);
     setIsEditing(false);
     setEditingTaskId(null);
     setCreateStep(0);
     setTaskData({});
     setModifiedFields(new Set());
+    // Логируем состояние после инициализации (через setTimeout, чтобы состояние обновилось)
+    setTimeout(() => {
+      console.log('[CHECK] After handleStartCreate - state:', {
+        isCreating: true, // Мы только что установили это
+        taskDataEmpty: true, // Мы только что очистили
+        modifiedFieldsEmpty: true // Мы только что очистили
+      });
+    }, 0);
   };
 
   const handleEditTask = (taskId: string) => {
@@ -132,35 +162,69 @@ export default function TasksPage({ storage }: TasksPageProps) {
   };
 
   const handleStep1Complete = (name: string) => {
-    setTaskData(prev => ({ ...prev, name }));
-    setModifiedFields(prev => new Set(prev).add('name'));
+    setTaskData(prev => {
+      const newData = { ...prev, name };
+      console.log('[CHECK] Step1 complete:', { name, taskData: newData });
+      return newData;
+    });
+    setModifiedFields(prev => {
+      const newSet = new Set(prev).add('name');
+      console.log('[CHECK] Step1 modifiedFields:', Array.from(newSet));
+      return newSet;
+    });
     setCreateStep(1);
   };
 
   const handleStep2Complete = (priority: 'low' | 'medium' | 'high') => {
-    setTaskData(prev => ({ ...prev, priority }));
-    setModifiedFields(prev => new Set(prev).add('priority'));
+    setTaskData(prev => {
+      const newData = { ...prev, priority };
+      console.log('[CHECK] Step2 complete:', { priority, taskData: newData });
+      return newData;
+    });
+    setModifiedFields(prev => {
+      const newSet = new Set(prev).add('priority');
+      console.log('[CHECK] Step2 modifiedFields:', Array.from(newSet));
+      return newSet;
+    });
     setCreateStep(2);
   };
 
   const handleStep3Complete = (dueDate?: number) => {
-    console.log('[DEBUG] handleStep3Complete called with dueDate:', dueDate);
+    console.log('[CHECK] Step3 complete - CRITICAL for dueDate:', { 
+      dueDate, 
+      dueDateType: typeof dueDate,
+      dueDateIsUndefined: dueDate === undefined,
+      dueDateIsNumber: typeof dueDate === 'number'
+    });
     setTaskData(prev => {
       const newData = { ...prev, dueDate };
-      console.log('[DEBUG] Updated taskData:', { ...newData, dueDate: newData.dueDate });
+      console.log('[CHECK] Step3 taskData updated:', { 
+        ...newData, 
+        dueDate: newData.dueDate,
+        dueDateInTaskData: newData.dueDate !== undefined
+      });
       return newData;
     });
     setModifiedFields(prev => {
       const newSet = new Set(prev);
-      newSet.add('dueDate');
-      console.log('[DEBUG] Updated modifiedFields:', Array.from(newSet));
+      newSet.add('dueDate'); // ВСЕГДА добавляем, даже если dueDate === undefined
+      console.log('[CHECK] Step3 modifiedFields updated:', { 
+        fields: Array.from(newSet),
+        hasDueDate: newSet.has('dueDate'),
+        modifiedFieldsSize: newSet.size
+      });
       return newSet;
     });
     setCreateStep(4); // Исправлено: после шага 3 (дата) идет шаг 4 (время)
+    console.log('[CHECK] Step3 - createStep set to 4');
   };
 
   const handleStep4Complete = (startTime: number | undefined, duration: number | undefined) => {
-    setTaskData(prev => ({ ...prev, startTime, duration }));
+    setTaskData(prev => {
+      const newData = { ...prev, startTime, duration };
+      console.log('[CHECK] Step4 complete:', { startTime, duration, taskData: newData });
+      return newData;
+    });
     setModifiedFields(prev => {
       const newSet = new Set(prev);
       if (startTime !== undefined) {
@@ -169,9 +233,11 @@ export default function TasksPage({ storage }: TasksPageProps) {
       if (duration !== undefined) {
         newSet.add('duration');
       }
+      console.log('[CHECK] Step4 modifiedFields:', Array.from(newSet));
       return newSet;
     });
     setCreateStep(4);
+    console.log('[CHECK] Step4 - createStep set to 4');
   };
 
   const handleStep5Complete = (categoryId?: string, newCategory?: TaskCategory) => {
@@ -205,6 +271,15 @@ export default function TasksPage({ storage }: TasksPageProps) {
   };
 
   const handleStep9Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
+    console.log('[CHECK] handleStep9Complete start:', {
+      isEditing,
+      editingTaskId,
+      energyLevel,
+      taskData,
+      modifiedFields: Array.from(modifiedFields),
+      taskDataDueDate: taskData.dueDate,
+      hasDueDateInModified: modifiedFields.has('dueDate')
+    });
     if (isEditing && editingTaskId) {
       // Редактирование существующей задачи
       // Получаем актуальную задачу прямо перед сохранением
@@ -598,8 +673,9 @@ export default function TasksPage({ storage }: TasksPageProps) {
       // Проверяем, что name не пустая строка
       const taskName = taskData.name?.trim() || 'Новая задача';
 
-      console.log('[DEBUG] Creating new task:', {
+      console.log('[CHECK] Before creating newTask object:', {
         dueDate,
+        dueDateType: typeof dueDate,
         taskDataDueDate: taskData.dueDate,
         hasDueDateInModified: modifiedFields.has('dueDate'),
         startTime,
@@ -628,6 +704,19 @@ export default function TasksPage({ storage }: TasksPageProps) {
         energyLevel,
         status: 'todo'
       };
+      
+      console.log('[CHECK] newTask object created:', {
+        id: newTask.id,
+        text: newTask.text,
+        dueDate: newTask.dueDate,
+        dueDateType: typeof newTask.dueDate,
+        plannedDate: newTask.plannedDate,
+        plannedDateType: typeof newTask.plannedDate,
+        startTime: newTask.startTime,
+        endTime: newTask.endTime,
+        allFields: Object.keys(newTask),
+        newTaskFull: newTask
+      });
 
       try {
         await storage.addTask(newTask);
@@ -681,12 +770,14 @@ export default function TasksPage({ storage }: TasksPageProps) {
       }
     }
 
+    console.log('[CHECK] Closing wizard - task created successfully');
     setIsCreating(false);
     setIsEditing(false);
     setEditingTaskId(null);
     setCreateStep(0);
     setTaskData({});
     setModifiedFields(new Set());
+    console.log('[CHECK] Wizard closed, state cleared');
   };
 
   const handleBack = () => {
