@@ -146,33 +146,52 @@ export function useCloudStorage() {
 
   // Tasks
   // Функция только для сохранения в хранилище (без обновления состояния)
-  const saveTasksToStorage = useCallback(async (newTasks: Task[]) => {
+  const saveTasksToStorage = useCallback(async (newTasks: Task[], editingTaskId?: string) => {
     // #region agent log
-    const taskToSave = newTasks.find(t => t.id);
-    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:141',message:'saveTasksToStorage called',data:{tasksCount:newTasks.length,firstTaskId:taskToSave?.id,firstTaskText:taskToSave?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+    // Ищем задачу, которая была недавно обновлена - проверяем все задачи на наличие изменений
+    const allTaskIds = newTasks.map(t => t.id);
+    const editingTask = editingTaskId ? newTasks.find(t => t.id === editingTaskId) : null;
+    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:151',message:'saveTasksToStorage called',data:{tasksCount:newTasks.length,editingTaskId,editingTaskFound:!!editingTask,editingTaskText:editingTask?.text,allTaskIds:allTaskIds.slice(0, 10)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
     // #endregion
     try {
       await saveTasks(newTasks);
       // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:145',message:'saveTasksToStorage success',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:156',message:'saveTasksToStorage success',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
       
       // Проверяем, что данные действительно записались - читаем обратно
       try {
         const verifyTasks = await getTasks();
-        const savedTask = verifyTasks.find(t => taskToSave && t.id === taskToSave.id);
+        // Если есть editingTaskId, проверяем конкретно эту задачу
+        if (editingTaskId && editingTask) {
+          const savedTask = verifyTasks.find(t => t.id === editingTaskId);
+          // #region agent log
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:163',message:'saveTasksToStorage verification for editingTask',data:{editingTaskId,editingTaskText:editingTask.text,savedTaskFound:!!savedTask,savedTaskText:savedTask?.text,textMatches:editingTask.text === savedTask?.text,allFieldsMatch:JSON.stringify(editingTask) === JSON.stringify(savedTask)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+          // #endregion
+        }
+        // Проверяем все задачи, которые были в newTasks
+        const savedTasksInfo = newTasks.slice(0, 3).map(originalTask => {
+          const savedTask = verifyTasks.find(t => t.id === originalTask.id);
+          return {
+            id: originalTask.id,
+            originalText: originalTask.text,
+            savedText: savedTask?.text,
+            found: !!savedTask,
+            textMatches: originalTask.text === savedTask?.text
+          };
+        });
         // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:150',message:'saveTasksToStorage verification read',data:{verifyTasksCount:verifyTasks.length,savedTaskFound:!!savedTask,savedTaskId:savedTask?.id,savedTaskText:savedTask?.text,expectedText:taskToSave?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:174',message:'saveTasksToStorage verification read',data:{verifyTasksCount:verifyTasks.length,savedTasksInfo},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         // #endregion
       } catch (verifyError) {
         // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:153',message:'saveTasksToStorage verification error',data:{error:verifyError instanceof Error?verifyError.message:String(verifyError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:179',message:'saveTasksToStorage verification error',data:{error:verifyError instanceof Error?verifyError.message:String(verifyError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         // #endregion
       }
     } catch (error) {
       console.error('Error saving tasks:', error);
       // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:157',message:'saveTasksToStorage error',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:184',message:'saveTasksToStorage error',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
       throw error;
     }
@@ -230,17 +249,18 @@ export function useCloudStorage() {
         
         // #region agent log
         const updatedTaskInNewTasks = newTasks.find(t => t.id === id);
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:189',message:'updateTask newTasks created',data:{id,newTasksCount:newTasks.length,updatedTaskInState:{id:updatedTaskInNewTasks?.id,text:updatedTaskInNewTasks?.text,dueDate:updatedTaskInNewTasks?.dueDate,plannedDate:updatedTaskInNewTasks?.plannedDate}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        const taskIndexInNewTasks = newTasks.findIndex(t => t.id === id);
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:189',message:'updateTask newTasks created',data:{id,newTasksCount:newTasks.length,taskIndexInNewTasks,updatedTaskInState:{id:updatedTaskInNewTasks?.id,text:updatedTaskInNewTasks?.text,dueDate:updatedTaskInNewTasks?.dueDate,plannedDate:updatedTaskInNewTasks?.plannedDate},originalTaskText:originalTask.text,updatedTaskText:updatedTask.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         // #endregion
         
         // Асинхронно сохраняем в хранилище
         // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:195',message:'updateTask calling saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:251',message:'updateTask calling saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         // #endregion
-        saveTasksToStorage(newTasks).catch(err => {
+        saveTasksToStorage(newTasks, id).catch(err => {
           console.error('Error saving task:', err);
           // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:198',message:'updateTask saveTasksToStorage error',data:{id,error:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:254',message:'updateTask saveTasksToStorage error',data:{id,error:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
           // #endregion
         });
         
