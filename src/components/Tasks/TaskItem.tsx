@@ -9,6 +9,7 @@ interface TaskItemProps {
 
 export default function TaskItem({ task, onToggleComplete, onOpenDetails, onOpenMenu }: TaskItemProps) {
   const getPriorityIcon = () => {
+    if (!task.priority) return '';
     switch (task.priority) {
       case 'high':
         return '🔴';

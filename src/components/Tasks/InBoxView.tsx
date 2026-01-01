@@ -29,7 +29,6 @@ export default function InBoxView({ storage }: InBoxViewProps) {
     const newTask: Task = {
       id: generateId(),
       title: item.text,
-      priority: 'medium',
       completed: false,
       pinned: false,
       createdAt: Date.now(),

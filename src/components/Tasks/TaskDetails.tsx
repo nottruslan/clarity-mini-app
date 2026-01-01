@@ -1,14 +1,11 @@
-import { useCloudStorage } from '../../hooks/useCloudStorage';
 import { type Task } from '../../utils/storage';
 
 interface TaskDetailsProps {
   task: Task;
-  storage: ReturnType<typeof useCloudStorage>;
   onClose: () => void;
-  onEdit?: () => void;
 }
 
-export default function TaskDetails({ task, storage, onClose, onEdit }: TaskDetailsProps) {
+export default function TaskDetails({ task, onClose }: TaskDetailsProps) {
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -20,6 +17,7 @@ export default function TaskDetails({ task, storage, onClose, onEdit }: TaskDeta
   };
 
   const getPriorityLabel = () => {
+    if (!task.priority) return 'Не указан';
     switch (task.priority) {
       case 'high':
         return '🔴 Высокий';
@@ -28,7 +26,7 @@ export default function TaskDetails({ task, storage, onClose, onEdit }: TaskDeta
       case 'low':
         return '🟢 Низкий';
       default:
-        return '';
+        return 'Не указан';
     }
   };
 
@@ -44,27 +42,6 @@ export default function TaskDetails({ task, storage, onClose, onEdit }: TaskDeta
         return 'Ежегодно';
       default:
         return '';
-    }
-  };
-
-  const handleTogglePin = async () => {
-    await storage.updateTask(task.id, { pinned: !task.pinned });
-  };
-
-  const handleDelete = () => {
-    if (window.Telegram?.WebApp?.showConfirm) {
-      window.Telegram.WebApp.showConfirm(
-        `Удалить задачу "${task.title}"?`,
-        (confirmed: boolean) => {
-          if (confirmed) {
-            storage.deleteTask(task.id);
-            onClose();
-          }
-        }
-      );
-    } else if (window.confirm(`Удалить задачу "${task.title}"?`)) {
-      storage.deleteTask(task.id);
-      onClose();
     }
   };
 
@@ -234,62 +211,6 @@ export default function TaskDetails({ task, storage, onClose, onEdit }: TaskDeta
             </div>
           )}
         </div>
-      </div>
-
-      {/* Действия */}
-      <div style={{
-        padding: '16px',
-        borderTop: '1px solid var(--tg-theme-secondary-bg-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px'
-      }}>
-        <button
-          className="tg-button"
-          onClick={() => {
-            if (onEdit) {
-              onEdit();
-            }
-            onClose();
-          }}
-          style={{ width: '100%' }}
-        >
-          Редактировать
-        </button>
-        <button
-          onClick={handleTogglePin}
-          style={{
-            width: '100%',
-            padding: '12px 24px',
-            borderRadius: '10px',
-            border: '2px solid var(--tg-theme-button-color)',
-            backgroundColor: 'transparent',
-            color: 'var(--tg-theme-button-color)',
-            fontSize: '16px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            minHeight: '44px'
-          }}
-        >
-          {task.pinned ? 'Открепить' : 'Закрепить'}
-        </button>
-        <button
-          onClick={handleDelete}
-          style={{
-            width: '100%',
-            padding: '12px 24px',
-            borderRadius: '10px',
-            border: '1px solid var(--tg-theme-destructive-text-color)',
-            backgroundColor: 'transparent',
-            color: 'var(--tg-theme-destructive-text-color)',
-            fontSize: '16px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            minHeight: '44px'
-          }}
-        >
-          Удалить
-        </button>
       </div>
     </div>
   );

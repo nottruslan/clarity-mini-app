@@ -14,7 +14,7 @@ export interface Task {
   description?: string;
   date?: number; // timestamp начала дня (00:00:00)
   time?: string; // формат "HH:mm" (например "14:30")
-  priority: 'low' | 'medium' | 'high';
+  priority?: 'low' | 'medium' | 'high';
   completed: boolean;
   pinned: boolean;
   recurring?: 'daily' | 'weekly' | 'monthly' | 'yearly';

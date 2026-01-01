@@ -11,6 +11,7 @@ import Step2Description from './CreateTask/Step2Description';
 import Step3Date from './CreateTask/Step3Date';
 import Step4Time from './CreateTask/Step4Time';
 import Step5Priority from './CreateTask/Step5Priority';
+import Step6Recurring from './CreateTask/Step6Recurring';
 import { sectionColors } from '../../utils/sectionColors';
 
 interface TasksViewProps {
@@ -46,8 +47,10 @@ export default function TasksView({ storage }: TasksViewProps) {
     if (dateA !== dateB) return dateA - dateB;
     
     // Если даты одинаковые, сортируем по приоритету
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    return priorityOrder[a.priority] - priorityOrder[b.priority];
+    const priorityOrder: { [key: string]: number } = { high: 0, medium: 1, low: 2 };
+    const priorityA = a.priority ? priorityOrder[a.priority] : 3;
+    const priorityB = b.priority ? priorityOrder[b.priority] : 3;
+    return priorityA - priorityB;
   });
 
   const displayedTasks = showCompleted 
@@ -131,8 +134,12 @@ export default function TasksView({ storage }: TasksViewProps) {
     setCreateStep(4);
   };
 
-  const handleStep5Complete = async (
-    priority: 'low' | 'medium' | 'high',
+  const handleStep5Complete = (priority?: 'low' | 'medium' | 'high') => {
+    setTaskData({ ...taskData, priority });
+    setCreateStep(5);
+  };
+
+  const handleStep6Complete = async (
     recurring?: 'daily' | 'weekly' | 'monthly' | 'yearly'
   ) => {
     if (isEditing && editTask) {
@@ -142,7 +149,7 @@ export default function TasksView({ storage }: TasksViewProps) {
         description: taskData.description,
         date: taskData.date,
         time: taskData.time,
-        priority,
+        priority: taskData.priority,
         recurring,
         updatedAt: Date.now()
       });
@@ -154,7 +161,7 @@ export default function TasksView({ storage }: TasksViewProps) {
         description: taskData.description,
         date: taskData.date,
         time: taskData.time,
-        priority,
+        priority: taskData.priority,
         recurring,
         completed: false,
         pinned: false,
@@ -282,7 +289,7 @@ export default function TasksView({ storage }: TasksViewProps) {
       {(isCreating || isEditing) && (
         <WizardContainer
           currentStep={createStep + 1}
-          totalSteps={taskData.date ? 5 : 4}
+          totalSteps={taskData.date ? 6 : 5}
           progressColor={sectionColors.tasks.primary}
         >
           <div className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}>
@@ -322,10 +329,18 @@ export default function TasksView({ storage }: TasksViewProps) {
           {taskData.title && (
             <div className={`wizard-slide ${createStep === 4 ? 'active' : createStep > 4 ? 'prev' : 'next'}`}>
               <Step5Priority
-                initialPriority={taskData.priority || 'medium'}
-                initialRecurring={taskData.recurring}
-                onComplete={handleStep5Complete}
+                initialPriority={taskData.priority}
+                onNext={handleStep5Complete}
                 onBack={() => setCreateStep(taskData.date ? 3 : 2)}
+              />
+            </div>
+          )}
+          {taskData.title && (
+            <div className={`wizard-slide ${createStep === 5 ? 'active' : createStep > 5 ? 'prev' : 'next'}`}>
+              <Step6Recurring
+                initialRecurring={taskData.recurring}
+                onComplete={handleStep6Complete}
+                onBack={() => setCreateStep(4)}
               />
             </div>
           )}
@@ -350,23 +365,7 @@ export default function TasksView({ storage }: TasksViewProps) {
       {showDetails && selectedTask && (
         <TaskDetails
           task={selectedTask}
-          storage={storage}
           onClose={() => {
-            setShowDetails(false);
-            setSelectedTask(null);
-          }}
-          onEdit={() => {
-            setEditTask(selectedTask);
-            setIsEditing(true);
-            setCreateStep(0);
-            setTaskData({
-              title: selectedTask.title,
-              description: selectedTask.description,
-              date: selectedTask.date,
-              time: selectedTask.time,
-              priority: selectedTask.priority,
-              recurring: selectedTask.recurring
-            });
             setShowDetails(false);
             setSelectedTask(null);
           }}

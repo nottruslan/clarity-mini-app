@@ -124,7 +124,7 @@ export default function PlanView({ storage }: PlanViewProps) {
         </div>
 
         {/* Календарь */}
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           {allTasks.length === 0 ? (
             <EmptyState
               message="Нет задач для отображения в календаре"
@@ -143,7 +143,6 @@ export default function PlanView({ storage }: PlanViewProps) {
       {showDetails && selectedTask && (
         <TaskDetails
           task={selectedTask}
-          storage={storage}
           onClose={() => {
             setShowDetails(false);
             setSelectedTask(null);

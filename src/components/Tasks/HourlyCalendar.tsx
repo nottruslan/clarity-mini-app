@@ -50,13 +50,17 @@ export default function HourlyCalendar({ date, tasks, onTaskClick }: HourlyCalen
         ? 'rgba(244, 67, 54, 0.2)'
         : task.priority === 'medium'
         ? 'rgba(255, 193, 7, 0.2)'
-        : 'rgba(76, 175, 80, 0.2)',
+        : task.priority === 'low'
+        ? 'rgba(76, 175, 80, 0.2)'
+        : 'var(--tg-theme-secondary-bg-color)',
       borderLeft: `4px solid ${
         task.priority === 'high'
           ? '#f44336'
           : task.priority === 'medium'
           ? '#ffc107'
-          : '#4caf50'
+          : task.priority === 'low'
+          ? '#4caf50'
+          : 'var(--tg-theme-hint-color)'
       }`,
       borderRadius: '8px',
       padding: '8px 12px',

@@ -5,8 +5,7 @@ import WizardCard from '../../Wizard/WizardCard';
 
 interface Step5PriorityProps {
   initialPriority?: 'low' | 'medium' | 'high';
-  initialRecurring?: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  onComplete: (priority: 'low' | 'medium' | 'high', recurring?: 'daily' | 'weekly' | 'monthly' | 'yearly') => void;
+  onNext: (priority?: 'low' | 'medium' | 'high') => void;
   onBack: () => void;
 }
 
@@ -16,38 +15,29 @@ const priorities = [
   { value: 'high' as const, label: 'Высокий', icon: '🔴' }
 ];
 
-const recurringOptions = [
-  { value: 'daily' as const, label: 'Ежедневно', icon: '📆' },
-  { value: 'weekly' as const, label: 'Еженедельно', icon: '📅' },
-  { value: 'monthly' as const, label: 'Ежемесячно', icon: '🗓️' },
-  { value: 'yearly' as const, label: 'Ежегодно', icon: '📊' }
-];
-
 export default function Step5Priority({ 
-  initialPriority = 'medium', 
-  initialRecurring,
-  onComplete, 
+  initialPriority, 
+  onNext, 
   onBack 
 }: Step5PriorityProps) {
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(initialPriority);
-  const [recurring, setRecurring] = useState<'daily' | 'weekly' | 'monthly' | 'yearly' | undefined>(initialRecurring);
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | undefined>(initialPriority);
 
-  const handleComplete = () => {
-    onComplete(priority, recurring);
+  const handleNext = () => {
+    onNext(priority);
   };
 
   return (
     <WizardSlide
       icon="⚡"
-      title="Приоритет и повторения"
-      description="Выберите приоритет задачи и настройте повторения"
+      title="Приоритет"
+      description="Выберите приоритет задачи (необязательно)"
       actions={
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <GradientButton variant="secondary" onClick={onBack}>
             Назад
           </GradientButton>
-          <GradientButton onClick={handleComplete}>
-            Готово
+          <GradientButton onClick={handleNext}>
+            Продолжить
           </GradientButton>
         </div>
       }
@@ -55,67 +45,23 @@ export default function Step5Priority({
       <div style={{ 
         display: 'flex',
         flexDirection: 'column', 
-        gap: '24px', 
+        gap: '12px', 
         width: '100%'
       }}>
-        {/* Приоритет */}
-        <div>
-          <div style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            color: 'var(--tg-theme-text-color)',
-            marginBottom: '12px'
-          }}>
-            Приоритет
-          </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            {priorities.map((p) => (
-              <WizardCard
-                key={p.value}
-                icon={p.icon}
-                title={p.label}
-                selected={priority === p.value}
-                onClick={() => setPriority(p.value)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Повторения */}
-        <div>
-          <div style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            color: 'var(--tg-theme-text-color)',
-            marginBottom: '12px'
-          }}>
-            Повторения (необязательно)
-          </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <WizardCard
-              title="Без повторений"
-              selected={!recurring}
-              onClick={() => setRecurring(undefined)}
-            />
-            {recurringOptions.map((option) => (
-              <WizardCard
-                key={option.value}
-                icon={option.icon}
-                title={option.label}
-                selected={recurring === option.value}
-                onClick={() => setRecurring(option.value)}
-              />
-            ))}
-          </div>
-        </div>
+        <WizardCard
+          title="Без приоритета"
+          selected={!priority}
+          onClick={() => setPriority(undefined)}
+        />
+        {priorities.map((p) => (
+          <WizardCard
+            key={p.value}
+            icon={p.icon}
+            title={p.label}
+            selected={priority === p.value}
+            onClick={() => setPriority(p.value)}
+          />
+        ))}
       </div>
     </WizardSlide>
   );
