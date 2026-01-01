@@ -20,6 +20,18 @@ function App() {
   const [navigationHistory, setNavigationHistory] = useState<Section[]>(['home']);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showCacheDialog, setShowCacheDialog] = useState(false);
+  const [loadingStartTime] = useState(Date.now());
+  const [loadingTime, setLoadingTime] = useState(0);
+  
+  // Обновляем время загрузки каждую секунду
+  useEffect(() => {
+    if (!isReady || storage.loading) {
+      const interval = setInterval(() => {
+        setLoadingTime(Math.floor((Date.now() - loadingStartTime) / 1000));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isReady, storage.loading, loadingStartTime]);
 
   // Восстановление данных из резервной копии после перезагрузки
   useEffect(() => {
@@ -136,7 +148,32 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [currentSection, tg, isReady]);
 
+  // Принудительно пропускаем загрузку
+  const handleSkipLoading = () => {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.showConfirm(
+        'Пропустить загрузку? Приложение может работать некорректно без данных.',
+        (confirmed) => {
+          if (confirmed) {
+            // Устанавливаем флаг пропуска и перезагружаем страницу
+            sessionStorage.setItem('clarity_skip_loading', 'true');
+            window.location.reload();
+          }
+        }
+      );
+    } else {
+      if (confirm('Пропустить загрузку? Приложение может работать некорректно без данных.')) {
+        sessionStorage.setItem('clarity_skip_loading', 'true');
+        window.location.reload();
+      }
+    }
+  };
+
   if (!isReady || storage.loading) {
+    // Определяем, что именно застряло
+    const stuckOnTelegram = !isReady;
+    const stuckOnData = isReady && storage.loading;
+    
     return (
       <>
         <div style={{ 
@@ -148,9 +185,25 @@ function App() {
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)',
           padding: '20px',
-          gap: '16px'
+          gap: '16px',
+          position: 'relative',
+          zIndex: 1
         }}>
-          <div style={{ fontSize: '18px', marginBottom: '8px' }}>Загрузка...</div>
+          <div style={{ fontSize: '18px', marginBottom: '8px', textAlign: 'center' }}>
+            Загрузка...
+          </div>
+          
+          {/* Диагностика */}
+          <div style={{
+            fontSize: '12px',
+            color: 'var(--tg-theme-hint-color, #999)',
+            textAlign: 'center',
+            marginBottom: '8px'
+          }}>
+            {stuckOnTelegram && 'Инициализация Telegram...'}
+            {stuckOnData && 'Загрузка данных...'}
+            {loadingTime > 0 && ` (${loadingTime} сек)`}
+          </div>
           
           <div style={{
             display: 'flex',
@@ -158,19 +211,30 @@ function App() {
             gap: '12px',
             width: '100%',
             maxWidth: '300px',
-            marginTop: '24px'
+            marginTop: '24px',
+            position: 'relative',
+            zIndex: 10
           }}>
             <button
               onClick={forceReload}
               style={{
-                padding: '12px 24px',
+                padding: '14px 24px',
                 borderRadius: '8px',
                 border: 'none',
                 backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
                 color: 'var(--tg-theme-button-text-color, #ffffff)',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer'
+                fontSize: '15px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                transition: 'transform 0.1s',
+                WebkitTapHighlightColor: 'transparent'
+              }}
+              onTouchStart={(e) => {
+                e.currentTarget.style.transform = 'scale(0.98)';
+              }}
+              onTouchEnd={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
               🔄 Обновить страницу
@@ -179,17 +243,52 @@ function App() {
             <button
               onClick={() => setShowCacheDialog(true)}
               style={{
-                padding: '12px 24px',
+                padding: '14px 24px',
                 borderRadius: '8px',
-                border: '1px solid var(--tg-theme-button-color, #3390ec)',
+                border: '2px solid var(--tg-theme-button-color, #3390ec)',
                 backgroundColor: 'transparent',
                 color: 'var(--tg-theme-button-color, #3390ec)',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer'
+                fontSize: '15px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                transition: 'transform 0.1s',
+                WebkitTapHighlightColor: 'transparent'
+              }}
+              onTouchStart={(e) => {
+                e.currentTarget.style.transform = 'scale(0.98)';
+              }}
+              onTouchEnd={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
               🧹 Очистить кэш
+            </button>
+            
+            <button
+              onClick={handleSkipLoading}
+              style={{
+                padding: '14px 24px',
+                borderRadius: '8px',
+                border: '2px solid #ff9500',
+                backgroundColor: 'transparent',
+                color: '#ff9500',
+                fontSize: '15px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                transition: 'transform 0.1s',
+                WebkitTapHighlightColor: 'transparent',
+                marginTop: '8px'
+              }}
+              onTouchStart={(e) => {
+                e.currentTarget.style.transform = 'scale(0.98)';
+              }}
+              onTouchEnd={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              ⏭️ Пропустить загрузку
             </button>
           </div>
         </div>

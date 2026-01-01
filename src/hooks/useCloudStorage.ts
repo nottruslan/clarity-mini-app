@@ -47,13 +47,39 @@ export function useCloudStorage() {
 
   // Загрузка данных при монтировании
   useEffect(() => {
+    // Проверяем флаг пропуска загрузки
+    const skipLoading = sessionStorage.getItem('clarity_skip_loading');
+    if (skipLoading === 'true') {
+      console.warn('⚠️ Пропуск загрузки данных (пользователь выбрал пропустить)');
+      setLoading(false);
+      // Устанавливаем пустые данные
+      setTasks([]);
+      setHabits([]);
+      setFinance({ transactions: [], categories: [], budgets: [] });
+      setOnboarding({ tasks: false, habits: false, finance: false, languages: false, 'yearly-report': false });
+      setYearlyReports([]);
+      setTaskCategories([]);
+      setTaskTags([]);
+      setInBoxNotes([]);
+      return;
+    }
+    
     loadAllData();
   }, []);
 
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData, notesData] = await Promise.all([
+      const loadStartTime = Date.now();
+      
+      // Таймаут на загрузку данных - 10 секунд
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Timeout: загрузка данных превысила 10 секунд'));
+        }, 10000);
+      });
+      
+      const dataPromise = Promise.all([
         getTasks().catch(err => {
           console.error('Error loading tasks:', err);
           return [];
@@ -88,8 +114,17 @@ export function useCloudStorage() {
         })
       ]);
       
+      // Ждем либо загрузку данных, либо таймаут
+      const [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData, notesData] = await Promise.race([
+        dataPromise,
+        timeoutPromise
+      ]) as any;
+      
+      const loadTime = Date.now() - loadStartTime;
+      console.log(`✅ Данные загружены за ${loadTime}ms`);
+      
       // Миграция привычек при загрузке
-      const migratedHabits = habitsData.map(habit => {
+      const migratedHabits = habitsData.map((habit: Habit) => {
         if (habit.history && Object.keys(habit.history).length > 0) {
           const firstValue = Object.values(habit.history)[0];
           if (typeof firstValue === 'boolean') {
@@ -142,6 +177,24 @@ export function useCloudStorage() {
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      
+      // Если произошел таймаут или другая ошибка, устанавливаем пустые данные
+      if (error instanceof Error && error.message.includes('Timeout')) {
+        console.warn('⚠️ Таймаут загрузки данных. Устанавливаю пустые данные.');
+        setTasks([]);
+        setHabits([]);
+        setFinance({ transactions: [], categories: [], budgets: [] });
+        setOnboarding({ tasks: false, habits: false, finance: false, languages: false, 'yearly-report': false });
+        setYearlyReports([]);
+        setTaskCategories([]);
+        setTaskTags([]);
+        setInBoxNotes([]);
+        
+        // Показываем предупреждение пользователю
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert('Загрузка данных заняла слишком много времени. Приложение загружено с пустыми данными.');
+        }
+      }
     } finally {
       setLoading(false);
     }

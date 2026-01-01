@@ -33,6 +33,24 @@ export function useTelegram() {
   const [themeParams, setThemeParams] = useState<TelegramThemeParams | null>(null);
 
   useEffect(() => {
+    // Проверяем флаг пропуска загрузки
+    const skipLoading = sessionStorage.getItem('clarity_skip_loading');
+    if (skipLoading === 'true') {
+      console.warn('⚠️ Пропуск инициализации Telegram WebApp (пользователь выбрал пропустить)');
+      setIsReady(true);
+      return;
+    }
+    
+    const initStartTime = Date.now();
+    let timeoutId: ReturnType<typeof setTimeout>;
+    
+    // Таймаут на инициализацию - 5 секунд
+    timeoutId = setTimeout(() => {
+      const initTime = Date.now() - initStartTime;
+      console.warn(`⚠️ Таймаут инициализации Telegram WebApp (${initTime}ms). Переход в fallback режим.`);
+      setIsReady(true);
+    }, 5000);
+    
     // Инициализация Telegram Web App
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
@@ -149,17 +167,27 @@ export function useTelegram() {
         }
       }, 1000);
 
+      const initTime = Date.now() - initStartTime;
+      console.log(`✅ Telegram WebApp инициализирован за ${initTime}ms`);
+      
+      clearTimeout(timeoutId);
       setIsReady(true);
       
       return () => {
         clearInterval(themeCheckInterval);
+        clearTimeout(timeoutId);
       };
     } else {
       // Если Telegram WebApp недоступен (например, при разработке или тестировании),
       // все равно помечаем как готовый, чтобы приложение загрузилось
       console.warn('Telegram WebApp not available, running in fallback mode');
+      clearTimeout(timeoutId);
       setIsReady(true);
     }
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   return {
