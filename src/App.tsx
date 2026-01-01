@@ -11,6 +11,7 @@ import HabitsPage from './pages/HabitsPage';
 import FinancePage from './pages/FinancePage';
 import LanguagesPage from './pages/LanguagesPage';
 import YearlyReportPage from './pages/YearlyReportPage';
+import TasksPage from './pages/TasksPage';
 
 function App() {
   const { isReady, tg } = useTelegram();
@@ -154,17 +155,7 @@ function App() {
       case 'home':
         return <HomePage onSectionChange={handleSectionChange} />;
       case 'tasks':
-        return (
-          <div style={{ 
-            flex: 1, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            padding: '20px'
-          }}>
-            <p style={{ color: 'var(--tg-theme-hint-color)' }}>Раздел "Задачи" временно недоступен</p>
-          </div>
-        );
+        return <TasksPage storage={storage} />;
       case 'habits':
         return <HabitsPage storage={storage} />;
       case 'finance':

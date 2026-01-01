@@ -8,10 +8,15 @@ import {
   saveOnboardingFlags,
   getYearlyReports,
   saveYearlyReports,
+  getTasksData,
+  saveTasksData,
   type Habit,
   type FinanceData,
   type OnboardingFlags,
-  type YearlyReport
+  type YearlyReport,
+  type Task,
+  type InBoxItem,
+  type TasksData
 } from '../utils/storage';
 
 export function useCloudStorage() {
@@ -24,6 +29,7 @@ export function useCloudStorage() {
     'yearly-report': false
   });
   const [yearlyReports, setYearlyReports] = useState<YearlyReport[]>([]);
+  const [tasksData, setTasksData] = useState<TasksData>({ inbox: [], tasks: [], completedTasks: [] });
   const [loading, setLoading] = useState(true);
   const isLoadingRef = useRef(false);
   const hasLoadedRef = useRef(false); // Флаг для отслеживания, были ли данные уже загружены
@@ -54,7 +60,7 @@ export function useCloudStorage() {
       
       // Загружаем данные из localStorage (быстро и надежно)
       // Cloud Storage синхронизируется в фоне автоматически
-      const [habitsData, financeData, onboardingData, reportsData] = await Promise.all([
+      const [habitsData, financeData, onboardingData, reportsData, tasksData] = await Promise.all([
         getHabits().catch(err => {
           console.error('Error loading habits:', err);
           return [];
@@ -70,6 +76,10 @@ export function useCloudStorage() {
         getYearlyReports().catch(err => {
           console.error('Error loading reports:', err);
           return [];
+        }),
+        getTasksData().catch(err => {
+          console.error('Error loading tasks:', err);
+          return { inbox: [], tasks: [], completedTasks: [] };
         })
       ]);
       
@@ -100,6 +110,7 @@ export function useCloudStorage() {
       setFinance(financeData);
       setOnboarding(onboardingData);
       setYearlyReports(reportsData);
+      setTasksData(tasksData);
       
       // Сохраняем мигрированные привычки, если они изменились
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
@@ -389,6 +400,156 @@ export function useCloudStorage() {
     }
   }, []);
 
+  // Tasks
+  const updateTasksData = useCallback(async (newTasksData: TasksData) => {
+    setTasksData(newTasksData);
+    await saveTasksData(newTasksData);
+  }, []);
+
+  const addTask = useCallback(async (task: Task) => {
+    try {
+      setTasksData(prevData => {
+        const newData = {
+          ...prevData,
+          tasks: [...prevData.tasks, task]
+        };
+        saveTasksData(newData).catch(err => console.error('Error saving tasks:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error adding task:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
+    try {
+      setTasksData(prevData => {
+        const taskIndex = prevData.tasks.findIndex(t => t.id === id);
+        if (taskIndex === -1) {
+          console.warn('Task not found:', id);
+          return prevData;
+        }
+        
+        const updatedTask = { ...prevData.tasks[taskIndex], ...updates, updatedAt: Date.now() };
+        const newData = {
+          ...prevData,
+          tasks: prevData.tasks.map(t => t.id === id ? updatedTask : t)
+        };
+        
+        saveTasksData(newData).catch(err => console.error('Error saving tasks:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteTask = useCallback(async (id: string) => {
+    try {
+      setTasksData(prevData => {
+        const newData = {
+          ...prevData,
+          tasks: prevData.tasks.filter(t => t.id !== id),
+          completedTasks: prevData.completedTasks.filter(t => t.id !== id)
+        };
+        saveTasksData(newData).catch(err => console.error('Error saving tasks:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+    }
+  }, []);
+
+  const completeTask = useCallback(async (id: string) => {
+    try {
+      setTasksData(prevData => {
+        const taskIndex = prevData.tasks.findIndex(t => t.id === id);
+        if (taskIndex === -1) {
+          console.warn('Task not found:', id);
+          return prevData;
+        }
+        
+        const task = prevData.tasks[taskIndex];
+        const updatedTask = { ...task, completed: true, updatedAt: Date.now() };
+        
+        const newData = {
+          ...prevData,
+          tasks: prevData.tasks.filter(t => t.id !== id),
+          completedTasks: [...prevData.completedTasks, updatedTask]
+        };
+        
+        saveTasksData(newData).catch(err => console.error('Error saving tasks:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error completing task:', error);
+      throw error;
+    }
+  }, []);
+
+  const uncompleteTask = useCallback(async (id: string) => {
+    try {
+      setTasksData(prevData => {
+        const taskIndex = prevData.completedTasks.findIndex(t => t.id === id);
+        if (taskIndex === -1) {
+          console.warn('Completed task not found:', id);
+          return prevData;
+        }
+        
+        const task = prevData.completedTasks[taskIndex];
+        const updatedTask = { ...task, completed: false, updatedAt: Date.now() };
+        
+        const newData = {
+          ...prevData,
+          tasks: [...prevData.tasks, updatedTask],
+          completedTasks: prevData.completedTasks.filter(t => t.id !== id)
+        };
+        
+        saveTasksData(newData).catch(err => console.error('Error saving tasks:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error uncompleting task:', error);
+      throw error;
+    }
+  }, []);
+
+  // InBox
+  const addInBoxItem = useCallback(async (item: InBoxItem) => {
+    try {
+      setTasksData(prevData => {
+        const newData = {
+          ...prevData,
+          inbox: [...prevData.inbox, item]
+        };
+        saveTasksData(newData).catch(err => console.error('Error saving inbox:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error adding inbox item:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteInBoxItem = useCallback(async (id: string) => {
+    try {
+      setTasksData(prevData => {
+        const newData = {
+          ...prevData,
+          inbox: prevData.inbox.filter(item => item.id !== id)
+        };
+        saveTasksData(newData).catch(err => console.error('Error saving inbox:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error deleting inbox item:', error);
+      throw error;
+    }
+  }, []);
+
   // Возвращаем объект напрямую
   return {
     // Data
@@ -396,6 +557,7 @@ export function useCloudStorage() {
     finance,
     onboarding,
     yearlyReports,
+    tasksData,
     loading,
     
     // Habits
@@ -423,6 +585,18 @@ export function useCloudStorage() {
     addYearlyReport,
     updateYearlyReport,
     deleteYearlyReport,
+    
+    // Tasks
+    updateTasksData,
+    addTask,
+    updateTask,
+    deleteTask,
+    completeTask,
+    uncompleteTask,
+    
+    // InBox
+    addInBoxItem,
+    deleteInBoxItem,
     
     // Reload
     reload: loadAllData
