@@ -75,8 +75,7 @@ export default function HabitDetailsBottomSheet({
     if (selectedDate) {
       const value = habit.unit && habit.targetValue && inputValue ? parseFloat(inputValue) : undefined;
       handleDateCheck(selectedDate, value);
-      setSelectedDate('');
-      setInputValue('');
+      // Не сбрасываем selectedDate, чтобы можно было снять отметку при повторном нажатии
     } else {
       if (habit.unit && habit.targetValue) {
         const value = inputValue ? parseFloat(inputValue) : undefined;
@@ -98,6 +97,9 @@ export default function HabitDetailsBottomSheet({
       // Убираем отметку
       newHistory = { ...habit.history };
       delete newHistory[dateKey];
+      // Сбрасываем выбор даты после снятия отметки
+      setSelectedDate('');
+      setInputValue('');
     } else {
       // Добавляем отметку
       newHistory = {
@@ -107,6 +109,9 @@ export default function HabitDetailsBottomSheet({
           value: value
         }
       };
+      // Сбрасываем выбор даты после отметки
+      setSelectedDate('');
+      setInputValue('');
     }
     
     // Обновляем локальное состояние сразу для немедленного отображения
@@ -114,20 +119,6 @@ export default function HabitDetailsBottomSheet({
     
     // Вызываем callback для сохранения
     onHistoryUpdate(newHistory);
-  };
-
-  const handleCancel = (e?: React.MouseEvent<HTMLButtonElement>) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    
-    // Сбрасываем выбор даты и введенное значение
-    setSelectedDate('');
-    setInputValue('');
-    
-    // Принудительно обновляем компонент календаря
-    // Это должно работать через обновление пропса selectedDate
   };
 
   return (
@@ -332,42 +323,20 @@ export default function HabitDetailsBottomSheet({
           {/* Кнопки действий */}
           <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
             {selectedDate ? (
-              <>
-                <button
-                  className="tg-button"
-                  onClick={(e) => handleCheck(e)}
-                  style={{ flex: 1 }}
-                >
-                  {isSelectedDateCompleted 
-                    ? (() => {
-                        const [year, month, day] = selectedDate.split('-').map(Number);
-                        const date = new Date(year, month - 1, day);
-                        return `✓ Выполнено ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`;
-                      })()
-                    : (() => {
-                        const [year, month, day] = selectedDate.split('-').map(Number);
-                        const date = new Date(year, month - 1, day);
-                        return `Отметить ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`;
-                      })()
-                  }
-                </button>
-                <button
-                  className="tg-button"
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    handleCancel(e);
-                  }}
-                  style={{
-                    background: 'var(--tg-theme-secondary-bg-color)',
-                    color: 'var(--tg-theme-text-color)',
-                    minWidth: '100px'
-                  }}
-                >
-                  Отменить
-                </button>
-              </>
+              <button
+                className="tg-button"
+                onClick={(e) => handleCheck(e)}
+                style={{ flex: 1 }}
+              >
+                {isSelectedDateCompleted 
+                  ? 'Отменить'
+                  : (() => {
+                      const [year, month, day] = selectedDate.split('-').map(Number);
+                      const date = new Date(year, month - 1, day);
+                      return `Отметить ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`;
+                    })()
+                }
+              </button>
             ) : (
               <button
                 className="tg-button"
