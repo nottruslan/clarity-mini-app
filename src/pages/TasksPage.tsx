@@ -144,9 +144,19 @@ export default function TasksPage({ storage }: TasksPageProps) {
   };
 
   const handleStep3Complete = (dueDate?: number) => {
-    setTaskData(prev => ({ ...prev, dueDate }));
-    setModifiedFields(prev => new Set(prev).add('dueDate'));
-    setCreateStep(3);
+    console.log('[DEBUG] handleStep3Complete called with dueDate:', dueDate);
+    setTaskData(prev => {
+      const newData = { ...prev, dueDate };
+      console.log('[DEBUG] Updated taskData:', { ...newData, dueDate: newData.dueDate });
+      return newData;
+    });
+    setModifiedFields(prev => {
+      const newSet = new Set(prev);
+      newSet.add('dueDate');
+      console.log('[DEBUG] Updated modifiedFields:', Array.from(newSet));
+      return newSet;
+    });
+    setCreateStep(4); // Исправлено: после шага 3 (дата) идет шаг 4 (время)
   };
 
   const handleStep4Complete = (startTime: number | undefined, duration: number | undefined) => {
@@ -421,15 +431,29 @@ export default function TasksPage({ storage }: TasksPageProps) {
       };
       
       // КРИТИЧЕСКИ ВАЖНО: если dueDate был установлен пользователем, явно включаем его в обновления
+      // ВАЖНО: всегда устанавливаем dueDate, даже если он undefined (это означает сброс даты)
       if (modifiedFields.has('dueDate')) {
         // Пользователь явно установил или сбросил дату - используем это значение
-        taskUpdates.dueDate = finalDueDate;
-        taskUpdates.plannedDate = finalDueDate; // plannedDate всегда равен dueDate
-        console.log('[DEBUG] Explicitly setting dueDate in updates:', { dueDate: finalDueDate });
+        // ВАЖНО: устанавливаем явно, даже если finalDueDate === undefined (это означает сброс)
+        // НО: если finalDueDate === undefined, но taskData.dueDate установлен, используем taskData.dueDate
+        const dueDateToSet = finalDueDate !== undefined ? finalDueDate : taskData.dueDate;
+        taskUpdates.dueDate = dueDateToSet;
+        taskUpdates.plannedDate = dueDateToSet; // plannedDate всегда равен dueDate
+        console.log('[DEBUG] Explicitly setting dueDate in updates:', { 
+          finalDueDate,
+          taskDataDueDate: taskData.dueDate,
+          dueDateToSet,
+          isUndefined: dueDateToSet === undefined,
+          isNumber: typeof dueDateToSet === 'number'
+        });
       } else if (finalDueDate !== undefined) {
         // Если дата не была изменена пользователем, но есть значение, сохраняем его
         taskUpdates.dueDate = finalDueDate;
         taskUpdates.plannedDate = finalDueDate;
+        console.log('[DEBUG] Setting dueDate from original task:', { dueDate: finalDueDate });
+      } else {
+        // Если дата не была изменена и нет значения, не трогаем её
+        console.log('[DEBUG] Not setting dueDate - not modified and no value');
       }
       
       // Добавляем остальные поля
