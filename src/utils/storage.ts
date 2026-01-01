@@ -272,6 +272,26 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     const data = localStorage.getItem(key);
     if (data) {
       localData = JSON.parse(data);
+      
+      // Применяем дедупликацию к задачам из localStorage перед использованием
+      if (key === STORAGE_KEYS.TASKS && Array.isArray(localData)) {
+        const tasks = localData as Task[];
+        const deduplicated = deduplicateTasks(tasks);
+        if (deduplicated.length < tasks.length) {
+          console.log('[SYNC] localStorage tasks deduplicated:', {
+            originalCount: tasks.length,
+            deduplicatedCount: deduplicated.length,
+            duplicatesRemoved: tasks.length - deduplicated.length
+          });
+          // Сохраняем дедуплицированные данные обратно в localStorage
+          try {
+            localStorage.setItem(key, JSON.stringify(deduplicated));
+          } catch (saveError) {
+            console.error('Error saving deduplicated tasks to localStorage:', saveError);
+          }
+        }
+        localData = deduplicated as unknown as T;
+      }
     }
   } catch (parseError) {
     console.error('Error parsing localStorage data:', parseError);
@@ -562,18 +582,30 @@ export async function saveTasks(tasks: Task[]): Promise<void> {
   // Дедупликация перед сохранением
   const deduplicatedTasks = deduplicateTasks(tasks);
   
-  console.log('[CHECK] saveTasks called:', {
+  const duplicatesRemoved = tasks.length - deduplicatedTasks.length;
+  
+  console.log('[DIAG] saveTasks called:', {
+    location: 'storage.ts:saveTasks',
     tasksCount: tasks.length,
     deduplicatedCount: deduplicatedTasks.length,
-    duplicatesRemoved: tasks.length - deduplicatedTasks.length,
+    duplicatesRemoved: duplicatesRemoved,
     firstTaskId: deduplicatedTasks[0]?.id,
     firstTaskDueDate: deduplicatedTasks[0]?.dueDate,
     lastTaskId: deduplicatedTasks[deduplicatedTasks.length - 1]?.id,
     lastTaskDueDate: deduplicatedTasks[deduplicatedTasks.length - 1]?.dueDate,
-    allTasksHaveDueDate: deduplicatedTasks.every(t => t.dueDate !== undefined || t.dueDate === undefined) // Проверка что поле существует
+    timestamp: Date.now()
   });
+  
+  if (duplicatesRemoved > 0) {
+    console.warn('[DIAG] saveTasks - DUPLICATES REMOVED:', {
+      duplicatesRemoved,
+      originalCount: tasks.length,
+      finalCount: deduplicatedTasks.length
+    });
+  }
+  
   await setStorageData(STORAGE_KEYS.TASKS, deduplicatedTasks);
-  console.log('[CHECK] saveTasks - setStorageData completed');
+  console.log('[DIAG] saveTasks - setStorageData completed');
 }
 
 /**

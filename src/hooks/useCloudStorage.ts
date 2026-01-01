@@ -47,6 +47,7 @@ export function useCloudStorage() {
   const [inBoxNotes, setInBoxNotes] = useState<InBoxNote[]>([]);
   const [loading, setLoading] = useState(true);
   const isLoadingRef = useRef(false);
+  const hasLoadedRef = useRef(false); // Флаг для отслеживания, были ли данные уже загружены
 
   // Загрузка данных при монтировании
   useEffect(() => {
@@ -54,31 +55,27 @@ export function useCloudStorage() {
   }, []);
   
   // Синхронизация tasksRef.current с актуальным состоянием tasks
-  // Применяем дедупликацию при синхронизации
+  // ВАЖНО: НЕ вызываем setTasks здесь, чтобы избежать бесконечного цикла
+  // Дедупликация применяется в других местах (saveTasks, addTask, loadAllData)
   useEffect(() => {
-    if (tasks.length > 0) {
-      const deduplicated = deduplicateTasks(tasks);
-      if (deduplicated.length !== tasks.length) {
-        console.log('[CHECK] sync tasksRef - deduplicated tasks during sync:', {
-          originalCount: tasks.length,
-          deduplicatedCount: deduplicated.length,
-          duplicatesRemoved: tasks.length - deduplicated.length
-        });
-        // Если были дубликаты, обновляем состояние
-        setTasks(deduplicated);
-        tasksRef.current = deduplicated;
-      } else {
-        tasksRef.current = tasks;
-      }
-    } else {
-      tasksRef.current = tasks;
-    }
+    // Просто синхронизируем ref с текущим состоянием
+    // Если есть дубликаты, они будут удалены при следующем сохранении
+    tasksRef.current = tasks;
   }, [tasks]);
 
   const loadAllData = async () => {
     // Защита от множественных одновременных вызовов
     if (isLoadingRef.current) {
-      console.log('[CHECK] loadAllData - already loading, skipping duplicate call');
+      console.log('[DIAG] loadAllData - already loading, skipping duplicate call');
+      return;
+    }
+    
+    // Если данные уже загружены и есть задачи, не загружаем снова
+    // (защита от повторных вызовов при перемонтировании)
+    if (hasLoadedRef.current && tasks.length > 0) {
+      console.log('[DIAG] loadAllData - data already loaded, skipping:', {
+        tasksCount: tasks.length
+      });
       return;
     }
     
@@ -183,6 +180,9 @@ export function useCloudStorage() {
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
         await saveHabits(migratedHabits);
       }
+      
+      // Отмечаем, что данные загружены
+      hasLoadedRef.current = true;
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -194,25 +194,38 @@ export function useCloudStorage() {
   // Tasks
   // Функция только для сохранения в хранилище (без обновления состояния)
   const saveTasksToStorage = useCallback(async (newTasks: Task[], editingTaskId?: string) => {
+    // Применяем дедупликацию перед сохранением (на случай, если дубликаты все еще есть)
+    const deduplicatedBeforeSave = deduplicateTasks(newTasks);
+    if (deduplicatedBeforeSave.length < newTasks.length) {
+      console.warn('[DIAG] saveTasksToStorage - duplicates found before save:', {
+        originalCount: newTasks.length,
+        deduplicatedCount: deduplicatedBeforeSave.length,
+        duplicatesRemoved: newTasks.length - deduplicatedBeforeSave.length,
+        timestamp: Date.now()
+      });
+    }
+    
     // #region agent log
     // Ищем задачу, которая была недавно обновлена - проверяем все задачи на наличие изменений
-    const allTaskIds = newTasks.map(t => t.id);
-    const editingTask = editingTaskId ? newTasks.find(t => t.id === editingTaskId) : null;
-    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:151',message:'saveTasksToStorage called',data:{tasksCount:newTasks.length,editingTaskId,editingTaskFound:!!editingTask,editingTaskText:editingTask?.text,allTaskIds:allTaskIds.slice(0, 10)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+    const allTaskIds = deduplicatedBeforeSave.map(t => t.id);
+    const editingTask = editingTaskId ? deduplicatedBeforeSave.find(t => t.id === editingTaskId) : null;
+    console.log('[DIAG]', JSON.stringify({location:'useCloudStorage.ts:saveTasksToStorage',message:'saveTasksToStorage called',data:{tasksCount:newTasks.length,deduplicatedCount:deduplicatedBeforeSave.length,editingTaskId,editingTaskFound:!!editingTask,editingTaskText:editingTask?.text,allTaskIds:allTaskIds.slice(0, 10)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
     // #endregion
     try {
-      await saveTasks(newTasks);
+      await saveTasks(deduplicatedBeforeSave);
       // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:156',message:'saveTasksToStorage success',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      console.log('[DIAG]', JSON.stringify({location:'useCloudStorage.ts:saveTasksToStorage',message:'saveTasksToStorage success',data:{tasksCount:deduplicatedBeforeSave.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
       
       // Проверяем, что данные действительно записались - читаем обратно
       try {
-        console.log('[CHECK] saveTasksToStorage - verifying save by reading back...');
+        console.log('[DIAG] saveTasksToStorage - verifying save by reading back...');
         const verifyTasks = await getTasks();
-        console.log('[CHECK] saveTasksToStorage - verification read completed:', {
+        console.log('[DIAG] saveTasksToStorage - verification read completed:', {
           verifyTasksCount: verifyTasks.length,
-          newTasksCount: newTasks.length
+          savedTasksCount: deduplicatedBeforeSave.length,
+          originalTasksCount: newTasks.length,
+          timestamp: Date.now()
         });
         // Если есть editingTaskId, проверяем конкретно эту задачу
         if (editingTaskId && editingTask) {
@@ -314,7 +327,8 @@ export function useCloudStorage() {
     try {
       // КРИТИЧЕСКИ ВАЖНО: сначала сохраняем в хранилище, потом обновляем состояние
       // Это гарантирует, что если сохранение не удалось, состояние не обновится
-      const currentTasks = tasksRef.current.length > 0 ? tasksRef.current : tasks;
+      // Используем актуальное состояние tasks, а не tasksRef, чтобы избежать устаревших данных
+      const currentTasks = tasks.length > 0 ? tasks : tasksRef.current;
       
       // Применяем дедупликацию к currentTasks перед добавлением новой задачи
       const deduplicatedCurrentTasks = deduplicateTasks(currentTasks);
@@ -345,32 +359,33 @@ export function useCloudStorage() {
       
       const newTasks = [...deduplicatedCurrentTasks, task];
       
-      console.log('[CHECK] addTask - current tasks:', {
+      console.log('[DIAG] addTask - preparing to save:', {
         currentTasksCount: currentTasks.length,
+        deduplicatedCurrentTasksCount: deduplicatedCurrentTasks.length,
         newTasksCount: newTasks.length,
-        addedTaskDueDate: task.dueDate,
-        addedTaskPlannedDate: task.plannedDate,
         addedTaskId: task.id,
         addedTaskText: task.text,
+        addedTaskDueDate: task.dueDate,
         taskInNewTasks: newTasks.find(t => t.id === task.id) ? 'YES' : 'NO',
-        taskDueDateInNewTasks: newTasks.find(t => t.id === task.id)?.dueDate
+        timestamp: Date.now()
       });
       
       // Сохраняем в хранилище ПЕРЕД обновлением состояния
-      console.log('[CHECK] addTask - calling saveTasksToStorage...');
+      console.log('[DIAG] addTask - calling saveTasksToStorage...');
       await saveTasksToStorage(newTasks, task.id);
-      console.log('[CHECK] addTask - saveTasksToStorage completed successfully');
+      console.log('[DIAG] addTask - saveTasksToStorage completed successfully');
       
       // Только после успешного сохранения обновляем состояние
-      console.log('[CHECK] addTask - updating React state...');
+      console.log('[DIAG] addTask - updating React state...');
       setTasks(newTasks);
       tasksRef.current = newTasks;
       
-      console.log('[CHECK] addTask - state updated successfully:', {
+      console.log('[DIAG] addTask - state updated successfully:', {
         taskId: task.id,
         tasksCount: newTasks.length,
         taskInState: newTasks.find(t => t.id === task.id) ? 'YES' : 'NO',
-        taskDueDateInState: newTasks.find(t => t.id === task.id)?.dueDate
+        taskDueDateInState: newTasks.find(t => t.id === task.id)?.dueDate,
+        timestamp: Date.now()
       });
     } catch (error) {
       console.error('[CHECK] addTask - ERROR:', {
