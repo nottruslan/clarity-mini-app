@@ -32,7 +32,7 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
   return (
     <div style={{
       background: 'var(--tg-theme-section-bg-color)',
-      padding: '16px',
+      padding: '20px 16px',
       borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
     }}>
       <div style={{
@@ -43,7 +43,9 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
       }}>
         <h2 style={{
           fontSize: '20px',
-          fontWeight: '600'
+          fontWeight: '600',
+          color: 'var(--tg-theme-text-color)',
+          margin: 0
         }}>
           Обзор
         </h2>
@@ -60,19 +62,21 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
         marginBottom: '16px'
       }}>
         <div style={{
-          padding: '12px',
-          borderRadius: '10px',
+          padding: '16px',
+          borderRadius: '12px',
           backgroundColor: 'var(--tg-theme-secondary-bg-color)'
         }}>
           <div style={{
             fontSize: '12px',
             color: 'var(--tg-theme-hint-color)',
-            marginBottom: '4px'
+            marginBottom: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
           }}>
             Доходы
           </div>
           <div style={{
-            fontSize: '18px',
+            fontSize: '20px',
             fontWeight: '600',
             color: '#4caf50'
           }}>
@@ -81,19 +85,21 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
         </div>
 
         <div style={{
-          padding: '12px',
-          borderRadius: '10px',
+          padding: '16px',
+          borderRadius: '12px',
           backgroundColor: 'var(--tg-theme-secondary-bg-color)'
         }}>
           <div style={{
             fontSize: '12px',
             color: 'var(--tg-theme-hint-color)',
-            marginBottom: '4px'
+            marginBottom: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
           }}>
             Расходы
           </div>
           <div style={{
-            fontSize: '18px',
+            fontSize: '20px',
             fontWeight: '600',
             color: '#f44336'
           }}>
@@ -103,8 +109,8 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
       </div>
 
       <div style={{
-        padding: '16px',
-        borderRadius: '10px',
+        padding: '20px',
+        borderRadius: '12px',
         backgroundColor: balance >= 0 
           ? 'rgba(76, 175, 80, 0.1)' 
           : 'rgba(244, 67, 54, 0.1)',
@@ -113,12 +119,14 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
         <div style={{
           fontSize: '12px',
           color: 'var(--tg-theme-hint-color)',
-          marginBottom: '4px'
+          marginBottom: '8px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
         }}>
           Баланс
         </div>
         <div style={{
-          fontSize: '24px',
+          fontSize: '28px',
           fontWeight: '600',
           color: balance >= 0 ? '#4caf50' : '#f44336'
         }}>

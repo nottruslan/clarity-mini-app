@@ -24,7 +24,7 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
   return (
     <div style={{
       background: 'var(--tg-theme-section-bg-color)',
-      padding: '16px',
+      padding: '20px 16px',
       borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
     }}>
       <div style={{
@@ -114,7 +114,8 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
               <h3 style={{
                 fontSize: '18px',
                 fontWeight: '600',
-                marginBottom: '16px'
+                marginBottom: '16px',
+                color: 'var(--tg-theme-text-color)'
               }}>
                 Расходы по категориям
               </h3>
@@ -130,7 +131,8 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
               <h3 style={{
                 fontSize: '18px',
                 fontWeight: '600',
-                marginBottom: '16px'
+                marginBottom: '16px',
+                color: 'var(--tg-theme-text-color)'
               }}>
                 Доходы по категориям
               </h3>
@@ -149,7 +151,8 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
           <h3 style={{
             fontSize: '18px',
             fontWeight: '600',
-            marginBottom: '16px'
+            marginBottom: '16px',
+            color: 'var(--tg-theme-text-color)'
           }}>
             Динамика доходов и расходов
           </h3>
@@ -172,7 +175,8 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
                 fontSize: '18px',
                 fontWeight: '600',
                 marginBottom: '20px',
-                textAlign: 'center'
+                textAlign: 'center',
+                color: 'var(--tg-theme-text-color)'
               }}>
                 Расходы по категориям
               </h3>
@@ -189,7 +193,8 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
                 fontSize: '18px',
                 fontWeight: '600',
                 marginBottom: '20px',
-                textAlign: 'center'
+                textAlign: 'center',
+                color: 'var(--tg-theme-text-color)'
               }}>
                 Доходы по категориям
               </h3>

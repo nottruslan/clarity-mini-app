@@ -4,9 +4,10 @@ import EmptyState from '../EmptyState';
 interface TransactionListProps {
   transactions: Transaction[];
   onTransactionClick?: (transaction: Transaction) => void;
+  onOpenMenu?: (transaction: Transaction) => void;
 }
 
-export default function TransactionList({ transactions, onTransactionClick }: TransactionListProps) {
+export default function TransactionList({ transactions, onTransactionClick, onOpenMenu }: TransactionListProps) {
   if (transactions.length === 0) {
     return (
       <EmptyState 
@@ -81,34 +82,10 @@ export default function TransactionList({ transactions, onTransactionClick }: Tr
               key={transaction.id}
               className="list-item"
               onClick={() => onTransactionClick?.(transaction)}
-              onTouchStart={(e) => {
-                const touch = e.touches[0];
-                const startX = touch.clientX;
-                const startY = touch.clientY;
-                let moved = false;
-                
-                const handleMove = (moveEvent: TouchEvent) => {
-                  const moveTouch = moveEvent.touches[0];
-                  const deltaX = Math.abs(moveTouch.clientX - startX);
-                  const deltaY = Math.abs(moveTouch.clientY - startY);
-                  
-                  if (deltaX > 10 || deltaY > 10) {
-                    moved = true;
-                  }
-                };
-                
-                const handleEnd = () => {
-                  if (!moved && onTransactionClick) {
-                    onTransactionClick(transaction);
-                  }
-                  document.removeEventListener('touchmove', handleMove);
-                  document.removeEventListener('touchend', handleEnd);
-                };
-                
-                document.addEventListener('touchmove', handleMove);
-                document.addEventListener('touchend', handleEnd);
-              }}
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
                 cursor: 'pointer'
               }}
             >
@@ -127,36 +104,66 @@ export default function TransactionList({ transactions, onTransactionClick }: Tr
               }}>
                 {transaction.type === 'income' ? '💰' : '💸'}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ 
+                flex: 1, 
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: 0
+              }}>
                 <div style={{
                   fontSize: '16px',
-                  fontWeight: '500',
-                  marginBottom: '4px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
+                  color: 'var(--tg-theme-text-color)',
+                  wordBreak: 'break-word'
                 }}>
                   {transaction.category}
                 </div>
                 {transaction.description && (
                   <div style={{
-                    fontSize: '14px',
-                    color: 'var(--tg-theme-hint-color)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    fontSize: '12px',
+                    color: 'var(--tg-theme-hint-color)'
                   }}>
                     {transaction.description}
                   </div>
                 )}
               </div>
               <div style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: transaction.type === 'income' ? '#4caf50' : '#f44336'
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexShrink: 0
               }}>
-                {transaction.type === 'income' ? '+' : '-'}
-                {formatCurrency(transaction.amount)}
+                <div style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: transaction.type === 'income' ? '#4caf50' : '#f44336',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {transaction.type === 'income' ? '+' : '-'}
+                  {formatCurrency(transaction.amount)}
+                </div>
+                {onOpenMenu && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenMenu(transaction);
+                    }}
+                    style={{
+                      padding: '8px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      color: 'var(--tg-theme-hint-color)',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    ⋯
+                  </button>
+                )}
               </div>
             </div>
           ))}

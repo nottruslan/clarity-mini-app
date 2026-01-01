@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type Transaction, type Category } from '../utils/storage';
 import FinanceOverview from '../components/Finance/FinanceOverview';
 import TransactionList from '../components/Finance/TransactionList';
 import TransactionDetails from '../components/Finance/TransactionDetails';
 import TransactionFilters, { type FilterOptions } from '../components/Finance/TransactionFilters';
+import TransactionBottomSheet from '../components/Finance/TransactionBottomSheet';
 import StatisticsView from '../components/Finance/StatisticsView';
 import BudgetManager from '../components/Finance/BudgetManager';
 import BudgetOverview from '../components/Finance/BudgetOverview';
@@ -23,12 +24,18 @@ interface FinancePageProps {
 }
 
 export default function FinancePage({ storage }: FinancePageProps) {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const touchStartRef = useRef<number | null>(null);
+  const touchEndRef = useRef<number | null>(null);
+  const minSwipeDistance = 50;
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [menuTransaction, setMenuTransaction] = useState<Transaction | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({ type: 'all' });
   const [createStep, setCreateStep] = useState(0);
   const [period] = useState<Period>('month');
@@ -39,9 +46,34 @@ export default function FinancePage({ storage }: FinancePageProps) {
     date?: number;
   }>({});
   
+  const sectionTitles = ['Обзор', 'Транзакции', 'Статистика'];
   
   const periodFiltered = filterTransactionsByPeriod(storage.finance.transactions, period);
   const filteredTransactions = useFinanceFilters(periodFiltered, filters);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchEndRef.current = null;
+    touchStartRef.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndRef.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartRef.current || !touchEndRef.current) return;
+    
+    const distance = touchStartRef.current - touchEndRef.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentSlide < sectionTitles.length - 1) {
+      setCurrentSlide(currentSlide + 1);
+    }
+    if (isRightSwipe && currentSlide > 0) {
+      setCurrentSlide(currentSlide - 1);
+    }
+  };
 
   const handleStartCreate = (type?: 'income' | 'expense') => {
     setIsCreating(true);
@@ -99,6 +131,35 @@ export default function FinancePage({ storage }: FinancePageProps) {
 
   const handleTransactionClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
+  };
+
+  const handleOpenMenu = (transaction: Transaction) => {
+    setMenuTransaction(transaction);
+    setShowBottomSheet(true);
+  };
+
+  const handleMenuEdit = () => {
+    if (menuTransaction) {
+      handleEdit(menuTransaction);
+      setShowBottomSheet(false);
+      setMenuTransaction(null);
+    }
+  };
+
+  const handleMenuDuplicate = () => {
+    if (menuTransaction) {
+      handleDuplicate(menuTransaction);
+      setShowBottomSheet(false);
+      setMenuTransaction(null);
+    }
+  };
+
+  const handleMenuDelete = () => {
+    if (menuTransaction) {
+      handleDelete(menuTransaction);
+      setShowBottomSheet(false);
+      setMenuTransaction(null);
+    }
   };
 
   const handleEdit = (transaction: Transaction) => {
@@ -237,139 +298,216 @@ export default function FinancePage({ storage }: FinancePageProps) {
       <div style={{ 
         flex: 1, 
         display: 'flex', 
-        flexDirection: 'column', 
-        position: 'relative',
-        paddingTop: '0px',
-        paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
+        flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <FinanceOverview finance={storage.finance} />
-        <BudgetOverview 
-          budgets={storage.finance.budgets || []}
-          transactions={storage.finance.transactions}
-        />
+        {/* Заголовки разделов */}
         <div style={{
+          display: 'flex',
+          justifyContent: 'space-around',
           padding: '12px 16px',
           borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-          display: 'flex',
-          gap: '12px',
-          justifyContent: 'center'
+          backgroundColor: 'var(--tg-theme-bg-color)'
         }}>
-          <button
-            onClick={() => setShowBudget(true)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: '1px solid var(--tg-theme-button-color)',
-              backgroundColor: 'transparent',
-              color: 'var(--tg-theme-button-color)',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            💰 Управление бюджетом
-          </button>
+          {sectionTitles.map((title, index) => (
+            <div
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              style={{
+                fontSize: '16px',
+                fontWeight: currentSlide === index ? '600' : '400',
+                color: currentSlide === index 
+                  ? 'var(--tg-theme-button-color)' 
+                  : 'var(--tg-theme-hint-color)',
+                cursor: 'pointer',
+                padding: '8px 12px',
+                borderBottom: currentSlide === index 
+                  ? '2px solid var(--tg-theme-button-color)' 
+                  : '2px solid transparent',
+                transition: 'all 0.2s'
+              }}
+            >
+              {title}
+            </div>
+          ))}
         </div>
-        <StatisticsView finance={storage.finance} period={period} />
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
-        }}>
-          <div style={{
-            fontSize: '16px',
-            fontWeight: '600'
-          }}>
-            Транзакции ({filteredTransactions.length})
+
+        {/* Контейнер со слайдами */}
+        <div
+          className="slide-container"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Слайд 0: Обзор */}
+          <div className={`slide ${currentSlide === 0 ? 'active' : currentSlide > 0 ? 'prev' : 'next'}`}>
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              position: 'relative',
+              paddingTop: '0px',
+              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
+              overflow: 'hidden'
+            }}>
+              <FinanceOverview finance={storage.finance} />
+              <BudgetOverview 
+                budgets={storage.finance.budgets || []}
+                transactions={storage.finance.transactions}
+              />
+              <div style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <button
+                  onClick={() => setShowBudget(true)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--tg-theme-secondary-bg-color)',
+                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                    color: 'var(--tg-theme-text-color)',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.7';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                >
+                  💰 Управление бюджетом
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={() => setShowFilters(true)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: '1px solid var(--tg-theme-secondary-bg-color)',
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-              color: 'var(--tg-theme-text-color)',
-              fontSize: '14px',
-              cursor: 'pointer'
-            }}
-          >
-            🔍 Фильтры
-          </button>
+
+          {/* Слайд 1: Транзакции */}
+          <div className={`slide ${currentSlide === 1 ? 'active' : currentSlide > 1 ? 'prev' : 'next'}`}>
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              position: 'relative',
+              paddingTop: '0px',
+              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 16px',
+                borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
+              }}>
+                <div style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: 'var(--tg-theme-text-color)'
+                }}>
+                  Транзакции ({filteredTransactions.length})
+                </div>
+                <button
+                  onClick={() => setShowFilters(true)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--tg-theme-secondary-bg-color)',
+                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                    color: 'var(--tg-theme-text-color)',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.7';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                >
+                  🔍 Фильтры
+                </button>
+              </div>
+              <TransactionList 
+                transactions={filteredTransactions}
+                onTransactionClick={handleTransactionClick}
+                onOpenMenu={handleOpenMenu}
+              />
+            </div>
+          </div>
+
+          {/* Слайд 2: Статистика */}
+          <div className={`slide ${currentSlide === 2 ? 'active' : currentSlide > 2 ? 'prev' : 'next'}`}>
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              position: 'relative',
+              paddingTop: '0px',
+              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
+              overflow: 'hidden'
+            }}>
+              <StatisticsView finance={storage.finance} period={period} />
+            </div>
+          </div>
         </div>
-        <TransactionList 
-          transactions={filteredTransactions}
-          onTransactionClick={handleTransactionClick}
-        />
+
+        {/* FAB кнопки для создания транзакций */}
         <div style={{
           position: 'fixed',
           bottom: 'calc(20px + env(safe-area-inset-bottom))',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          right: '20px',
           display: 'flex',
+          flexDirection: 'column',
           gap: '12px',
           zIndex: 100
         }}>
           <button 
             onClick={() => handleStartCreate('income')}
+            className="fab"
             style={{
-              padding: '14px 24px',
-              borderRadius: '12px',
-              border: 'none',
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
               backgroundColor: '#4caf50',
               color: 'white',
-              fontSize: '16px',
-              fontWeight: '600',
+              border: 'none',
+              fontSize: '24px',
               cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
-              transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              minWidth: '120px',
               justifyContent: 'center'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
           >
-            <span>💰</span>
-            <span>Доход</span>
+            💰
           </button>
           <button 
             onClick={() => handleStartCreate('expense')}
+            className="fab"
             style={{
-              padding: '14px 24px',
-              borderRadius: '12px',
-              border: 'none',
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
               backgroundColor: '#f44336',
               color: 'white',
-              fontSize: '16px',
-              fontWeight: '600',
+              border: 'none',
+              fontSize: '24px',
               cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
-              transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              minWidth: '120px',
               justifyContent: 'center'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
           >
-            <span>💸</span>
-            <span>Расход</span>
+            💸
           </button>
         </div>
       </div>
@@ -399,6 +537,17 @@ export default function FinancePage({ storage }: FinancePageProps) {
           onBudgetUpdate={(budget) => storage.updateBudget(budget)}
           onBudgetDelete={(categoryId) => storage.deleteBudget(categoryId)}
           onClose={() => setShowBudget(false)}
+        />
+      )}
+      {showBottomSheet && menuTransaction && (
+        <TransactionBottomSheet
+          onClose={() => {
+            setShowBottomSheet(false);
+            setMenuTransaction(null);
+          }}
+          onEdit={handleMenuEdit}
+          onDuplicate={handleMenuDuplicate}
+          onDelete={handleMenuDelete}
         />
       )}
     </>

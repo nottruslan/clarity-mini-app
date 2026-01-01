@@ -50,7 +50,7 @@ export default function BudgetOverview({ budgets, transactions }: BudgetOverview
 
   return (
     <div style={{
-      padding: '16px',
+      padding: '20px 16px',
       borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
       backgroundColor: 'var(--tg-theme-section-bg-color)'
     }}>
@@ -58,11 +58,13 @@ export default function BudgetOverview({ budgets, transactions }: BudgetOverview
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '12px'
+        marginBottom: '16px'
       }}>
         <h3 style={{
           fontSize: '18px',
-          fontWeight: '600'
+          fontWeight: '600',
+          color: 'var(--tg-theme-text-color)',
+          margin: 0
         }}>
           Бюджет
         </h3>
@@ -91,8 +93,8 @@ export default function BudgetOverview({ budgets, transactions }: BudgetOverview
 
           return (
             <div key={budget.categoryId} style={{
-              padding: '12px',
-              borderRadius: '10px',
+              padding: '16px',
+              borderRadius: '12px',
               backgroundColor: 'var(--tg-theme-secondary-bg-color)',
               border: isOver ? '2px solid #f44336' : '2px solid transparent'
             }}>

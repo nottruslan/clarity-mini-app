@@ -79,42 +79,59 @@ export default function TransactionDetails({
         backgroundColor: 'var(--tg-theme-bg-color)',
         borderTopLeftRadius: '20px',
         borderTopRightRadius: '20px',
-        padding: '20px',
+        padding: '8px 0 20px',
         paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))',
         maxHeight: '80vh',
         overflowY: 'auto' as const,
         WebkitOverflowScrolling: 'touch' as any
       }}>
+        {/* Индикатор */}
+        <div
+          style={{
+            width: '40px',
+            height: '4px',
+            backgroundColor: 'var(--tg-theme-hint-color)',
+            borderRadius: '2px',
+            margin: '8px auto 16px',
+            opacity: 0.3
+          }}
+        />
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px'
+          padding: '0 20px'
         }}>
-          <h2 style={{
-            fontSize: '24px',
-            fontWeight: '600'
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
           }}>
-            Детали транзакции
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              border: 'none',
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            <h2 style={{
               fontSize: '20px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            ×
-          </button>
-        </div>
+              fontWeight: '600',
+              color: 'var(--tg-theme-text-color)',
+              margin: 0
+            }}>
+              Детали транзакции
+            </h2>
+            <button
+              onClick={onClose}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                border: 'none',
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                fontSize: '24px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--tg-theme-text-color)'
+              }}
+            >
+              ×
+            </button>
+          </div>
 
         <div style={{
           display: 'flex',
@@ -150,19 +167,22 @@ export default function TransactionDetails({
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px'
+            gap: '24px'
           }}>
             <div>
               <div style={{
                 fontSize: '12px',
                 color: 'var(--tg-theme-hint-color)',
-                marginBottom: '4px'
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
               }}>
                 Категория
               </div>
               <div style={{
                 fontSize: '18px',
-                fontWeight: '600'
+                fontWeight: '600',
+                color: 'var(--tg-theme-text-color)'
               }}>
                 {transaction.category}
               </div>
@@ -172,12 +192,15 @@ export default function TransactionDetails({
               <div style={{
                 fontSize: '12px',
                 color: 'var(--tg-theme-hint-color)',
-                marginBottom: '4px'
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
               }}>
                 Дата
               </div>
               <div style={{
-                fontSize: '16px'
+                fontSize: '16px',
+                color: 'var(--tg-theme-text-color)'
               }}>
                 {formatDate(transaction.date)}
               </div>
@@ -188,12 +211,17 @@ export default function TransactionDetails({
                 <div style={{
                   fontSize: '12px',
                   color: 'var(--tg-theme-hint-color)',
-                  marginBottom: '4px'
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
                 }}>
                   Описание
                 </div>
                 <div style={{
-                  fontSize: '16px'
+                  fontSize: '16px',
+                  color: 'var(--tg-theme-text-color)',
+                  wordBreak: 'break-word',
+                  lineHeight: '1.5'
                 }}>
                   {transaction.description}
                 </div>
@@ -251,6 +279,7 @@ export default function TransactionDetails({
               Удалить
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>
