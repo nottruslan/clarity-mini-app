@@ -151,7 +151,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
 
   const handleStep4Complete = (startTime: number | undefined, duration: number | undefined) => {
     setTaskData(prev => ({ ...prev, startTime, duration }));
-    setModifiedFields(prev => new Set(prev).add('startTime').add('duration'));
+    setModifiedFields(prev => {
+      const newSet = new Set(prev);
+      if (startTime !== undefined) {
+        newSet.add('startTime');
+      }
+      if (duration !== undefined) {
+        newSet.add('duration');
+      }
+      return newSet;
+    });
     setCreateStep(4);
   };
 
@@ -210,7 +219,8 @@ export default function TasksPage({ storage }: TasksPageProps) {
       
       // Вычисляем startTime и endTime
       // Используем finalDueDate или selectedDate как дату по умолчанию для вычисления timestamp
-      const dateForTime = finalDueDate || (modifiedFields.has('startTime') || modifiedFields.has('duration') ? selectedDate.getTime() : undefined);
+      // Если пользователь добавил дату, время или длительность, используем эту дату
+      const dateForTime = finalDueDate || (modifiedFields.has('startTime') || modifiedFields.has('duration') || modifiedFields.has('dueDate') ? selectedDate.getTime() : undefined);
       
       let finalStartTime: number | undefined;
       let finalEndTime: number | undefined;
@@ -306,25 +316,46 @@ export default function TasksPage({ storage }: TasksPageProps) {
             finalEndTime = originalTask.endTime;
           }
         }
-      } else if (modifiedFields.has('duration') && taskData.duration !== undefined && originalTask.startTime) {
+      } else if (modifiedFields.has('duration') && taskData.duration !== undefined) {
         // Если изменен только duration, пересчитываем endTime
         const dateForDuration = finalDueDate || (originalTask.dueDate || selectedDate.getTime());
-        if (dateForDuration) {
-          // Если есть дата, вычисляем timestamp
-          const startMinutes = originalTask.startTime > 86400000 
-            ? timestampToMinutesOfDay(originalTask.startTime)
-            : originalTask.startTime;
-          finalStartTime = originalTask.startTime > 86400000 
-            ? originalTask.startTime
-            : minutesOfDayToTimestamp(dateForDuration, originalTask.startTime);
-          finalEndTime = minutesOfDayToTimestamp(dateForDuration, startMinutes + taskData.duration);
+        
+        if (originalTask.startTime) {
+          // Если у задачи есть startTime
+          if (dateForDuration) {
+            // Если есть дата, вычисляем timestamp
+            const startMinutes = originalTask.startTime > 86400000 
+              ? timestampToMinutesOfDay(originalTask.startTime)
+              : originalTask.startTime;
+            finalStartTime = originalTask.startTime > 86400000 
+              ? originalTask.startTime
+              : minutesOfDayToTimestamp(dateForDuration, originalTask.startTime);
+            finalEndTime = minutesOfDayToTimestamp(dateForDuration, startMinutes + taskData.duration);
+          } else {
+            // Если нет даты, вычисляем endTime как минуты от полуночи
+            const startMinutes = originalTask.startTime <= 86400000 
+              ? originalTask.startTime 
+              : timestampToMinutesOfDay(originalTask.startTime);
+            finalStartTime = originalTask.startTime;
+            finalEndTime = startMinutes + taskData.duration;
+          }
+        } else if (taskData.startTime !== undefined) {
+          // Если у задачи нет startTime, но пользователь добавил его вместе с duration
+          if (dateForDuration) {
+            finalStartTime = minutesOfDayToTimestamp(dateForDuration, taskData.startTime);
+            finalEndTime = minutesOfDayToTimestamp(dateForDuration, taskData.startTime + taskData.duration);
+          } else {
+            finalStartTime = taskData.startTime;
+            finalEndTime = taskData.startTime + taskData.duration;
+          }
+        } else if (dateForDuration) {
+          // Если у задачи нет startTime, но есть дата, используем начало дня
+          finalStartTime = minutesOfDayToTimestamp(dateForDuration, 0);
+          finalEndTime = minutesOfDayToTimestamp(dateForDuration, taskData.duration);
         } else {
-          // Если нет даты, вычисляем endTime как минуты от полуночи
-          const startMinutes = originalTask.startTime <= 86400000 
-            ? originalTask.startTime 
-            : timestampToMinutesOfDay(originalTask.startTime);
-          finalStartTime = originalTask.startTime;
-          finalEndTime = startMinutes + taskData.duration;
+          // Если нет ни startTime, ни даты, сохраняем только duration (endTime будет undefined)
+          finalStartTime = undefined;
+          finalEndTime = undefined;
         }
       } else {
         // Если время не изменялось, сохраняем как есть
@@ -356,13 +387,19 @@ export default function TasksPage({ storage }: TasksPageProps) {
       };
       
       // Обновляем задачу
-      // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:293',message:'handleStep9Complete before updateTask',data:{editingTaskId,updatedTaskText:updatedTask.text,storageTasksCount:storage.tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      await storage.updateTask(editingTaskId, updatedTask);
-      // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:296',message:'handleStep9Complete after updateTask',data:{editingTaskId,storageTasksCount:storage.tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
+      try {
+        // #region agent log
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:393',message:'handleStep9Complete before updateTask',data:{editingTaskId,updatedTaskText:updatedTask.text,updatedTaskDueDate:updatedTask.dueDate,updatedTaskDuration:updatedTask.duration,updatedTaskRecurrence:updatedTask.recurrence,storageTasksCount:storage.tasks.length,modifiedFields:Array.from(modifiedFields)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        await storage.updateTask(editingTaskId, updatedTask);
+        // #region agent log
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:396',message:'handleStep9Complete after updateTask',data:{editingTaskId,storageTasksCount:storage.tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+      } catch (error) {
+        console.error('Error updating task:', error);
+        // Не закрываем визард при ошибке, чтобы пользователь мог попробовать снова
+        return;
+      }
       
       // Закрываем визард
       setIsCreating(false);
