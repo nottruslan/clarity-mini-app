@@ -894,3 +894,24 @@ body {
 
 /* Старые стили форм удалены - теперь используется Wizard стиль */
 
+/* Анимация для новой задачи */
+.newly-created {
+  animation: highlightNewTask 2s ease-in-out;
+  background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+  border-left: 4px solid var(--tg-theme-button-color, #3390ec);
+}
+
+@keyframes highlightNewTask {
+  0% {
+    background-color: var(--tg-theme-button-color, #3390ec);
+    opacity: 0.3;
+  }
+  50% {
+    background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    opacity: 1;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+

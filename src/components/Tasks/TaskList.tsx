@@ -84,6 +84,7 @@ export default function TaskList({
         <TaskItem
           key={task.id}
           task={task}
+          data-task-id={task.id}
           categories={categories}
           onToggle={() => onToggle(task.id)}
           onEdit={onEdit ? () => onEdit(task.id) : undefined}

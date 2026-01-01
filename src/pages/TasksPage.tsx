@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type Task, type Subtask, type RecurrenceRule, type TaskCategory, type InBoxNote } from '../utils/storage';
 import TaskList from '../components/Tasks/TaskList';
@@ -47,6 +47,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
   const [sortBy, setSortBy] = useState<TaskSortOption>('time');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [deleteConfirmTaskId, setDeleteConfirmTaskId] = useState<string | null>(null);
+  const [newlyCreatedTaskId, setNewlyCreatedTaskId] = useState<string | null>(null);
   
   const [taskData, setTaskData] = useState<{
     name?: string;
@@ -757,6 +758,35 @@ export default function TasksPage({ storage }: TasksPageProps) {
           });
           // Это не критическая ошибка, но логируем
         }
+        
+        // Проверяем видимость задачи в filteredTasks
+        const taskIndexInFiltered = filteredTasks.findIndex(t => t.id === newTask.id);
+        const taskInFiltered = filteredTasks.find(t => t.id === newTask.id);
+        
+        console.log('[CHECK] Verification after save - checking saved task:', {
+          taskId: newTask.id,
+          expectedDueDate: newTask.dueDate,
+          expectedDueDateType: typeof newTask.dueDate,
+          savedTaskFromStorageFound: !!savedTaskFromStorage,
+          savedTaskFromStorageDueDate: savedTaskFromStorage?.dueDate,
+          savedTaskFromStorageDueDateType: typeof savedTaskFromStorage?.dueDate,
+          savedTaskFromStoragePlannedDate: savedTaskFromStorage?.plannedDate,
+          currentFilters: filters,
+          tasksInState: storage.tasks.length,
+          taskInState: storage.tasks.find(t => t.id === newTask.id) ? 'YES' : 'NO',
+          taskDueDateInState: storage.tasks.find(t => t.id === newTask.id)?.dueDate,
+          // Проверка видимости в filteredTasks
+          taskInFiltered: taskInFiltered ? 'YES' : 'NO',
+          taskIndexInFiltered: taskIndexInFiltered,
+          filteredTasksCount: filteredTasks.length,
+          taskDueDateInFiltered: taskInFiltered?.dueDate,
+          taskPositionInList: taskIndexInFiltered >= 0 ? `${taskIndexInFiltered + 1} из ${filteredTasks.length}` : 'НЕ НАЙДЕНА'
+        });
+        
+        // Устанавливаем ID новой задачи для прокрутки
+        if (taskInFiltered) {
+          setNewlyCreatedTaskId(newTask.id);
+        }
       } catch (error) {
         console.error('[ERROR] Error adding task:', error);
         // Теперь addTask сначала сохраняет, потом обновляет состояние
@@ -779,6 +809,29 @@ export default function TasksPage({ storage }: TasksPageProps) {
     setModifiedFields(new Set());
     console.log('[CHECK] Wizard closed, state cleared');
   };
+  
+  // Эффект для прокрутки к новой задаче
+  useEffect(() => {
+    if (newlyCreatedTaskId && filteredTasks.length > 0) {
+      // Ждем, пока DOM обновится
+      setTimeout(() => {
+        const taskElement = document.querySelector(`[data-task-id="${newlyCreatedTaskId}"]`);
+        if (taskElement) {
+          console.log('[CHECK] Scrolling to new task:', newlyCreatedTaskId);
+          taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Выделяем задачу визуально
+          taskElement.classList.add('newly-created');
+          setTimeout(() => {
+            taskElement.classList.remove('newly-created');
+          }, 2000);
+        } else {
+          console.log('[CHECK] Task element not found in DOM:', newlyCreatedTaskId);
+        }
+        // Сбрасываем ID после прокрутки
+        setNewlyCreatedTaskId(null);
+      }, 100);
+    }
+  }, [newlyCreatedTaskId, filteredTasks]);
 
   const handleBack = () => {
     if (createStep > 0) {

@@ -135,7 +135,8 @@ export default function TaskItem({
   };
 
   return (
-    <div 
+    <div
+      data-task-id={task.id} 
       className="swipeable-item"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
