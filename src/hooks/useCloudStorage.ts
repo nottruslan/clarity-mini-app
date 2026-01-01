@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getTasks,
   saveTasks,
+  deduplicateTasks,
   getHabits,
   saveHabits,
   getFinanceData,
@@ -44,6 +45,7 @@ export function useCloudStorage() {
   const [taskTags, setTaskTags] = useState<TaskTag[]>([]);
   const [inBoxNotes, setInBoxNotes] = useState<InBoxNote[]>([]);
   const [loading, setLoading] = useState(true);
+  const isLoadingRef = useRef(false);
 
   // Загрузка данных при монтировании
   useEffect(() => {
@@ -51,6 +53,13 @@ export function useCloudStorage() {
   }, []);
 
   const loadAllData = async () => {
+    // Защита от множественных одновременных вызовов
+    if (isLoadingRef.current) {
+      console.log('[CHECK] loadAllData - already loading, skipping duplicate call');
+      return;
+    }
+    
+    isLoadingRef.current = true;
     try {
       setLoading(true);
       const loadStartTime = Date.now();
@@ -119,13 +128,16 @@ export function useCloudStorage() {
       const newInstances = generateUpcomingInstances(tasksData, 30);
       const allTasks = [...tasksData, ...newInstances];
       
+      // Дедупликация перед сохранением (на случай, если в tasksData уже были дубликаты)
+      const deduplicatedTasks = deduplicateTasks(allTasks);
+      
       // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:111',message:'loadAllData tasks loaded',data:{tasksDataCount:tasksData.length,newInstancesCount:newInstances.length,allTasksCount:allTasks.length,firstTaskId:allTasks[0]?.id,firstTaskText:allTasks[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:111',message:'loadAllData tasks loaded',data:{tasksDataCount:tasksData.length,newInstancesCount:newInstances.length,allTasksCount:allTasks.length,deduplicatedCount:deduplicatedTasks.length,duplicatesRemoved:allTasks.length - deduplicatedTasks.length,firstTaskId:deduplicatedTasks[0]?.id,firstTaskText:deduplicatedTasks[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
       
-      // Сохраняем новые экземпляры, если они есть
-      if (newInstances.length > 0) {
-        await saveTasks(allTasks);
+      // Сохраняем только если есть новые экземпляры или были найдены дубликаты
+      if (newInstances.length > 0 || deduplicatedTasks.length < allTasks.length) {
+        await saveTasks(deduplicatedTasks);
       }
       
       setTasks(allTasks);
@@ -151,6 +163,7 @@ export function useCloudStorage() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
   };
 

@@ -330,11 +330,42 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
   cloudPromise.then((cloudData) => {
     if (cloudData !== null) {
       // Если Cloud Storage вернул данные, синхронизируем с localStorage
-      // В будущем можно добавить сравнение по timestamp для выбора более свежих данных
-      try {
-        localStorage.setItem(key, JSON.stringify(cloudData));
-      } catch (error) {
-        console.error('Error syncing Cloud Storage data to localStorage:', error);
+      // Для задач добавляем дедупликацию перед сохранением
+      if (key === STORAGE_KEYS.TASKS && Array.isArray(cloudData)) {
+        const tasks = cloudData as Task[];
+        const deduplicated = deduplicateTasks(tasks);
+        
+        if (deduplicated.length < tasks.length) {
+          console.log('[CHECK] getStorageData - deduplicated tasks from Cloud Storage:', {
+            originalCount: tasks.length,
+            deduplicatedCount: deduplicated.length,
+            duplicatesRemoved: tasks.length - deduplicated.length
+          });
+        }
+        
+        // Сравниваем с текущими данными в localStorage
+        if (localData && Array.isArray(localData)) {
+          const localTasks = localData as Task[];
+          console.log('[CHECK] getStorageData - comparing Cloud Storage with localStorage:', {
+            cloudStorageCount: deduplicated.length,
+            localStorageCount: localTasks.length,
+            difference: Math.abs(deduplicated.length - localTasks.length)
+          });
+        }
+        
+        try {
+          localStorage.setItem(key, JSON.stringify(deduplicated));
+          console.log('[CHECK] getStorageData - synced Cloud Storage data to localStorage');
+        } catch (error) {
+          console.error('Error syncing Cloud Storage data to localStorage:', error);
+        }
+      } else {
+        try {
+          localStorage.setItem(key, JSON.stringify(cloudData));
+          console.log('[CHECK] getStorageData - synced Cloud Storage data to localStorage');
+        } catch (error) {
+          console.error('Error syncing Cloud Storage data to localStorage:', error);
+        }
       }
     }
   }).catch(() => {
@@ -486,18 +517,62 @@ function migrateTasks(tasks: Task[]): Task[] {
 }
 
 /**
+ * Дедупликация задач по ID
+ * Оставляет последнюю версию задачи (по createdAt)
+ */
+export function deduplicateTasks(tasks: Task[]): Task[] {
+  const seen = new Map<string, Task>();
+  let duplicatesCount = 0;
+  
+  for (const task of tasks) {
+    if (!seen.has(task.id)) {
+      seen.set(task.id, task);
+    } else {
+      // Если задача уже есть, выбираем более новую версию
+      const existing = seen.get(task.id)!;
+      const existingTime = existing.createdAt || 0;
+      const newTime = task.createdAt || 0;
+      
+      if (newTime > existingTime) {
+        seen.set(task.id, task);
+        duplicatesCount++;
+      } else {
+        duplicatesCount++;
+      }
+    }
+  }
+  
+  const deduplicated = Array.from(seen.values());
+  
+  if (duplicatesCount > 0) {
+    console.log('[CHECK] deduplicateTasks - removed duplicates:', {
+      originalCount: tasks.length,
+      deduplicatedCount: deduplicated.length,
+      duplicatesRemoved: duplicatesCount
+    });
+  }
+  
+  return deduplicated;
+}
+
+/**
  * Сохранить задачи
  */
 export async function saveTasks(tasks: Task[]): Promise<void> {
+  // Дедупликация перед сохранением
+  const deduplicatedTasks = deduplicateTasks(tasks);
+  
   console.log('[CHECK] saveTasks called:', {
     tasksCount: tasks.length,
-    firstTaskId: tasks[0]?.id,
-    firstTaskDueDate: tasks[0]?.dueDate,
-    lastTaskId: tasks[tasks.length - 1]?.id,
-    lastTaskDueDate: tasks[tasks.length - 1]?.dueDate,
-    allTasksHaveDueDate: tasks.every(t => t.dueDate !== undefined || t.dueDate === undefined) // Проверка что поле существует
+    deduplicatedCount: deduplicatedTasks.length,
+    duplicatesRemoved: tasks.length - deduplicatedTasks.length,
+    firstTaskId: deduplicatedTasks[0]?.id,
+    firstTaskDueDate: deduplicatedTasks[0]?.dueDate,
+    lastTaskId: deduplicatedTasks[deduplicatedTasks.length - 1]?.id,
+    lastTaskDueDate: deduplicatedTasks[deduplicatedTasks.length - 1]?.dueDate,
+    allTasksHaveDueDate: deduplicatedTasks.every(t => t.dueDate !== undefined || t.dueDate === undefined) // Проверка что поле существует
   });
-  await setStorageData(STORAGE_KEYS.TASKS, tasks);
+  await setStorageData(STORAGE_KEYS.TASKS, deduplicatedTasks);
   console.log('[CHECK] saveTasks - setStorageData completed');
 }
 
