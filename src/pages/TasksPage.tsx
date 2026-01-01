@@ -482,6 +482,16 @@ export default function TasksPage({ storage }: TasksPageProps) {
         // #region agent log
         fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:393',message:'handleStep9Complete before updateTask',data:{editingTaskId,updatedTaskText:updatedTask.text,updatedTaskDueDate:updatedTask.dueDate,updatedTaskDuration:updatedTask.duration,updatedTaskRecurrence:updatedTask.recurrence,storageTasksCount:storage.tasks.length,modifiedFields:Array.from(modifiedFields)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
+        
+        console.log('[DEBUG] Calling updateTask with:', {
+          editingTaskId,
+          updatedTaskDueDate: updatedTask.dueDate,
+          updatedTaskPlannedDate: updatedTask.plannedDate,
+          taskUpdatesDueDate: taskUpdates.dueDate,
+          updatedTaskKeys: Object.keys(updatedTask),
+          updatedTaskFull: updatedTask
+        });
+        
         await storage.updateTask(editingTaskId, updatedTask);
         // #region agent log
         fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:396',message:'handleStep9Complete after updateTask',data:{editingTaskId,storageTasksCount:storage.tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});

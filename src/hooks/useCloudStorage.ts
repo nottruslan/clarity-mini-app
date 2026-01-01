@@ -250,7 +250,19 @@ export function useCloudStorage() {
         
         // Создаем обновленную задачу
         const originalTask = prevTasks[taskIndex];
+        console.log('[DEBUG] updateTask merging:', {
+          id,
+          originalTaskDueDate: originalTask.dueDate,
+          updatesDueDate: updates.dueDate,
+          updatesKeys: Object.keys(updates),
+          updatesFull: updates
+        });
         const updatedTask = { ...originalTask, ...updates };
+        console.log('[DEBUG] updateTask merged result:', {
+          id,
+          updatedTaskDueDate: updatedTask.dueDate,
+          updatedTaskPlannedDate: updatedTask.plannedDate
+        });
         
         // Создаем НОВЫЙ массив с обновленной задачей
         newTasks = [...prevTasks];
