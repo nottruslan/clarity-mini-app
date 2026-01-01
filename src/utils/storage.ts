@@ -261,10 +261,12 @@ const STORAGE_KEYS = {
 
 /**
  * Получить данные из хранилища
- * Приоритет: localStorage (мгновенно) -> Cloud Storage (в фоне для синхронизации)
+ * Согласно документации Telegram: Cloud Storage - основной источник для синхронизации между устройствами
+ * localStorage используется как кэш для быстрого доступа
+ * Приоритет: Cloud Storage (синхронизированные данные) > localStorage (кэш)
  */
 export async function getStorageData<T>(key: string): Promise<T | null> {
-  // Сначала загружаем из localStorage (быстро и надежно)
+  // Сначала загружаем из localStorage для быстрого старта (кэш)
   let localData: T | null = null;
   try {
     const data = localStorage.getItem(key);
@@ -284,17 +286,18 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
 
   // Если Cloud Storage недоступен, возвращаем данные из localStorage
   if (!hasCloudStorage || !isCloudStorageSupported) {
+    console.log(`[SYNC] Cloud Storage недоступен для ключа "${key}", используем localStorage`);
     return localData;
   }
 
-  // Пытаемся загрузить из Cloud Storage в фоне (не блокируем загрузку)
+  // Пытаемся загрузить из Cloud Storage (приоритетный источник для синхронизации)
   // Используем короткий таймаут для быстрой синхронизации
   const cloudPromise = new Promise<T | null>((resolve) => {
     let resolved = false;
     const timeoutId = setTimeout(() => {
       if (!resolved) {
         resolved = true;
-        resolve(null); // Таймаут - возвращаем null, используем localStorage
+        resolve(null); // Таймаут - используем localStorage
       }
     }, 500); // 500ms таймаут для быстрой синхронизации Cloud Storage
 
@@ -325,59 +328,56 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     }
   });
 
-  // Сразу возвращаем данные из localStorage (не ждем Cloud Storage)
-  // Cloud Storage загружается в фоне для синхронизации
-  cloudPromise.then((cloudData) => {
+  // Ждем Cloud Storage с коротким таймаутом, но не блокируем надолго
+  // Если Cloud Storage вернул данные - они приоритетнее (синхронизированы между устройствами)
+  // cloudPromise уже имеет встроенный таймаут 500ms, поэтому просто ждем его
+  try {
+    const cloudData = await cloudPromise;
+
     if (cloudData !== null) {
-      // Если Cloud Storage вернул данные, синхронизируем с localStorage
-      // Для задач добавляем дедупликацию перед сохранением
-      if (key === STORAGE_KEYS.TASKS && Array.isArray(cloudData)) {
-        const tasks = cloudData as Task[];
-        const deduplicated = deduplicateTasks(tasks);
-        
-        if (deduplicated.length < tasks.length) {
-          console.log('[CHECK] getStorageData - deduplicated tasks from Cloud Storage:', {
-            originalCount: tasks.length,
-            deduplicatedCount: deduplicated.length,
-            duplicatesRemoved: tasks.length - deduplicated.length
-          });
-        }
-        
-        // Сравниваем с текущими данными в localStorage
-        if (localData && Array.isArray(localData)) {
-          const localTasks = localData as Task[];
-          console.log('[CHECK] getStorageData - comparing Cloud Storage with localStorage:', {
-            cloudStorageCount: deduplicated.length,
-            localStorageCount: localTasks.length,
-            difference: Math.abs(deduplicated.length - localTasks.length)
-          });
-        }
-        
-        try {
+      // Cloud Storage вернул данные - они приоритетнее для синхронизации
+      // Обновляем localStorage для кэширования
+      try {
+        // Для задач добавляем дедупликацию перед сохранением
+        if (key === STORAGE_KEYS.TASKS && Array.isArray(cloudData)) {
+          const tasks = cloudData as Task[];
+          const deduplicated = deduplicateTasks(tasks);
+          
+          if (deduplicated.length < tasks.length) {
+            console.log('[SYNC] Cloud Storage tasks deduplicated:', {
+              originalCount: tasks.length,
+              deduplicatedCount: deduplicated.length,
+              duplicatesRemoved: tasks.length - deduplicated.length
+            });
+          }
+          
           localStorage.setItem(key, JSON.stringify(deduplicated));
-          console.log('[CHECK] getStorageData - synced Cloud Storage data to localStorage');
-        } catch (error) {
-          console.error('Error syncing Cloud Storage data to localStorage:', error);
-        }
-      } else {
-        try {
+          console.log('[SYNC] Cloud Storage data synced to localStorage for key:', key);
+          return deduplicated as unknown as T;
+        } else {
           localStorage.setItem(key, JSON.stringify(cloudData));
-          console.log('[CHECK] getStorageData - synced Cloud Storage data to localStorage');
-        } catch (error) {
-          console.error('Error syncing Cloud Storage data to localStorage:', error);
+          console.log('[SYNC] Cloud Storage data synced to localStorage for key:', key);
+          return cloudData;
         }
+      } catch (error) {
+        console.error('Error syncing Cloud Storage data to localStorage:', error);
+        return cloudData; // Возвращаем данные из Cloud Storage даже если не удалось сохранить в localStorage
       }
     }
-  }).catch(() => {
-    // Игнорируем ошибки Cloud Storage - используем localStorage
-  });
+  } catch (error) {
+    console.error('Error loading from Cloud Storage:', error);
+  }
 
+  // Если Cloud Storage не вернул данные или произошла ошибка - используем localStorage
   return localData;
 }
 
 /**
  * Сохранить данные в хранилище
- * Сохраняет в оба хранилища: localStorage (приоритетно) и Cloud Storage (для синхронизации)
+ * Согласно документации Telegram: сохраняет в оба хранилища одновременно
+ * - localStorage: для быстрого доступа на текущем устройстве (кэш)
+ * - Cloud Storage: для синхронизации между устройствами пользователя
+ * Если Cloud Storage недоступен - данные все равно сохраняются в localStorage
  */
 export async function setStorageData<T>(key: string, data: T): Promise<void> {
   const jsonData = JSON.stringify(data);
