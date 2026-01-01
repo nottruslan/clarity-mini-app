@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  getTasks,
-  saveTasks,
-  deduplicateTasks,
   getHabits,
   saveHabits,
   getFinanceData,
@@ -11,40 +8,22 @@ import {
   saveOnboardingFlags,
   getYearlyReports,
   saveYearlyReports,
-  getTaskCategories,
-  saveTaskCategories,
-  getTaskTags,
-  saveTaskTags,
-  getInBoxNotes,
-  saveInBoxNotes,
-  type Task,
   type Habit,
   type FinanceData,
   type OnboardingFlags,
-  type YearlyReport,
-  type TaskCategory,
-  type TaskTag,
-  type InBoxNote
+  type YearlyReport
 } from '../utils/storage';
-import { generateUpcomingInstances } from '../utils/taskRecurrence';
 
 export function useCloudStorage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const tasksRef = useRef<Task[]>([]);
-  const addingTasksRef = useRef<Set<string>>(new Set()); // Защита от множественных вызовов addTask
   const [habits, setHabits] = useState<Habit[]>([]);
   const [finance, setFinance] = useState<FinanceData>({ transactions: [], categories: [], budgets: [] });
   const [onboarding, setOnboarding] = useState<OnboardingFlags>({
-    tasks: false,
     habits: false,
     finance: false,
     languages: false,
     'yearly-report': false
   });
   const [yearlyReports, setYearlyReports] = useState<YearlyReport[]>([]);
-  const [taskCategories, setTaskCategories] = useState<TaskCategory[]>([]);
-  const [taskTags, setTaskTags] = useState<TaskTag[]>([]);
-  const [inBoxNotes, setInBoxNotes] = useState<InBoxNote[]>([]);
   const [loading, setLoading] = useState(true);
   const isLoadingRef = useRef(false);
   const hasLoadedRef = useRef(false); // Флаг для отслеживания, были ли данные уже загружены
@@ -53,15 +32,6 @@ export function useCloudStorage() {
   useEffect(() => {
     loadAllData();
   }, []);
-  
-  // Синхронизация tasksRef.current с актуальным состоянием tasks
-  // ВАЖНО: НЕ вызываем setTasks здесь, чтобы избежать бесконечного цикла
-  // Дедупликация применяется в других местах (saveTasks, addTask, loadAllData)
-  useEffect(() => {
-    // Просто синхронизируем ref с текущим состоянием
-    // Если есть дубликаты, они будут удалены при следующем сохранении
-    tasksRef.current = tasks;
-  }, [tasks]);
 
   const loadAllData = async () => {
     // Защита от множественных одновременных вызовов
@@ -70,12 +40,10 @@ export function useCloudStorage() {
       return;
     }
     
-    // Если данные уже загружены и есть задачи, не загружаем снова
+    // Если данные уже загружены, не загружаем снова
     // (защита от повторных вызовов при перемонтировании)
-    if (hasLoadedRef.current && tasks.length > 0) {
-      console.log('[DIAG] loadAllData - data already loaded, skipping:', {
-        tasksCount: tasks.length
-      });
+    if (hasLoadedRef.current) {
+      console.log('[DIAG] loadAllData - data already loaded, skipping');
       return;
     }
     
@@ -86,11 +54,7 @@ export function useCloudStorage() {
       
       // Загружаем данные из localStorage (быстро и надежно)
       // Cloud Storage синхронизируется в фоне автоматически
-      const [tasksData, habitsData, financeData, onboardingData, reportsData, categoriesData, tagsData, notesData] = await Promise.all([
-        getTasks().catch(err => {
-          console.error('Error loading tasks:', err);
-          return [];
-        }),
+      const [habitsData, financeData, onboardingData, reportsData] = await Promise.all([
         getHabits().catch(err => {
           console.error('Error loading habits:', err);
           return [];
@@ -101,22 +65,10 @@ export function useCloudStorage() {
         }),
         getOnboardingFlags().catch(err => {
           console.error('Error loading onboarding:', err);
-          return { tasks: false, habits: false, finance: false, languages: false, 'yearly-report': false };
+          return { habits: false, finance: false, languages: false, 'yearly-report': false };
         }),
         getYearlyReports().catch(err => {
           console.error('Error loading reports:', err);
-          return [];
-        }),
-        getTaskCategories().catch(err => {
-          console.error('Error loading task categories:', err);
-          return [];
-        }),
-        getTaskTags().catch(err => {
-          console.error('Error loading task tags:', err);
-          return [];
-        }),
-        getInBoxNotes().catch(err => {
-          console.error('Error loading inbox notes:', err);
           return [];
         })
       ]);
@@ -144,37 +96,10 @@ export function useCloudStorage() {
         return habit;
       });
       
-      // Генерируем экземпляры повторяющихся задач
-      const newInstances = generateUpcomingInstances(tasksData, 30);
-      const allTasks = [...tasksData, ...newInstances];
-      
-      // Дедупликация перед сохранением (на случай, если в tasksData уже были дубликаты)
-      const deduplicatedTasks = deduplicateTasks(allTasks);
-      
-      // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:111',message:'loadAllData tasks loaded',data:{tasksDataCount:tasksData.length,newInstancesCount:newInstances.length,allTasksCount:allTasks.length,deduplicatedCount:deduplicatedTasks.length,duplicatesRemoved:allTasks.length - deduplicatedTasks.length,firstTaskId:deduplicatedTasks[0]?.id,firstTaskText:deduplicatedTasks[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-      // #endregion
-      
-      // Сохраняем только если есть новые экземпляры или были найдены дубликаты
-      if (newInstances.length > 0 || deduplicatedTasks.length < allTasks.length) {
-        await saveTasks(deduplicatedTasks);
-      }
-      
-      // Используем дедуплицированные задачи для состояния
-      setTasks(deduplicatedTasks);
-      tasksRef.current = deduplicatedTasks;
-      
-      // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:121',message:'loadAllData setTasks called',data:{allTasksCount:allTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-      // #endregion
-      
       setHabits(migratedHabits);
       setFinance(financeData);
       setOnboarding(onboardingData);
       setYearlyReports(reportsData);
-      setTaskCategories(categoriesData);
-      setTaskTags(tagsData);
-      setInBoxNotes(notesData);
       
       // Сохраняем мигрированные привычки, если они изменились
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
@@ -190,304 +115,6 @@ export function useCloudStorage() {
       isLoadingRef.current = false;
     }
   };
-
-  // Tasks
-  // Функция только для сохранения в хранилище (без обновления состояния)
-  const saveTasksToStorage = useCallback(async (newTasks: Task[], editingTaskId?: string) => {
-    // Применяем дедупликацию перед сохранением (на случай, если дубликаты все еще есть)
-    const deduplicatedBeforeSave = deduplicateTasks(newTasks);
-    if (deduplicatedBeforeSave.length < newTasks.length) {
-      console.warn('[DIAG] saveTasksToStorage - duplicates found before save:', {
-        originalCount: newTasks.length,
-        deduplicatedCount: deduplicatedBeforeSave.length,
-        duplicatesRemoved: newTasks.length - deduplicatedBeforeSave.length,
-        timestamp: Date.now()
-      });
-    }
-    
-    // #region agent log
-    // Ищем задачу, которая была недавно обновлена - проверяем все задачи на наличие изменений
-    const allTaskIds = deduplicatedBeforeSave.map(t => t.id);
-    const editingTask = editingTaskId ? deduplicatedBeforeSave.find(t => t.id === editingTaskId) : null;
-    console.log('[DIAG]', JSON.stringify({location:'useCloudStorage.ts:saveTasksToStorage',message:'saveTasksToStorage called',data:{tasksCount:newTasks.length,deduplicatedCount:deduplicatedBeforeSave.length,editingTaskId,editingTaskFound:!!editingTask,editingTaskText:editingTask?.text,allTaskIds:allTaskIds.slice(0, 10)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-    // #endregion
-    try {
-      await saveTasks(deduplicatedBeforeSave);
-      // #region agent log
-      console.log('[DIAG]', JSON.stringify({location:'useCloudStorage.ts:saveTasksToStorage',message:'saveTasksToStorage success',data:{tasksCount:deduplicatedBeforeSave.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-      // #endregion
-      
-      // Проверяем, что данные действительно записались - читаем обратно
-      try {
-        console.log('[DIAG] saveTasksToStorage - verifying save by reading back...');
-        const verifyTasks = await getTasks();
-        console.log('[DIAG] saveTasksToStorage - verification read completed:', {
-          verifyTasksCount: verifyTasks.length,
-          savedTasksCount: deduplicatedBeforeSave.length,
-          originalTasksCount: newTasks.length,
-          timestamp: Date.now()
-        });
-        // Если есть editingTaskId, проверяем конкретно эту задачу
-        if (editingTaskId && editingTask) {
-          const savedTask = verifyTasks.find(t => t.id === editingTaskId);
-          console.log('[CHECK] saveTasksToStorage - verification for editingTask:', {
-            editingTaskId,
-            editingTaskText: editingTask.text,
-            editingTaskDueDate: editingTask.dueDate,
-            editingTaskPlannedDate: editingTask.plannedDate,
-            savedTaskFound: !!savedTask,
-            savedTaskText: savedTask?.text,
-            savedTaskDueDate: savedTask?.dueDate,
-            savedTaskPlannedDate: savedTask?.plannedDate,
-            textMatches: editingTask.text === savedTask?.text,
-            dueDateMatches: editingTask.dueDate === savedTask?.dueDate,
-            allFieldsMatch: JSON.stringify(editingTask) === JSON.stringify(savedTask)
-          });
-          
-          // Дополнительная проверка dueDate
-          if (editingTask.dueDate !== savedTask?.dueDate) {
-            console.error('[CHECK] saveTasksToStorage - DueDate mismatch after save!', {
-              editingTaskDueDate: editingTask.dueDate,
-              savedTaskDueDate: savedTask?.dueDate,
-              editingTaskFull: editingTask,
-              savedTaskFull: savedTask
-            });
-          } else {
-            console.log('[CHECK] saveTasksToStorage - DueDate matches!');
-          }
-        } else {
-          // Проверяем последнюю задачу (которая была добавлена)
-          const lastTask = newTasks[newTasks.length - 1];
-          const savedLastTask = verifyTasks.find(t => t.id === lastTask.id);
-          console.log('[CHECK] saveTasksToStorage - verification for last task:', {
-            lastTaskId: lastTask.id,
-            lastTaskDueDate: lastTask.dueDate,
-            savedLastTaskFound: !!savedLastTask,
-            savedLastTaskDueDate: savedLastTask?.dueDate,
-            dueDateMatches: lastTask.dueDate === savedLastTask?.dueDate
-          });
-        }
-        // Проверяем все задачи, которые были в newTasks
-        const savedTasksInfo = newTasks.slice(0, 3).map(originalTask => {
-          const savedTask = verifyTasks.find(t => t.id === originalTask.id);
-          return {
-            id: originalTask.id,
-            originalText: originalTask.text,
-            savedText: savedTask?.text,
-            found: !!savedTask,
-            textMatches: originalTask.text === savedTask?.text
-          };
-        });
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:174',message:'saveTasksToStorage verification read',data:{verifyTasksCount:verifyTasks.length,savedTasksInfo},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-        // #endregion
-      } catch (verifyError) {
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:179',message:'saveTasksToStorage verification error',data:{error:verifyError instanceof Error?verifyError.message:String(verifyError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-        // #endregion
-      }
-    } catch (error) {
-      console.error('Error saving tasks:', error);
-      // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:184',message:'saveTasksToStorage error',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-      // #endregion
-      throw error;
-    }
-  }, []);
-
-  const updateTasks = useCallback(async (newTasks: Task[]) => {
-    // Применяем дедупликацию перед обновлением
-    const deduplicated = deduplicateTasks(newTasks);
-    setTasks(deduplicated);
-    tasksRef.current = deduplicated;
-    await saveTasksToStorage(deduplicated);
-  }, [saveTasksToStorage]);
-
-  const addTask = useCallback(async (task: Task) => {
-    // Защита от множественных одновременных вызовов с одним и тем же ID
-    if (addingTasksRef.current.has(task.id)) {
-      console.warn('[WARN] addTask - Task is already being added, skipping duplicate call:', {
-        taskId: task.id,
-        taskText: task.text
-      });
-      return;
-    }
-    
-    addingTasksRef.current.add(task.id);
-    
-    console.log('[CHECK] addTask called:', {
-      taskId: task.id,
-      taskText: task.text,
-      taskDueDate: task.dueDate,
-      taskDueDateType: typeof task.dueDate,
-      taskPlannedDate: task.plannedDate,
-      taskFull: task,
-      timestamp: Date.now()
-    });
-    try {
-      // КРИТИЧЕСКИ ВАЖНО: сначала сохраняем в хранилище, потом обновляем состояние
-      // Это гарантирует, что если сохранение не удалось, состояние не обновится
-      // Используем актуальное состояние tasks, а не tasksRef, чтобы избежать устаревших данных
-      const currentTasks = tasks.length > 0 ? tasks : tasksRef.current;
-      
-      // Применяем дедупликацию к currentTasks перед добавлением новой задачи
-      const deduplicatedCurrentTasks = deduplicateTasks(currentTasks);
-      if (deduplicatedCurrentTasks.length < currentTasks.length) {
-        console.log('[CHECK] addTask - removed duplicates from currentTasks:', {
-          originalCount: currentTasks.length,
-          deduplicatedCount: deduplicatedCurrentTasks.length,
-          duplicatesRemoved: currentTasks.length - deduplicatedCurrentTasks.length
-        });
-      }
-      
-      // Проверяем, не существует ли уже задача с таким ID
-      const existingTaskIndex = deduplicatedCurrentTasks.findIndex(t => t.id === task.id);
-      if (existingTaskIndex >= 0) {
-        console.warn('[WARN] addTask - Task already exists, updating instead of adding:', {
-          taskId: task.id,
-          taskText: task.text,
-          existingTaskText: deduplicatedCurrentTasks[existingTaskIndex].text
-        });
-        // Обновляем существующую задачу
-        const updatedTasks = [...deduplicatedCurrentTasks];
-        updatedTasks[existingTaskIndex] = task;
-        await saveTasksToStorage(updatedTasks, task.id);
-        setTasks(updatedTasks);
-        tasksRef.current = updatedTasks;
-        return;
-      }
-      
-      const newTasks = [...deduplicatedCurrentTasks, task];
-      
-      console.log('[DIAG] addTask - preparing to save:', {
-        currentTasksCount: currentTasks.length,
-        deduplicatedCurrentTasksCount: deduplicatedCurrentTasks.length,
-        newTasksCount: newTasks.length,
-        addedTaskId: task.id,
-        addedTaskText: task.text,
-        addedTaskDueDate: task.dueDate,
-        taskInNewTasks: newTasks.find(t => t.id === task.id) ? 'YES' : 'NO',
-        timestamp: Date.now()
-      });
-      
-      // Сохраняем в хранилище ПЕРЕД обновлением состояния
-      console.log('[DIAG] addTask - calling saveTasksToStorage...');
-      await saveTasksToStorage(newTasks, task.id);
-      console.log('[DIAG] addTask - saveTasksToStorage completed successfully');
-      
-      // Только после успешного сохранения обновляем состояние
-      console.log('[DIAG] addTask - updating React state...');
-      setTasks(newTasks);
-      tasksRef.current = newTasks;
-      
-      console.log('[DIAG] addTask - state updated successfully:', {
-        taskId: task.id,
-        tasksCount: newTasks.length,
-        taskInState: newTasks.find(t => t.id === task.id) ? 'YES' : 'NO',
-        taskDueDateInState: newTasks.find(t => t.id === task.id)?.dueDate,
-        timestamp: Date.now()
-      });
-    } catch (error) {
-      console.error('[CHECK] addTask - ERROR:', {
-        error: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-        taskId: task.id,
-        taskText: task.text,
-        taskDueDate: task.dueDate
-      });
-      // Если сохранение не удалось, состояние не обновляется
-      throw error;
-    } finally {
-      // Удаляем ID из множества обрабатываемых задач
-      addingTasksRef.current.delete(task.id);
-    }
-  }, [saveTasksToStorage, tasks, deduplicateTasks]);
-
-  const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:222',message:'updateTask called',data:{id,updatesKeys:Object.keys(updates),updatesText:updates.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-    try {
-      // Используем функциональное обновление, чтобы получить актуальное состояние
-      let newTasks: Task[] = [];
-      
-      setTasks(prevTasks => {
-        // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:230',message:'updateTask setTasks callback',data:{id,prevTasksCount:prevTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-        const taskIndex = prevTasks.findIndex(task => task.id === id);
-        
-        if (taskIndex === -1) {
-          console.warn('Task not found:', id);
-          // #region agent log
-          fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:237',message:'updateTask task not found',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
-          return prevTasks;
-        }
-        
-        // Создаем обновленную задачу
-        const originalTask = prevTasks[taskIndex];
-        console.log('[DEBUG] updateTask merging:', {
-          id,
-          originalTaskDueDate: originalTask.dueDate,
-          updatesDueDate: updates.dueDate,
-          updatesKeys: Object.keys(updates),
-          updatesFull: updates
-        });
-        const updatedTask = { ...originalTask, ...updates };
-        console.log('[DEBUG] updateTask merged result:', {
-          id,
-          updatedTaskDueDate: updatedTask.dueDate,
-          updatedTaskPlannedDate: updatedTask.plannedDate
-        });
-        
-        // Создаем НОВЫЙ массив с обновленной задачей
-        newTasks = [...prevTasks];
-        newTasks[taskIndex] = updatedTask;
-        
-        // Обновляем ref
-        tasksRef.current = newTasks;
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:252',message:'updateTask newTasks created',data:{id,newTasksCount:newTasks.length,updatedTaskText:updatedTask.text,updatedTaskId:updatedTask.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-        
-        return newTasks;
-      });
-      
-      // Сохраняем в хранилище СИНХРОННО после обновления состояния
-      // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:260',message:'updateTask before saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      await saveTasksToStorage(newTasks, id);
-      // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:263',message:'updateTask after saveTasksToStorage',data:{id,tasksRefCount:tasksRef.current.length,tasksRefFirstId:tasksRef.current[0]?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-    } catch (error) {
-      console.error('Error updating task:', error);
-      // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts:267',message:'updateTask error',data:{id,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      throw error;
-    }
-  }, [saveTasksToStorage]);
-
-  const deleteTask = useCallback(async (id: string) => {
-    try {
-      setTasks(prevTasks => {
-        const newTasks = prevTasks.filter(task => task.id !== id);
-        // Применяем дедупликацию (на случай, если были дубликаты)
-        const deduplicated = deduplicateTasks(newTasks);
-        tasksRef.current = deduplicated;
-        // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
-        saveTasksToStorage(deduplicated).catch(err => console.error('Error saving task:', err));
-        return deduplicated;
-      });
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      throw error;
-    }
-  }, [saveTasksToStorage]);
 
   // Habits
   const updateHabits = useCallback(async (newHabits: Habit[]) => {
@@ -762,189 +389,14 @@ export function useCloudStorage() {
     }
   }, []);
 
-  // Task Categories
-  const updateTaskCategories = useCallback(async (newCategories: TaskCategory[]) => {
-    setTaskCategories(newCategories);
-    await saveTaskCategories(newCategories);
-  }, []);
-
-  const addTaskCategory = useCallback(async (category: TaskCategory) => {
-    try {
-      setTaskCategories(prevCategories => {
-        const newCategories = [...prevCategories, category];
-        saveTaskCategories(newCategories).catch(err => console.error('Error saving categories:', err));
-        return newCategories;
-      });
-    } catch (error) {
-      console.error('Error adding task category:', error);
-      throw error;
-    }
-  }, []);
-
-  const updateTaskCategory = useCallback(async (id: string, updates: Partial<TaskCategory>) => {
-    try {
-      setTaskCategories(prevCategories => {
-        const categoryIndex = prevCategories.findIndex(c => c.id === id);
-        if (categoryIndex === -1) {
-          console.warn('Task category not found:', id);
-          return prevCategories;
-        }
-        
-        const updatedCategory = { ...prevCategories[categoryIndex], ...updates };
-        const newCategories = prevCategories.map(c => 
-          c.id === id ? updatedCategory : c
-        );
-        
-        saveTaskCategories(newCategories).catch(err => console.error('Error saving categories:', err));
-        return newCategories;
-      });
-    } catch (error) {
-      console.error('Error updating task category:', error);
-      throw error;
-    }
-  }, []);
-
-  const deleteTaskCategory = useCallback(async (id: string) => {
-    try {
-      setTaskCategories(prevCategories => {
-        const newCategories = prevCategories.filter(c => c.id !== id);
-        saveTaskCategories(newCategories).catch(err => console.error('Error saving categories:', err));
-        return newCategories;
-      });
-    } catch (error) {
-      console.error('Error deleting task category:', error);
-      throw error;
-    }
-  }, []);
-
-  // Task Tags
-  const updateTaskTags = useCallback(async (newTags: TaskTag[]) => {
-    setTaskTags(newTags);
-    await saveTaskTags(newTags);
-  }, []);
-
-  const addTaskTag = useCallback(async (tag: TaskTag) => {
-    try {
-      setTaskTags(prevTags => {
-        const newTags = [...prevTags, tag];
-        saveTaskTags(newTags).catch(err => console.error('Error saving tags:', err));
-        return newTags;
-      });
-    } catch (error) {
-      console.error('Error adding task tag:', error);
-      throw error;
-    }
-  }, []);
-
-  const updateTaskTag = useCallback(async (id: string, updates: Partial<TaskTag>) => {
-    try {
-      setTaskTags(prevTags => {
-        const tagIndex = prevTags.findIndex(t => t.id === id);
-        if (tagIndex === -1) {
-          console.warn('Task tag not found:', id);
-          return prevTags;
-        }
-        
-        const updatedTag = { ...prevTags[tagIndex], ...updates };
-        const newTags = prevTags.map(t => 
-          t.id === id ? updatedTag : t
-        );
-        
-        saveTaskTags(newTags).catch(err => console.error('Error saving tags:', err));
-        return newTags;
-      });
-    } catch (error) {
-      console.error('Error updating task tag:', error);
-      throw error;
-    }
-  }, []);
-
-  const deleteTaskTag = useCallback(async (id: string) => {
-    try {
-      setTaskTags(prevTags => {
-        const newTags = prevTags.filter(t => t.id !== id);
-        saveTaskTags(newTags).catch(err => console.error('Error saving tags:', err));
-        return newTags;
-      });
-    } catch (error) {
-      console.error('Error deleting task tag:', error);
-      throw error;
-    }
-  }, []);
-
-  // InBox Notes
-  const updateInBoxNotes = useCallback(async (newNotes: InBoxNote[]) => {
-    setInBoxNotes(newNotes);
-    await saveInBoxNotes(newNotes);
-  }, []);
-
-  const addInBoxNote = useCallback(async (note: InBoxNote) => {
-    try {
-      setInBoxNotes(prevNotes => {
-        const newNotes = [...prevNotes, note];
-        saveInBoxNotes(newNotes).catch(err => console.error('Error saving notes:', err));
-        return newNotes;
-      });
-    } catch (error) {
-      console.error('Error adding inbox note:', error);
-      throw error;
-    }
-  }, []);
-
-  const updateInBoxNote = useCallback(async (id: string, updates: Partial<InBoxNote>) => {
-    try {
-      setInBoxNotes(prevNotes => {
-        const noteIndex = prevNotes.findIndex(n => n.id === id);
-        if (noteIndex === -1) {
-          console.warn('Inbox note not found:', id);
-          return prevNotes;
-        }
-        
-        const updatedNote = { ...prevNotes[noteIndex], ...updates };
-        const newNotes = prevNotes.map(n => 
-          n.id === id ? updatedNote : n
-        );
-        
-        saveInBoxNotes(newNotes).catch(err => console.error('Error saving notes:', err));
-        return newNotes;
-      });
-    } catch (error) {
-      console.error('Error updating inbox note:', error);
-      throw error;
-    }
-  }, []);
-
-  const deleteInBoxNote = useCallback(async (id: string) => {
-    try {
-      setInBoxNotes(prevNotes => {
-        const newNotes = prevNotes.filter(n => n.id !== id);
-        saveInBoxNotes(newNotes).catch(err => console.error('Error saving notes:', err));
-        return newNotes;
-      });
-    } catch (error) {
-      console.error('Error deleting inbox note:', error);
-      throw error;
-    }
-  }, [updateInBoxNotes]);
-
-  // Возвращаем объект напрямую - React увидит изменения в tasks, так как это новое состояние
+  // Возвращаем объект напрямую
   return {
     // Data
-    tasks,
     habits,
     finance,
     onboarding,
     yearlyReports,
-    taskCategories,
-    taskTags,
-    inBoxNotes,
     loading,
-    
-    // Tasks
-    updateTasks,
-    addTask,
-    updateTask,
-    deleteTask,
     
     // Habits
     updateHabits,
@@ -971,24 +423,6 @@ export function useCloudStorage() {
     addYearlyReport,
     updateYearlyReport,
     deleteYearlyReport,
-    
-    // Task Categories
-    updateTaskCategories,
-    addTaskCategory,
-    updateTaskCategory,
-    deleteTaskCategory,
-    
-    // Task Tags
-    updateTaskTags,
-    addTaskTag,
-    updateTaskTag,
-    deleteTaskTag,
-    
-    // InBox Notes
-    updateInBoxNotes,
-    addInBoxNote,
-    updateInBoxNote,
-    deleteInBoxNote,
     
     // Reload
     reload: loadAllData

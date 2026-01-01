@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCloudStorage } from './useCloudStorage';
 
-export function useOnboarding(section: 'tasks' | 'habits' | 'finance' | 'languages' | 'yearly-report') {
+export function useOnboarding(section: 'habits' | 'finance' | 'languages' | 'yearly-report') {
   const { onboarding, markOnboardingShown } = useCloudStorage();
   const [shouldShow, setShouldShow] = useState(false);
 

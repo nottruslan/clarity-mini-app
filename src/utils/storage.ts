@@ -3,93 +3,9 @@
  */
 
 export interface StorageData {
-  tasks: Task[];
   habits: Habit[];
   finance: FinanceData;
   onboarding: OnboardingFlags;
-  taskCategories?: TaskCategory[];
-  taskTags?: TaskTag[];
-}
-
-export interface Subtask {
-  id: string;
-  text: string;
-  completed: boolean;
-}
-
-export interface RecurrenceRule {
-  type: 'daily' | 'weekly' | 'monthly' | 'custom';
-  interval?: number; // интервал повторения (например, каждые 2 дня)
-  daysOfWeek?: number[]; // дни недели для weekly/custom (0-6, где 0 = воскресенье)
-  dayOfMonth?: number; // день месяца для monthly
-  endDate?: number; // дата окончания повторений (timestamp)
-  count?: number; // количество повторений
-}
-
-export interface TaskCategory {
-  id: string;
-  name: string;
-  color: string;
-  icon?: string;
-}
-
-export interface TaskTag {
-  id: string;
-  name: string;
-  color?: string;
-}
-
-export interface InBoxNote {
-  id: string;
-  text: string;
-  createdAt: number;
-}
-
-export interface Task {
-  id: string;
-  text: string;
-  completed: boolean;
-  createdAt: number;
-  priority?: 'low' | 'medium' | 'high';
-  dueDate?: number; // дата дедлайна (timestamp)
-  
-  // Временные поля
-  startTime?: number; // время начала (timestamp, или только время дня в минутах от полуночи)
-  endTime?: number; // время окончания (timestamp, или только время дня в минутах от полуночи)
-  duration?: number; // длительность в минутах
-  
-  // Подзадачи
-  subtasks?: Subtask[];
-  
-  // Описание
-  description?: string;
-  
-  // Категории и теги
-  categoryId?: string;
-  tags?: string[]; // массив ID тегов
-  
-  // Повторения
-  recurrence?: RecurrenceRule;
-  parentTaskId?: string; // ID родительской задачи для повторяющихся задач
-  recurrenceInstanceDate?: number; // дата конкретного экземпляра повторяющейся задачи
-  
-  // Энергозатратность
-  energyLevel?: 'low' | 'medium' | 'high';
-  
-  // Статус
-  status?: 'todo' | 'in-progress' | 'completed';
-  
-  // Время выполнения
-  timeSpent?: number; // в минутах
-  
-  // Планирование
-  plannedDate?: number; // дата планирования задачи (timestamp)
-  
-  // InBox флаги
-  movedToList?: boolean; // помечена как перемещенная в список
-  
-  // Закрепление
-  pinned?: boolean; // закреплена ли задача
 }
 
 export interface Habit {
@@ -145,7 +61,6 @@ export interface Category {
 }
 
 export interface OnboardingFlags {
-  tasks: boolean;
   habits: boolean;
   finance: boolean;
   languages: boolean;
@@ -249,14 +164,10 @@ export interface YearlyReport {
 }
 
 const STORAGE_KEYS = {
-  TASKS: 'tasks',
   HABITS: 'habits',
   FINANCE: 'finance',
   ONBOARDING: 'onboarding',
-  YEARLY_REPORTS: 'yearly-reports',
-  TASK_CATEGORIES: 'task-categories',
-  TASK_TAGS: 'task-tags',
-  INBOX_NOTES: 'inbox-notes'
+  YEARLY_REPORTS: 'yearly-reports'
 } as const;
 
 /**
@@ -272,26 +183,6 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     const data = localStorage.getItem(key);
     if (data) {
       localData = JSON.parse(data);
-      
-      // Применяем дедупликацию к задачам из localStorage перед использованием
-      if (key === STORAGE_KEYS.TASKS && Array.isArray(localData)) {
-        const tasks = localData as Task[];
-        const deduplicated = deduplicateTasks(tasks);
-        if (deduplicated.length < tasks.length) {
-          console.log('[SYNC] localStorage tasks deduplicated:', {
-            originalCount: tasks.length,
-            deduplicatedCount: deduplicated.length,
-            duplicatesRemoved: tasks.length - deduplicated.length
-          });
-          // Сохраняем дедуплицированные данные обратно в localStorage
-          try {
-            localStorage.setItem(key, JSON.stringify(deduplicated));
-          } catch (saveError) {
-            console.error('Error saving deduplicated tasks to localStorage:', saveError);
-          }
-        }
-        localData = deduplicated as unknown as T;
-      }
     }
   } catch (parseError) {
     console.error('Error parsing localStorage data:', parseError);
@@ -358,27 +249,9 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
       // Cloud Storage вернул данные - они приоритетнее для синхронизации
       // Обновляем localStorage для кэширования
       try {
-        // Для задач добавляем дедупликацию перед сохранением
-        if (key === STORAGE_KEYS.TASKS && Array.isArray(cloudData)) {
-          const tasks = cloudData as Task[];
-          const deduplicated = deduplicateTasks(tasks);
-          
-          if (deduplicated.length < tasks.length) {
-            console.log('[SYNC] Cloud Storage tasks deduplicated:', {
-              originalCount: tasks.length,
-              deduplicatedCount: deduplicated.length,
-              duplicatesRemoved: tasks.length - deduplicated.length
-            });
-          }
-          
-          localStorage.setItem(key, JSON.stringify(deduplicated));
-          console.log('[SYNC] Cloud Storage data synced to localStorage for key:', key);
-          return deduplicated as unknown as T;
-        } else {
-          localStorage.setItem(key, JSON.stringify(cloudData));
-          console.log('[SYNC] Cloud Storage data synced to localStorage for key:', key);
-          return cloudData;
-        }
+        localStorage.setItem(key, JSON.stringify(cloudData));
+        console.log('[SYNC] Cloud Storage data synced to localStorage for key:', key);
+        return cloudData;
       } catch (error) {
         console.error('Error syncing Cloud Storage data to localStorage:', error);
         return cloudData; // Возвращаем данные из Cloud Storage даже если не удалось сохранить в localStorage
@@ -402,40 +275,11 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
 export async function setStorageData<T>(key: string, data: T): Promise<void> {
   const jsonData = JSON.stringify(data);
 
-  // #region agent log
-  if (key === 'tasks') {
-    const tasks = data as any[];
-    const firstTask = tasks?.[0];
-    const lastTask = tasks?.[tasks.length - 1];
-    // Проверяем, что dueDate присутствует в JSON после сериализации
-    const parsedData = JSON.parse(jsonData);
-    const firstTaskInJson = parsedData?.[0];
-    const lastTaskInJson = parsedData?.[parsedData.length - 1];
-    console.log('[DEBUG]', JSON.stringify({location:'storage.ts:319',message:'setStorageData called for tasks',data:{key,tasksCount:tasks?.length,firstTaskId:firstTask?.id,firstTaskText:firstTask?.text,firstTaskDueDate:firstTask?.dueDate,firstTaskDueDateInJson:firstTaskInJson?.dueDate,lastTaskId:lastTask?.id,lastTaskText:lastTask?.text,lastTaskDueDate:lastTask?.dueDate,lastTaskDueDateInJson:lastTaskInJson?.dueDate},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-  }
-  // #endregion
-
   // Сначала сохраняем в localStorage (быстро и надежно)
   try {
-    console.log('[CHECK] setStorageData - saving to localStorage...');
     localStorage.setItem(key, jsonData);
-    console.log('[CHECK] setStorageData - saved to localStorage successfully');
-    
-    // Проверяем, что данные действительно сохранились
-    if (key === 'tasks') {
-      const savedData = localStorage.getItem(key);
-      if (savedData) {
-        const parsedSaved = JSON.parse(savedData);
-        const lastTaskInSaved = parsedSaved?.[parsedSaved.length - 1];
-        console.log('[CHECK] setStorageData - verification from localStorage:', {
-          savedDataLength: savedData.length,
-          lastTaskDueDateInSaved: lastTaskInSaved?.dueDate,
-          lastTaskDueDateInSavedType: typeof lastTaskInSaved?.dueDate
-        });
-      }
-    }
   } catch (localStorageError) {
-    console.error('[CHECK] setStorageData - ERROR saving to localStorage:', localStorageError);
+    console.error('Error saving to localStorage:', localStorageError);
     throw localStorageError; // Если localStorage не работает - это критическая ошибка
   }
 
@@ -458,154 +302,12 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
       if (error) {
         console.warn(`Failed to save to Cloud Storage for key "${key}":`, error);
         // Данные уже сохранены в localStorage, так что это не критично
-      } else {
-        // #region agent log
-        if (key === 'tasks') {
-          console.log('[DEBUG]', JSON.stringify({location:'storage.ts:354',message:'setStorageData saved to CloudStorage',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-        }
-        // #endregion
       }
     });
   } catch (syncError) {
     console.warn(`Sync error saving to Cloud Storage for key "${key}":`, syncError);
     // Данные уже сохранены в localStorage, так что это не критично
   }
-}
-
-/**
- * Получить все задачи
- */
-export async function getTasks(): Promise<Task[]> {
-  const tasks = await getStorageData<Task[]>(STORAGE_KEYS.TASKS);
-  const loadedTasks = tasks || [];
-  
-  // Логирование для отладки dueDate
-  if (loadedTasks.length > 0) {
-    const firstTask = loadedTasks[0];
-    const lastTask = loadedTasks[loadedTasks.length - 1];
-    console.log('[DEBUG] getTasks - loaded from storage:', {
-      tasksCount: loadedTasks.length,
-      firstTaskId: firstTask?.id,
-      firstTaskDueDate: firstTask?.dueDate,
-      lastTaskId: lastTask?.id,
-      lastTaskDueDate: lastTask?.dueDate
-    });
-  }
-  
-  // Миграция существующих задач к новой структуре
-  const migratedTasks = migrateTasks(loadedTasks);
-  
-  // Логирование после миграции
-  if (migratedTasks.length > 0) {
-    const firstTask = migratedTasks[0];
-    const lastTask = migratedTasks[migratedTasks.length - 1];
-    console.log('[DEBUG] getTasks - after migration:', {
-      tasksCount: migratedTasks.length,
-      firstTaskId: firstTask?.id,
-      firstTaskDueDate: firstTask?.dueDate,
-      lastTaskId: lastTask?.id,
-      lastTaskDueDate: lastTask?.dueDate
-    });
-  }
-  
-  // Если была миграция, сохраняем обновленные задачи
-  if (JSON.stringify(migratedTasks) !== JSON.stringify(loadedTasks)) {
-    await saveTasks(migratedTasks);
-  }
-  
-  return migratedTasks;
-}
-
-/**
- * Миграция задач к новой структуре данных
- */
-function migrateTasks(tasks: Task[]): Task[] {
-  return tasks.map(task => {
-    // Если задача имеет старую структуру, преобразуем её
-    const migrated: Task = {
-      ...task,
-      // Убеждаемся, что есть все необходимые поля
-      status: task.status || (task.completed ? 'completed' : 'todo'),
-      // Если есть dueDate, но нет plannedDate, используем dueDate для plannedDate
-      plannedDate: task.plannedDate || task.dueDate,
-      // Если есть только completed, но нет status, устанавливаем status
-      completed: task.completed !== undefined ? task.completed : (task.status === 'completed')
-    };
-    
-    return migrated;
-  });
-}
-
-/**
- * Дедупликация задач по ID
- * Оставляет последнюю версию задачи (по createdAt)
- */
-export function deduplicateTasks(tasks: Task[]): Task[] {
-  const seen = new Map<string, Task>();
-  let duplicatesCount = 0;
-  
-  for (const task of tasks) {
-    if (!seen.has(task.id)) {
-      seen.set(task.id, task);
-    } else {
-      // Если задача уже есть, выбираем более новую версию
-      const existing = seen.get(task.id)!;
-      const existingTime = existing.createdAt || 0;
-      const newTime = task.createdAt || 0;
-      
-      if (newTime > existingTime) {
-        seen.set(task.id, task);
-        duplicatesCount++;
-      } else {
-        duplicatesCount++;
-      }
-    }
-  }
-  
-  const deduplicated = Array.from(seen.values());
-  
-  if (duplicatesCount > 0) {
-    console.log('[CHECK] deduplicateTasks - removed duplicates:', {
-      originalCount: tasks.length,
-      deduplicatedCount: deduplicated.length,
-      duplicatesRemoved: duplicatesCount
-    });
-  }
-  
-  return deduplicated;
-}
-
-/**
- * Сохранить задачи
- */
-export async function saveTasks(tasks: Task[]): Promise<void> {
-  // Дедупликация перед сохранением
-  const deduplicatedTasks = deduplicateTasks(tasks);
-  
-  const duplicatesRemoved = tasks.length - deduplicatedTasks.length;
-  
-  console.log('[DIAG] saveTasks called:', {
-    location: 'storage.ts:saveTasks',
-    tasksCount: tasks.length,
-    deduplicatedCount: deduplicatedTasks.length,
-    duplicatesRemoved: duplicatesRemoved,
-    firstTaskId: deduplicatedTasks[0]?.id,
-    firstTaskDueDate: deduplicatedTasks[0]?.dueDate,
-    lastTaskId: deduplicatedTasks[deduplicatedTasks.length - 1]?.id,
-    lastTaskDueDate: deduplicatedTasks[deduplicatedTasks.length - 1]?.dueDate,
-    timestamp: Date.now()
-  });
-  
-  if (duplicatesRemoved > 0) {
-    console.warn('[DIAG] saveTasks - DUPLICATES REMOVED:', {
-      duplicatesRemoved,
-      originalCount: tasks.length,
-      finalCount: deduplicatedTasks.length
-    });
-  }
-  
-  await setStorageData(STORAGE_KEYS.TASKS, deduplicatedTasks);
-  console.log('[DIAG] saveTasks - setStorageData completed');
 }
 
 /**
@@ -690,7 +392,6 @@ export async function saveFinanceData(data: FinanceData): Promise<void> {
 export async function getOnboardingFlags(): Promise<OnboardingFlags> {
   const flags = await getStorageData<OnboardingFlags>(STORAGE_KEYS.ONBOARDING);
   return flags || {
-    tasks: false,
     habits: false,
     finance: false,
     languages: false,
@@ -736,86 +437,15 @@ export function generateId(): string {
 }
 
 /**
- * Получить категории задач
- */
-export async function getTaskCategories(): Promise<TaskCategory[]> {
-  const categories = await getStorageData<TaskCategory[]>(STORAGE_KEYS.TASK_CATEGORIES);
-  if (!categories || categories.length === 0) {
-    const defaultCategories = getDefaultTaskCategories();
-    await saveTaskCategories(defaultCategories);
-    return defaultCategories;
-  }
-  return categories;
-}
-
-/**
- * Сохранить категории задач
- */
-export async function saveTaskCategories(categories: TaskCategory[]): Promise<void> {
-  await setStorageData(STORAGE_KEYS.TASK_CATEGORIES, categories);
-}
-
-/**
- * Предустановленные категории задач
- */
-export function getDefaultTaskCategories(): TaskCategory[] {
-  return [
-    { id: generateId(), name: 'Работа', color: '#3390ec', icon: '💼' },
-    { id: generateId(), name: 'Личное', color: '#ff6b35', icon: '👤' },
-    { id: generateId(), name: 'Здоровье', color: '#4caf50', icon: '💚' },
-    { id: generateId(), name: 'Образование', color: '#9c27b0', icon: '📚' },
-    { id: generateId(), name: 'Семья', color: '#ff9800', icon: '👨‍👩‍👧‍👦' },
-    { id: generateId(), name: 'Дом', color: '#607d8b', icon: '🏠' },
-    { id: generateId(), name: 'Хобби', color: '#e91e63', icon: '🎨' },
-    { id: generateId(), name: 'Спорт', color: '#00bcd4', icon: '⚽' },
-    { id: generateId(), name: 'Прочее', color: '#9e9e9e', icon: '📝' }
-  ];
-}
-
-/**
- * Получить теги задач
- */
-export async function getTaskTags(): Promise<TaskTag[]> {
-  const tags = await getStorageData<TaskTag[]>(STORAGE_KEYS.TASK_TAGS);
-  return tags || [];
-}
-
-/**
- * Сохранить теги задач
- */
-export async function saveTaskTags(tags: TaskTag[]): Promise<void> {
-  await setStorageData(STORAGE_KEYS.TASK_TAGS, tags);
-}
-
-/**
- * Получить заметки InBox
- */
-export async function getInBoxNotes(): Promise<InBoxNote[]> {
-  const notes = await getStorageData<InBoxNote[]>(STORAGE_KEYS.INBOX_NOTES);
-  return notes || [];
-}
-
-/**
- * Сохранить заметки InBox
- */
-export async function saveInBoxNotes(notes: InBoxNote[]): Promise<void> {
-  await setStorageData(STORAGE_KEYS.INBOX_NOTES, notes);
-}
-
-/**
  * Создать резервную копию всех пользовательских данных
  */
 export async function createBackup(): Promise<string | null> {
   try {
     const backup: any = {};
     const userDataKeys = [
-      STORAGE_KEYS.TASKS,
       STORAGE_KEYS.HABITS,
       STORAGE_KEYS.FINANCE,
-      STORAGE_KEYS.YEARLY_REPORTS,
-      STORAGE_KEYS.TASK_CATEGORIES,
-      STORAGE_KEYS.TASK_TAGS,
-      STORAGE_KEYS.INBOX_NOTES
+      STORAGE_KEYS.YEARLY_REPORTS
     ];
     
     for (const key of userDataKeys) {
@@ -868,7 +498,6 @@ async function clearTechnicalCache(): Promise<void> {
   // Очищаем только технические данные
   try {
     await setStorageData(STORAGE_KEYS.ONBOARDING, {
-      tasks: false,
       habits: false,
       finance: false,
       languages: false,

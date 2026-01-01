@@ -7,7 +7,6 @@ import { restoreFromBackup } from './utils/storage';
 import AppHeader from './components/Navigation/AppHeader';
 import NavigationMenu from './components/Navigation/NavigationMenu';
 import HomePage from './pages/HomePage';
-import TasksPage from './pages/TasksPage';
 import HabitsPage from './pages/HabitsPage';
 import FinancePage from './pages/FinancePage';
 import LanguagesPage from './pages/LanguagesPage';
@@ -155,7 +154,17 @@ function App() {
       case 'home':
         return <HomePage onSectionChange={handleSectionChange} />;
       case 'tasks':
-        return <TasksPage storage={storage} />;
+        return (
+          <div style={{ 
+            flex: 1, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            padding: '20px'
+          }}>
+            <p style={{ color: 'var(--tg-theme-hint-color)' }}>Раздел "Задачи" временно недоступен</p>
+          </div>
+        );
       case 'habits':
         return <HabitsPage storage={storage} />;
       case 'finance':
