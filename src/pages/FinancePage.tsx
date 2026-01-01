@@ -311,6 +311,58 @@ export default function FinancePage({ storage }: FinancePageProps) {
 
   return (
     <>
+      {/* FAB кнопки для создания транзакций - всегда видны */}
+      <div style={{
+        position: 'fixed',
+        bottom: 'calc(20px + env(safe-area-inset-bottom))',
+        right: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        zIndex: 1000
+      }}>
+        <button 
+          onClick={() => handleStartCreate('income')}
+          className="fab"
+          style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: '#4caf50',
+            color: 'white',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          💰
+        </button>
+        <button 
+          onClick={() => handleStartCreate('expense')}
+          className="fab"
+          style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: '#f44336',
+            color: 'white',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          💸
+        </button>
+      </div>
+
       <div style={{ 
         flex: 1, 
         display: 'flex', 
@@ -474,58 +526,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
               <StatisticsView finance={storage.finance} period={period} />
             </div>
           </div>
-        </div>
-
-        {/* FAB кнопки для создания транзакций */}
-        <div style={{
-          position: 'fixed',
-          bottom: 'calc(20px + env(safe-area-inset-bottom))',
-          right: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          zIndex: 100
-        }}>
-          <button 
-            onClick={() => handleStartCreate('income')}
-            className="fab"
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              backgroundColor: '#4caf50',
-              color: 'white',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            💰
-          </button>
-          <button 
-            onClick={() => handleStartCreate('expense')}
-            className="fab"
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            💸
-          </button>
         </div>
       </div>
       {selectedTransaction && (

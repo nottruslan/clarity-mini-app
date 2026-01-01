@@ -169,42 +169,38 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
           flexDirection: 'column',
           gap: '32px'
         }}>
-          {expenseTransactions.length > 0 && (
-            <div>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                marginBottom: '20px',
-                textAlign: 'center',
-                color: 'var(--tg-theme-text-color)'
-              }}>
-                Расходы по категориям
-              </h3>
-              <PieChart
-                transactions={transactions}
-                categories={categories}
-                type="expense"
-              />
-            </div>
-          )}
-          {incomeTransactions.length > 0 && (
-            <div>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                marginBottom: '20px',
-                textAlign: 'center',
-                color: 'var(--tg-theme-text-color)'
-              }}>
-                Доходы по категориям
-              </h3>
-              <PieChart
-                transactions={transactions}
-                categories={categories}
-                type="income"
-              />
-            </div>
-          )}
+          <div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              marginBottom: '20px',
+              textAlign: 'center',
+              color: 'var(--tg-theme-text-color)'
+            }}>
+              Расходы по категориям
+            </h3>
+            <PieChart
+              transactions={transactions}
+              categories={categories}
+              type="expense"
+            />
+          </div>
+          <div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              marginBottom: '20px',
+              textAlign: 'center',
+              color: 'var(--tg-theme-text-color)'
+            }}>
+              Доходы по категориям
+            </h3>
+            <PieChart
+              transactions={transactions}
+              categories={categories}
+              type="income"
+            />
+          </div>
         </div>
       )}
     </div>
