@@ -260,9 +260,48 @@ const STORAGE_KEYS = {
 } as const;
 
 /**
- * Получить данные из Cloud Storage
+ * Получить список проблемных ключей из sessionStorage
+ */
+function getProblematicKeys(): Set<string> {
+  try {
+    const problematic = sessionStorage.getItem('clarity_problematic_keys');
+    return problematic ? new Set(JSON.parse(problematic)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Добавить ключ в список проблемных
+ */
+function markKeyAsProblematic(key: string): void {
+  try {
+    const problematic = getProblematicKeys();
+    problematic.add(key);
+    sessionStorage.setItem('clarity_problematic_keys', JSON.stringify(Array.from(problematic)));
+    console.warn(`⚠️ Ключ "${key}" помечен как проблемный и будет пропущен в Cloud Storage`);
+  } catch (error) {
+    console.error('Error marking key as problematic:', error);
+  }
+}
+
+/**
+ * Получить данные из Cloud Storage с автоматическим таймаутом и fallback
  */
 export async function getStorageData<T>(key: string): Promise<T | null> {
+  // Проверяем, не является ли ключ проблемным
+  const problematicKeys = getProblematicKeys();
+  if (problematicKeys.has(key)) {
+    // Пропускаем Cloud Storage для проблемных ключей, используем только localStorage
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (parseError) {
+      console.error(`Error parsing localStorage data for problematic key "${key}":`, parseError);
+      return null;
+    }
+  }
+
   // Проверяем доступность CloudStorage и версию WebApp
   const cloudStorage = window.Telegram?.WebApp?.CloudStorage;
   const webAppVersion = window.Telegram?.WebApp?.version;
@@ -273,12 +312,6 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
   if (!hasCloudStorage || !isCloudStorageSupported) {
     try {
       const data = localStorage.getItem(key);
-      // #region agent log
-      if (key === 'tasks' && data) {
-        const parsed = JSON.parse(data);
-        console.log('[DEBUG]', JSON.stringify({location:'storage.ts:276',message:'getStorageData from localStorage',data:{key,tasksCount:parsed?.length,firstTaskId:parsed?.[0]?.id,firstTaskText:parsed?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-      }
-      // #endregion
       if (data) {
         return JSON.parse(data);
       }
@@ -289,19 +322,52 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     }
   }
 
+  // Создаем Promise с таймаутом
   return new Promise((resolve) => {
+    let resolved = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    
+    // Таймаут 3 секунды на каждый вызов getItem
+    timeoutId = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        console.warn(`⏱️ Таймаут загрузки ключа "${key}" из Cloud Storage. Использую localStorage.`);
+        
+        // Помечаем ключ как проблемный после 2 таймаутов
+        const timeoutCount = parseInt(sessionStorage.getItem(`clarity_timeout_${key}`) || '0', 10);
+        const newCount = timeoutCount + 1;
+        sessionStorage.setItem(`clarity_timeout_${key}`, newCount.toString());
+        
+        if (newCount >= 2) {
+          markKeyAsProblematic(key);
+          sessionStorage.removeItem(`clarity_timeout_${key}`);
+        }
+        
+        // Fallback to localStorage
+        try {
+          const data = localStorage.getItem(key);
+          resolve(data ? JSON.parse(data) : null);
+        } catch (parseError) {
+          console.error('Error parsing localStorage data:', parseError);
+          resolve(null);
+        }
+      }
+    }, 3000);
+
     try {
       cloudStorage.getItem(key, (error, value) => {
+        if (resolved) return; // Уже обработано таймаутом
+        
+        clearTimeout(timeoutId);
+        resolved = true;
+        
+        // Сбрасываем счетчик таймаутов при успешной загрузке
+        sessionStorage.removeItem(`clarity_timeout_${key}`);
+        
         if (error) {
           // Fallback to localStorage
           try {
             const data = localStorage.getItem(key);
-            // #region agent log
-            if (key === 'tasks' && data) {
-              const parsed = JSON.parse(data);
-              console.log('[DEBUG]', JSON.stringify({location:'storage.ts:293',message:'getStorageData fallback from localStorage',data:{key,tasksCount:parsed?.length,firstTaskId:parsed?.[0]?.id,firstTaskText:parsed?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-            }
-            // #endregion
             resolve(data ? JSON.parse(data) : null);
           } catch (parseError) {
             console.error('Error parsing localStorage data:', parseError);
@@ -309,24 +375,18 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
           }
           return;
         }
-        // #region agent log
-        if (key === 'tasks' && value) {
-          const parsed = JSON.parse(value);
-          console.log('[DEBUG]', JSON.stringify({location:'storage.ts:300',message:'getStorageData from CloudStorage',data:{key,tasksCount:parsed?.length,firstTaskId:parsed?.[0]?.id,firstTaskText:parsed?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-        }
-        // #endregion
+        
         resolve(value ? JSON.parse(value) : null);
       });
     } catch (syncError) {
+      if (resolved) return;
+      
+      clearTimeout(timeoutId);
+      resolved = true;
+      
       // Синхронная ошибка при вызове getItem
       try {
         const data = localStorage.getItem(key);
-        // #region agent log
-        if (key === 'tasks' && data) {
-          const parsed = JSON.parse(data);
-          console.log('[DEBUG]', JSON.stringify({location:'storage.ts:306',message:'getStorageData sync error from localStorage',data:{key,tasksCount:parsed?.length,firstTaskId:parsed?.[0]?.id,firstTaskText:parsed?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
-        }
-        // #endregion
         resolve(data ? JSON.parse(data) : null);
       } catch (parseError) {
         console.error('Error parsing localStorage data:', parseError);

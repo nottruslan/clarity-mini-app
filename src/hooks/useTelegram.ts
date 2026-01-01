@@ -33,14 +33,6 @@ export function useTelegram() {
   const [themeParams, setThemeParams] = useState<TelegramThemeParams | null>(null);
 
   useEffect(() => {
-    // Проверяем флаг пропуска загрузки
-    const skipLoading = sessionStorage.getItem('clarity_skip_loading');
-    if (skipLoading === 'true') {
-      console.warn('⚠️ Пропуск инициализации Telegram WebApp (пользователь выбрал пропустить)');
-      setIsReady(true);
-      return;
-    }
-    
     const initStartTime = Date.now();
     let timeoutId: ReturnType<typeof setTimeout>;
     

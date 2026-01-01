@@ -3,7 +3,7 @@ import { useTelegram } from './hooks/useTelegram';
 import { useCloudStorage } from './hooks/useCloudStorage';
 import { type Section } from './types/navigation';
 import { sectionColors } from './utils/sectionColors';
-import { clearCacheWithBackup, forceReload, restoreFromBackup } from './utils/storage';
+import { restoreFromBackup } from './utils/storage';
 import AppHeader from './components/Navigation/AppHeader';
 import NavigationMenu from './components/Navigation/NavigationMenu';
 import HomePage from './pages/HomePage';
@@ -19,19 +19,6 @@ function App() {
   const [currentSection, setCurrentSection] = useState<Section>('home');
   const [navigationHistory, setNavigationHistory] = useState<Section[]>(['home']);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showCacheDialog, setShowCacheDialog] = useState(false);
-  const [loadingStartTime] = useState(Date.now());
-  const [loadingTime, setLoadingTime] = useState(0);
-  
-  // Обновляем время загрузки каждую секунду
-  useEffect(() => {
-    if (!isReady || storage.loading) {
-      const interval = setInterval(() => {
-        setLoadingTime(Math.floor((Date.now() - loadingStartTime) / 1000));
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isReady, storage.loading, loadingStartTime]);
 
   // Восстановление данных из резервной копии после перезагрузки
   useEffect(() => {
@@ -148,238 +135,18 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [currentSection, tg, isReady]);
 
-  // Принудительно пропускаем загрузку
-  const handleSkipLoading = () => {
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.showConfirm(
-        'Пропустить загрузку? Приложение может работать некорректно без данных.',
-        (confirmed) => {
-          if (confirmed) {
-            // Устанавливаем флаг пропуска и перезагружаем страницу
-            sessionStorage.setItem('clarity_skip_loading', 'true');
-            window.location.reload();
-          }
-        }
-      );
-    } else {
-      if (confirm('Пропустить загрузку? Приложение может работать некорректно без данных.')) {
-        sessionStorage.setItem('clarity_skip_loading', 'true');
-        window.location.reload();
-      }
-    }
-  };
-
   if (!isReady || storage.loading) {
-    // Определяем, что именно застряло
-    const stuckOnTelegram = !isReady;
-    const stuckOnData = isReady && storage.loading;
-    
     return (
-      <>
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column',
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: '100vh',
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          padding: '20px',
-          gap: '16px',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          <div style={{ fontSize: '18px', marginBottom: '8px', textAlign: 'center' }}>
-            Загрузка...
-          </div>
-          
-          {/* Диагностика */}
-          <div style={{
-            fontSize: '12px',
-            color: 'var(--tg-theme-hint-color, #999)',
-            textAlign: 'center',
-            marginBottom: '8px'
-          }}>
-            {stuckOnTelegram && 'Инициализация Telegram...'}
-            {stuckOnData && 'Загрузка данных...'}
-            {loadingTime > 0 && ` (${loadingTime} сек)`}
-          </div>
-          
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            width: '100%',
-            maxWidth: '300px',
-            marginTop: '24px',
-            position: 'relative',
-            zIndex: 10
-          }}>
-            <button
-              onClick={forceReload}
-              style={{
-                padding: '14px 24px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-                color: 'var(--tg-theme-button-text-color, #ffffff)',
-                fontSize: '15px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                transition: 'transform 0.1s',
-                WebkitTapHighlightColor: 'transparent'
-              }}
-              onTouchStart={(e) => {
-                e.currentTarget.style.transform = 'scale(0.98)';
-              }}
-              onTouchEnd={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-            >
-              🔄 Обновить страницу
-            </button>
-            
-            <button
-              onClick={() => setShowCacheDialog(true)}
-              style={{
-                padding: '14px 24px',
-                borderRadius: '8px',
-                border: '2px solid var(--tg-theme-button-color, #3390ec)',
-                backgroundColor: 'transparent',
-                color: 'var(--tg-theme-button-color, #3390ec)',
-                fontSize: '15px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                transition: 'transform 0.1s',
-                WebkitTapHighlightColor: 'transparent'
-              }}
-              onTouchStart={(e) => {
-                e.currentTarget.style.transform = 'scale(0.98)';
-              }}
-              onTouchEnd={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-            >
-              🧹 Очистить кэш
-            </button>
-            
-            <button
-              onClick={handleSkipLoading}
-              style={{
-                padding: '14px 24px',
-                borderRadius: '8px',
-                border: '2px solid #ff9500',
-                backgroundColor: 'transparent',
-                color: '#ff9500',
-                fontSize: '15px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                transition: 'transform 0.1s',
-                WebkitTapHighlightColor: 'transparent',
-                marginTop: '8px'
-              }}
-              onTouchStart={(e) => {
-                e.currentTarget.style.transform = 'scale(0.98)';
-              }}
-              onTouchEnd={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-            >
-              ⏭️ Пропустить загрузку
-            </button>
-          </div>
-        </div>
-
-        {/* Диалог очистки кэша */}
-        {showCacheDialog && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '20px'
-          }}
-          onClick={() => setShowCacheDialog(false)}
-          >
-            <div 
-              style={{
-                backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-                borderRadius: '16px',
-                padding: '24px',
-                maxWidth: '400px',
-                width: '100%',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                marginBottom: '12px',
-                color: 'var(--tg-theme-text-color, #000000)'
-              }}>
-                Очистить кэш?
-              </h2>
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--tg-theme-hint-color, #999999)',
-                marginBottom: '24px',
-                lineHeight: '1.5'
-              }}>
-                Все ваши данные будут сохранены в резервной копию и автоматически восстановлены после очистки. Это поможет решить проблемы с загрузкой приложения.
-              </p>
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'flex-end'
-              }}>
-                <button
-                  onClick={() => setShowCacheDialog(false)}
-                  style={{
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tg-theme-button-color, #3390ec)',
-                    backgroundColor: 'transparent',
-                    color: 'var(--tg-theme-button-color, #3390ec)',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Отмена
-                </button>
-                <button
-                  onClick={async () => {
-                    setShowCacheDialog(false);
-                    await clearCacheWithBackup();
-                  }}
-                  style={{
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-                    color: 'var(--tg-theme-button-text-color, #ffffff)',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Очистить
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)'
+      }}>
+        Загрузка...
+      </div>
     );
   }
 
