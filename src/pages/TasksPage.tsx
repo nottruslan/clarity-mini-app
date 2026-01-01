@@ -189,21 +189,12 @@ export default function TasksPage({ storage }: TasksPageProps) {
   };
 
   const handleStep9Complete = async (energyLevel?: 'low' | 'medium' | 'high') => {
-    // #region agent log
-    console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:180',message:'handleStep9Complete called',data:{isEditing,editingTaskId,energyLevel,modifiedFields:Array.from(modifiedFields)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-    // #endregion
     if (isEditing && editingTaskId) {
       // Редактирование существующей задачи
-      // Получаем актуальную задачу прямо перед сохранением, чтобы избежать race condition
+      // Получаем актуальную задачу прямо перед сохранением
       const originalTask = storage.tasks.find(t => t.id === editingTaskId);
-      // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:184',message:'handleStep9Complete originalTask found',data:{editingTaskId,taskFound:!!originalTask,originalTask:originalTask?{id:originalTask.id,text:originalTask.text,dueDate:originalTask.dueDate,plannedDate:originalTask.plannedDate,status:originalTask.status,completed:originalTask.completed,movedToList:originalTask.movedToList}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
-      // #endregion
       if (!originalTask) {
         console.warn('Task not found for editing:', editingTaskId);
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:186',message:'handleStep9Complete task not found',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}));
-        // #endregion
         setIsCreating(false);
         setIsEditing(false);
         setEditingTaskId(null);
@@ -211,84 +202,29 @@ export default function TasksPage({ storage }: TasksPageProps) {
         setTaskData({});
         return;
       }
-      
-      // Логируем для отладки
-      console.log('Editing task:', editingTaskId, 'Original task:', originalTask);
 
-      // Вычисляем dueDate: если поле было изменено, используем taskData.dueDate, иначе исходную дату
-      // Если dueDate не был изменен и его нет, используем selectedDate как fallback для безопасности
-      const finalDueDate = modifiedFields.has('dueDate')
-        ? taskData.dueDate  // Может быть undefined, если пользователь удалил дату
-        : (originalTask.dueDate || selectedDate.getTime());  // Используем существующую дату или текущую дату как fallback
+      // УПРОЩЕННАЯ ЛОГИКА: Создаем полную обновленную задачу
+      // Берем originalTask как основу и применяем все изменения из taskData
       
-      // Вычисляем startTime и endTime на основе finalDueDate
-      // Обрабатываем различные сценарии:
-      // 1. Если дата была удалена - удаляем и время
-      // 2. Если время было явно удалено (undefined) - удаляем время, но сохраняем дату
-      // 3. Если startTime/duration были изменены - пересчитываем на новой дате
-      // 4. Если дата была изменена, но время не изменялось - пересчитываем время на новую дату
+      // Вычисляем dueDate
+      const finalDueDate = modifiedFields.has('dueDate') 
+        ? taskData.dueDate 
+        : originalTask.dueDate;
+      
+      // Вычисляем startTime и endTime
       let finalStartTime: number | undefined;
       let finalEndTime: number | undefined;
       
-      // Проверяем, было ли время явно удалено
-      const timeWasRemoved = modifiedFields.has('startTime') && taskData.startTime === undefined;
-      
-      if (modifiedFields.has('dueDate') && finalDueDate === undefined) {
-        // Сценарий 1: Если дата была удалена, удаляем и время
-        finalStartTime = undefined;
-        finalEndTime = undefined;
-      } else if (timeWasRemoved) {
-        // Сценарий 2: Время было явно удалено, но дата осталась
-        finalStartTime = undefined;
-        finalEndTime = undefined;
-      } else if (finalDueDate === undefined) {
-        // Нет даты - нет времени
-        finalStartTime = undefined;
-        finalEndTime = undefined;
-      } else {
-        // Есть дата, вычисляем время
-        let startMinutes: number | undefined;
-        let durationMinutes: number | undefined;
-        
-        // Определяем startMinutes
+      if (finalDueDate) {
+        // Если есть дата, вычисляем время
         if (modifiedFields.has('startTime') && taskData.startTime !== undefined) {
-          startMinutes = taskData.startTime;
-        } else if (modifiedFields.has('dueDate') && originalTask.startTime !== undefined && originalTask.dueDate) {
-          // Дата была изменена, пересчитываем время на новую дату
-          const originalStartDate = new Date(originalTask.startTime);
-          const originalDueDate = new Date(originalTask.dueDate);
-          // Если startTime был в тот же день что и dueDate, сохраняем время дня
-          if (originalStartDate.getDate() === originalDueDate.getDate() &&
-              originalStartDate.getMonth() === originalDueDate.getMonth() &&
-              originalStartDate.getFullYear() === originalDueDate.getFullYear()) {
-            startMinutes = originalStartDate.getHours() * 60 + originalStartDate.getMinutes();
-          } else {
-            // Иначе используем исходное значение как есть
-            finalStartTime = originalTask.startTime;
-            startMinutes = undefined;
-          }
-        } else {
-          // Используем исходное значение
-          finalStartTime = originalTask.startTime;
-          startMinutes = undefined;
-        }
-        
-        // Определяем durationMinutes
-        if (modifiedFields.has('duration')) {
-          durationMinutes = taskData.duration;
-        } else {
-          durationMinutes = originalTask.duration;
-        }
-        
-        // Вычисляем finalStartTime и finalEndTime
-        if (startMinutes !== undefined) {
-          finalStartTime = minutesOfDayToTimestamp(finalDueDate, startMinutes);
+          finalStartTime = minutesOfDayToTimestamp(finalDueDate, taskData.startTime);
           
           // Вычисляем endTime
-          if (durationMinutes !== undefined) {
-            finalEndTime = minutesOfDayToTimestamp(finalDueDate, startMinutes + durationMinutes);
-          } else if (modifiedFields.has('startTime') && originalTask.endTime !== undefined && originalTask.dueDate) {
-            // startTime изменен, но duration не изменялся - пересчитываем endTime
+          if (modifiedFields.has('duration') && taskData.duration !== undefined) {
+            finalEndTime = minutesOfDayToTimestamp(finalDueDate, taskData.startTime + taskData.duration);
+          } else if (originalTask.endTime && originalTask.dueDate) {
+            // Если duration не изменялся, пересчитываем endTime на новую дату
             const originalEndDate = new Date(originalTask.endTime);
             const originalDueDate = new Date(originalTask.dueDate);
             if (originalEndDate.getDate() === originalDueDate.getDate() &&
@@ -302,182 +238,68 @@ export default function TasksPage({ storage }: TasksPageProps) {
           } else {
             finalEndTime = originalTask.endTime;
           }
-        } else if (modifiedFields.has('dueDate') && originalTask.endTime !== undefined && originalTask.dueDate) {
-          // Дата изменена, пересчитываем endTime на новую дату
-          const originalEndDate = new Date(originalTask.endTime);
-          const originalDueDate = new Date(originalTask.dueDate);
-          if (originalEndDate.getDate() === originalDueDate.getDate() &&
-              originalEndDate.getMonth() === originalDueDate.getMonth() &&
-              originalEndDate.getFullYear() === originalDueDate.getFullYear()) {
-            const endMinutes = originalEndDate.getHours() * 60 + originalEndDate.getMinutes();
-            finalEndTime = minutesOfDayToTimestamp(finalDueDate, endMinutes);
+        } else if (originalTask.startTime && originalTask.dueDate) {
+          // Если startTime не изменялся, пересчитываем на новую дату если дата изменилась
+          if (modifiedFields.has('dueDate')) {
+            const originalStartDate = new Date(originalTask.startTime);
+            const originalDueDate = new Date(originalTask.dueDate);
+            if (originalStartDate.getDate() === originalDueDate.getDate() &&
+                originalStartDate.getMonth() === originalDueDate.getMonth() &&
+                originalStartDate.getFullYear() === originalDueDate.getFullYear()) {
+              const startMinutes = originalStartDate.getHours() * 60 + originalStartDate.getMinutes();
+              finalStartTime = minutesOfDayToTimestamp(finalDueDate, startMinutes);
+              
+              // Пересчитываем endTime
+              if (originalTask.endTime) {
+                const originalEndDate = new Date(originalTask.endTime);
+                if (originalEndDate.getDate() === originalDueDate.getDate() &&
+                    originalEndDate.getMonth() === originalDueDate.getMonth() &&
+                    originalEndDate.getFullYear() === originalDueDate.getFullYear()) {
+                  const endMinutes = originalEndDate.getHours() * 60 + originalEndDate.getMinutes();
+                  finalEndTime = minutesOfDayToTimestamp(finalDueDate, endMinutes);
+                } else {
+                  finalEndTime = originalTask.endTime;
+                }
+              }
+            } else {
+              finalStartTime = originalTask.startTime;
+              finalEndTime = originalTask.endTime;
+            }
           } else {
+            finalStartTime = originalTask.startTime;
             finalEndTime = originalTask.endTime;
           }
-        } else {
-          // Используем исходные значения
-          finalEndTime = originalTask.endTime;
-        }
-      }
-
-      // Формируем обновления: только те поля, которые были изменены или должны быть обновлены
-      const updates: Partial<Task> = {};
-      
-      // Добавляем только измененные поля (включая явное удаление - undefined)
-      if (modifiedFields.has('name')) {
-        updates.text = taskData.name;
-      }
-      
-      if (modifiedFields.has('priority')) {
-        updates.priority = taskData.priority;
-      }
-      
-      // dueDate и plannedDate обрабатываем отдельно, так как они могут быть изменены косвенно
-      // dueDate: устанавливаем только если было изменено или если его нет
-      if (modifiedFields.has('dueDate') || !originalTask.dueDate) {
-        updates.dueDate = finalDueDate;
-        // plannedDate должна соответствовать dueDate
-        updates.plannedDate = finalDueDate;
-      } else {
-        // Если dueDate не изменялась, сохраняем исходные значения
-        // Явно сохраняем dueDate и plannedDate для надежности, даже если они не были изменены
-        // Это гарантирует сохранение этих полей даже если originalTask устарел
-        if (originalTask.dueDate) {
-          updates.dueDate = originalTask.dueDate;
-        }
-        if (originalTask.plannedDate !== undefined) {
-          updates.plannedDate = originalTask.plannedDate;
-        } else if (originalTask.dueDate) {
-          // Если plannedDate нет, устанавливаем его равным dueDate
-          updates.plannedDate = originalTask.dueDate;
         }
       }
       
-      // startTime и endTime обновляем только если были изменены связанные поля
-      // Но если они не были изменены, сохраняем исходные значения для надежности
-      if (modifiedFields.has('startTime') || modifiedFields.has('duration') || modifiedFields.has('dueDate')) {
-        updates.startTime = finalStartTime;
-        updates.endTime = finalEndTime;
-      } else {
-        // Если startTime и endTime не изменялись, сохраняем исходные значения
-        // Это гарантирует сохранение этих полей даже если originalTask устарел
-        if (originalTask.startTime !== undefined) {
-          updates.startTime = originalTask.startTime;
-        }
-        if (originalTask.endTime !== undefined) {
-          updates.endTime = originalTask.endTime;
-        }
-      }
+      // Создаем обновленную задачу: берем originalTask и применяем изменения
+      const updatedTask: Task = {
+        ...originalTask,
+        // Применяем изменения из taskData
+        text: modifiedFields.has('name') ? (taskData.name || originalTask.text) : originalTask.text,
+        priority: modifiedFields.has('priority') ? taskData.priority : originalTask.priority,
+        dueDate: finalDueDate,
+        plannedDate: finalDueDate || originalTask.plannedDate, // plannedDate всегда равен dueDate
+        startTime: finalStartTime,
+        endTime: finalEndTime,
+        duration: modifiedFields.has('duration') ? taskData.duration : originalTask.duration,
+        categoryId: modifiedFields.has('categoryId') ? taskData.categoryId : originalTask.categoryId,
+        description: modifiedFields.has('description') ? taskData.description : originalTask.description,
+        subtasks: modifiedFields.has('subtasks') ? taskData.subtasks : originalTask.subtasks,
+        recurrence: modifiedFields.has('recurrence') ? taskData.recurrence : originalTask.recurrence,
+        energyLevel: energyLevel !== undefined ? energyLevel : originalTask.energyLevel
+      };
       
-      if (modifiedFields.has('duration')) {
-        updates.duration = taskData.duration;
-      }
+      // Обновляем задачу
+      await storage.updateTask(editingTaskId, updatedTask);
       
-      // categoryId может быть undefined, если пользователь удалил категорию
-      if (modifiedFields.has('categoryId')) {
-        updates.categoryId = taskData.categoryId;
-      }
-      
-      // description может быть undefined, если пользователь удалил описание
-      if (modifiedFields.has('description')) {
-        updates.description = taskData.description;
-      }
-      
-      // subtasks может быть undefined, если пользователь удалил все подзадачи
-      if (modifiedFields.has('subtasks')) {
-        updates.subtasks = taskData.subtasks;
-      }
-      
-      // recurrence может быть undefined, если пользователь удалил повторение
-      if (modifiedFields.has('recurrence')) {
-        updates.recurrence = taskData.recurrence;
-      }
-      
-      // energyLevel передается как параметр, если он undefined, значит пользователь не выбрал значение
-      // В этом случае сохраняем исходное значение только если оно было изменено
-      if (energyLevel !== undefined) {
-        updates.energyLevel = energyLevel;
-      }
-      
-      // Всегда сохраняем важные системные поля из originalTask
-      // Эти поля не редактируются в визарде, но могут быть изменены в других местах
-      if (originalTask.status !== undefined && originalTask.status !== null) {
-        updates.status = originalTask.status;
-      }
-      if (originalTask.completed !== undefined && originalTask.completed !== null) {
-        updates.completed = originalTask.completed;
-      }
-      if (originalTask.createdAt !== undefined && originalTask.createdAt !== null) {
-        updates.createdAt = originalTask.createdAt;
-      }
-      if (originalTask.pinned !== undefined && originalTask.pinned !== null) {
-        updates.pinned = originalTask.pinned;
-      }
-      if (originalTask.parentTaskId !== undefined && originalTask.parentTaskId !== null) {
-        updates.parentTaskId = originalTask.parentTaskId;
-      }
-      if (originalTask.recurrenceInstanceDate !== undefined && originalTask.recurrenceInstanceDate !== null) {
-        updates.recurrenceInstanceDate = originalTask.recurrenceInstanceDate;
-      }
-      if (originalTask.tags !== undefined && originalTask.tags !== null) {
-        updates.tags = originalTask.tags;
-      }
-      if (originalTask.timeSpent !== undefined && originalTask.timeSpent !== null) {
-        updates.timeSpent = originalTask.timeSpent;
-      }
-      if (originalTask.movedToList !== undefined && originalTask.movedToList !== null) {
-        updates.movedToList = originalTask.movedToList;
-      }
-
-      // Логируем обновления для отладки
-      console.log('Updating task:', editingTaskId);
-      console.log('Original task:', originalTask);
-      console.log('Updates:', updates);
-      console.log('Modified fields:', Array.from(modifiedFields));
-      console.log('Task data:', taskData);
-      
-      // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:435',message:'handleStep9Complete before updateTask',data:{editingTaskId,updatesKeys:Object.keys(updates),updates,modifiedFields:Array.from(modifiedFields),originalTaskDueDate:originalTask.dueDate,originalTaskPlannedDate:originalTask.plannedDate,updatesDueDate:updates.dueDate,updatesPlannedDate:updates.plannedDate},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}));
-      // #endregion
-      
-      // Проверяем, что updates не пустой (должен содержать хотя бы системные поля)
-      if (Object.keys(updates).length === 0) {
-        console.warn('Updates object is empty! This should not happen.');
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:420',message:'WARNING updates empty',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}));
-        // #endregion
-      }
-      
-      // Проверяем, что важные поля будут сохранены
-      // updateTask делает merge: { ...originalTask, ...updates }
-      // Поэтому все поля из originalTask сохранятся, а поля из updates перезапишут их
-      // Это гарантирует, что даже если поле не в updates, оно сохранится из originalTask
-      
-      try {
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:428',message:'handleStep9Complete calling updateTask',data:{editingTaskId,updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-        // #endregion
-        await storage.updateTask(editingTaskId, updates);
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:430',message:'handleStep9Complete updateTask success',data:{editingTaskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-        // #endregion
-        console.log('Task updated successfully:', editingTaskId);
-        
-        // Закрываем визард редактирования сразу после успешного обновления
-        // Это заставит компонент перерисоваться с актуальными данными
-        setIsCreating(false);
-        setIsEditing(false);
-        setEditingTaskId(null);
-        setCreateStep(0);
-        setTaskData({});
-        setModifiedFields(new Set());
-      } catch (error) {
-        console.error('Error updating task:', error);
-        // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:433',message:'handleStep9Complete updateTask error',data:{editingTaskId,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
-        // #endregion
-        // Состояние уже обновлено в updateTask, продолжаем
-      }
+      // Закрываем визард
+      setIsCreating(false);
+      setIsEditing(false);
+      setEditingTaskId(null);
+      setCreateStep(0);
+      setTaskData({});
+      setModifiedFields(new Set());
     } else {
       // Создание новой задачи
       const dueDate = taskData.dueDate || selectedDate.getTime();
@@ -831,23 +653,24 @@ export default function TasksPage({ storage }: TasksPageProps) {
           }}
           onTaskMove={async (id) => {
             // Перемещаем задачу в список: добавляем dueDate и plannedDate, убираем movedToList
-            // #region agent log
-            console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:787',message:'onTaskMove called',data:{taskId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}));
-            // #endregion
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const todayTimestamp = today.getTime();
-            // #region agent log
-            console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:792',message:'onTaskMove before updateTask',data:{taskId:id,todayTimestamp,dueDate:todayTimestamp,plannedDate:todayTimestamp},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}));
-            // #endregion
-            await storage.updateTask(id, { 
+            
+            // Получаем текущую задачу
+            const task = storage.tasks.find(t => t.id === id);
+            if (!task) return;
+            
+            // Создаем обновленную задачу со всеми полями
+            const updatedTask: Task = {
+              ...task,
               movedToList: false,
               dueDate: todayTimestamp,
               plannedDate: todayTimestamp
-            });
-            // #region agent log
-            console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:800',message:'onTaskMove after updateTask',data:{taskId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}));
-            // #endregion
+            };
+            
+            // Обновляем задачу
+            await storage.updateTask(id, updatedTask);
           }}
         />
       ) : viewMode === 'list' ? (
