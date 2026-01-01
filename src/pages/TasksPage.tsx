@@ -493,8 +493,19 @@ export default function TasksPage({ storage }: TasksPageProps) {
         });
         
         await storage.updateTask(editingTaskId, updatedTask);
+        
+        // Проверяем, что задача действительно сохранилась с dueDate
+        const savedTask = storage.tasks.find(t => t.id === editingTaskId);
+        console.log('[DEBUG] After updateTask - checking saved task:', {
+          editingTaskId,
+          savedTaskFound: !!savedTask,
+          savedTaskDueDate: savedTask?.dueDate,
+          savedTaskPlannedDate: savedTask?.plannedDate,
+          expectedDueDate: updatedTask.dueDate
+        });
+        
         // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:396',message:'handleStep9Complete after updateTask',data:{editingTaskId,storageTasksCount:storage.tasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7249/ingest/c9d9c789-1dcb-42c5-90ab-68af3eb2030c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TasksPage.tsx:396',message:'handleStep9Complete after updateTask',data:{editingTaskId,storageTasksCount:storage.tasks.length,savedTaskDueDate:savedTask?.dueDate},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
         // #endregion
       } catch (error) {
         console.error('Error updating task:', error);
