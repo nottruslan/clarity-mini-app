@@ -115,16 +115,15 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
 
   return (
     <>
-      <div style={{
-        background: 'var(--tg-theme-section-bg-color)',
-        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-        padding: '16px'
+      <div className="list-item" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          marginBottom: '12px'
+          gap: '12px'
         }}>
           <span style={{ fontSize: '32px' }}>{habit.icon || '🔥'}</span>
           <div style={{ flex: 1 }}>
@@ -135,9 +134,10 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
               marginBottom: '4px'
             }}>
               <h3 style={{
-                fontSize: '18px',
+                fontSize: '16px',
                 fontWeight: '500',
-                margin: 0
+                margin: 0,
+                color: 'var(--tg-theme-text-color)'
               }}>
                 {habit.name}
               </h3>
@@ -157,7 +157,7 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)'
             }}>
               <span>
@@ -231,7 +231,7 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
         <LevelIndicator habit={habit} />
 
         {habit.goalDays && goalProgress.percentage < 100 && (
-          <div style={{ marginTop: '12px' }}>
+          <div>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -244,9 +244,9 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
             </div>
             <div style={{
               width: '100%',
-              height: '6px',
+              height: '8px',
               background: 'var(--tg-theme-secondary-bg-color)',
-              borderRadius: '3px',
+              borderRadius: '4px',
               overflow: 'hidden'
             }}>
               <div style={{
@@ -276,10 +276,12 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
         {habit.unit && habit.targetValue && (
           (selectedDate && !isSelectedDateCompleted) || (!selectedDate && !isTodayCompleted)
         ) && (
-          <div style={{ marginBottom: '12px' }}>
+          <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
               marginBottom: '8px',
               display: 'block'
             }}>
@@ -313,12 +315,17 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
                 }
               </button>
               <button
-                className="tg-button"
                 onClick={handleCancel}
                 style={{
-                  background: 'var(--tg-theme-secondary-bg-color)',
-                  color: 'var(--tg-theme-text-color)',
-                  minWidth: '100px'
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--tg-theme-button-color)',
+                  background: 'transparent',
+                  color: 'var(--tg-theme-button-color)',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  minWidth: '60px'
                 }}
               >
                 Отменить
@@ -337,14 +344,16 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
           <button
             onClick={handleDeleteClick}
             style={{
-              padding: '12px',
+              padding: '8px 16px',
               borderRadius: '10px',
-              border: 'none',
-              background: 'var(--tg-theme-secondary-bg-color)',
+              border: '1px solid var(--tg-theme-destructive-text-color)',
+              background: 'transparent',
               color: 'var(--tg-theme-destructive-text-color)',
-              fontSize: '18px',
+              fontSize: '14px',
+              fontWeight: '500',
               cursor: 'pointer',
-              minWidth: '44px',
+              minHeight: '36px',
+              minWidth: '60px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -355,7 +364,7 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
               e.currentTarget.style.background = 'rgba(255, 59, 48, 0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--tg-theme-secondary-bg-color)';
+              e.currentTarget.style.background = 'transparent';
             }}
           >
             ✕
@@ -373,7 +382,7 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
             color: showDetails 
               ? 'var(--tg-theme-text-color)' 
               : 'var(--tg-theme-button-text-color)',
-            fontSize: '15px',
+            fontSize: '16px',
             fontWeight: '500'
           }}
         >
@@ -381,7 +390,7 @@ export default function HabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, o
         </button>
 
         {showDetails && (
-          <div style={{ marginTop: '16px' }}>
+          <div>
             <HabitStats habit={habit} />
             <HabitProgressBars habit={habit} period="week" />
             <HabitCharts habit={habit} />

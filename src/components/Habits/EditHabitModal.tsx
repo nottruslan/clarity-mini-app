@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Habit } from '../../utils/storage';
 
 interface EditHabitModalProps {
@@ -33,8 +33,20 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
   const [targetValue, setTargetValue] = useState(habit.targetValue?.toString() || '');
   const [goalDays, setGoalDays] = useState(habit.goalDays?.toString() || '');
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   // Блокируем скролл body при открытии модального окна
+  useEffect(() => {
+    // Анимация появления
+    if (sheetRef.current) {
+      setTimeout(() => {
+        if (sheetRef.current) {
+          sheetRef.current.style.transform = 'translateY(0)';
+        }
+      }, 10);
+    }
+  }, []);
+
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     const originalPosition = document.body.style.position;
@@ -131,6 +143,17 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
     setCategory(catId);
   };
 
+  const handleClose = () => {
+    if (sheetRef.current) {
+      sheetRef.current.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        onClose();
+      }, 300);
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <div 
       style={{
@@ -139,86 +162,76 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
         alignItems: 'flex-end',
-        justifyContent: 'center',
         zIndex: 10000,
-        paddingTop: 'env(safe-area-inset-top)',
-        scrollBehavior: 'auto',
-        overscrollBehavior: 'contain',
-        touchAction: 'pan-y',
-        overflow: 'hidden'
+        animation: 'fadeIn 0.2s ease-out'
       }} 
-      onClick={onClose}
-      onTouchStart={(e) => {
-        // Предотвращаем движение при touch на фоне
-        const target = e.target as HTMLElement;
-        if (target === e.currentTarget) {
-          e.preventDefault();
-        }
-      }}
-      onTouchMove={(e) => {
-        // Предотвращаем горизонтальное движение
-        const target = e.target as HTMLElement;
-        if (target === e.currentTarget) {
-          e.preventDefault();
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleClose();
         }
       }}
     >
       <div 
+        ref={sheetRef}
         style={{
           background: 'var(--tg-theme-bg-color)',
           borderTopLeftRadius: '20px',
           borderTopRightRadius: '20px',
-          padding: '20px',
+          padding: '8px 0',
+          paddingBottom: isKeyboardVisible ? '8px' : 'calc(8px + env(safe-area-inset-bottom))',
           width: '100%',
-          maxWidth: '500px',
-          maxHeight: window.visualViewport 
-            ? `${Math.min(window.visualViewport.height * 0.85, window.innerHeight * 0.85)}px`
-            : '85vh',
+          maxHeight: '80vh',
           overflowY: 'auto',
-          overflowX: 'hidden',
-          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.3)',
-          scrollBehavior: 'auto',
-          overscrollBehavior: 'contain',
-          WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y',
-          paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))'
+          transform: 'translateY(100%)',
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          WebkitOverflowScrolling: 'touch'
         }} 
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchMove={(e) => {
-          // Разрешаем только вертикальный скролл
-          e.stopPropagation();
-        }}
       >
+        {/* Индикатор */}
+        <div
+          style={{
+            width: '40px',
+            height: '4px',
+            backgroundColor: 'var(--tg-theme-hint-color)',
+            borderRadius: '2px',
+            margin: '8px auto 16px',
+            opacity: 0.3
+          }}
+        />
+
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px'
+          padding: '0 16px 16px',
+          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
         }}>
           <h2 style={{
             fontSize: '20px',
             fontWeight: '600',
-            color: 'var(--tg-theme-text-color)'
+            color: 'var(--tg-theme-text-color)',
+            margin: 0
           }}>
             Редактировать привычку
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             style={{
-              width: '32px',
-              height: '32px',
+              width: '36px',
+              height: '36px',
               borderRadius: '50%',
               border: 'none',
               background: 'var(--tg-theme-secondary-bg-color)',
-              fontSize: '20px',
+              fontSize: '24px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              color: 'var(--tg-theme-text-color)'
             }}
           >
             ×
@@ -229,16 +242,16 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           style={{ 
             display: 'flex', 
             flexDirection: 'column', 
-            gap: '16px',
-            overscrollBehavior: 'contain',
-            scrollBehavior: 'auto'
+            gap: '24px',
+            padding: '20px 16px'
           }}
-          onTouchStart={(e) => e.stopPropagation()}
         >
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
               marginBottom: '8px',
               display: 'block'
             }}>
@@ -254,8 +267,10 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
 
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
               marginBottom: '8px',
               display: 'block'
             }}>
@@ -298,8 +313,10 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
 
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
               marginBottom: '8px',
               display: 'block'
             }}>
@@ -348,8 +365,10 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
 
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
               marginBottom: '8px',
               display: 'block'
             }}>
@@ -367,8 +386,10 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           {unit && (
             <div>
               <label style={{
-                fontSize: '14px',
+                fontSize: '12px',
                 color: 'var(--tg-theme-hint-color)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
                 marginBottom: '8px',
                 display: 'block'
               }}>
@@ -388,8 +409,10 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
 
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
               marginBottom: '8px',
               display: 'block'
             }}>
@@ -405,7 +428,7 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+          <div style={{ display: 'flex', gap: '12px' }}>
             <button
               className="tg-button"
               onClick={handleSave}
@@ -414,12 +437,31 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
               Сохранить
             </button>
             <button
-              className="tg-button"
-              onClick={onClose}
+              onClick={handleClose}
               style={{
                 flex: 1,
-                background: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)'
+                padding: '12px 24px',
+                borderRadius: '10px',
+                border: '1px solid var(--tg-theme-button-color)',
+                background: 'transparent',
+                color: 'var(--tg-theme-button-color)',
+                fontSize: '16px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                minHeight: '44px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'opacity 0.2s'
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.opacity = '0.7';
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.opacity = '1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
               }}
             >
               Отмена
@@ -427,6 +469,17 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }

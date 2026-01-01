@@ -135,7 +135,7 @@ export default function MonthCalendar({ habit, selectedDate, onDateClick }: Mont
           flex: 1
         }}>
           <span style={{
-            fontSize: '16px',
+            fontSize: '18px',
             fontWeight: '600',
             color: 'var(--tg-theme-text-color)'
           }}>
@@ -146,12 +146,12 @@ export default function MonthCalendar({ habit, selectedDate, onDateClick }: Mont
               onClick={goToToday}
               style={{
                 fontSize: '12px',
-                color: 'var(--tg-theme-button-color)',
-                background: 'none',
-                border: 'none',
+                color: 'var(--tg-theme-hint-color)',
+                background: 'transparent',
+                border: '1px solid var(--tg-theme-hint-color)',
+                borderRadius: '6px',
                 cursor: 'pointer',
-                padding: '2px 8px',
-                textDecoration: 'underline'
+                padding: '4px 12px'
               }}
             >
               Сегодня
