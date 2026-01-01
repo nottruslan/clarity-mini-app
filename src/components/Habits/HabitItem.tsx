@@ -112,6 +112,48 @@ export default function HabitItem({
           </span>
         </div>
 
+        {/* Кнопка удаления */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.Telegram?.WebApp?.showConfirm) {
+              window.Telegram.WebApp.showConfirm(
+                `Удалить "${habit.name}"?`,
+                (confirmed: boolean) => {
+                  if (confirmed) {
+                    onDelete();
+                  }
+                }
+              );
+            } else {
+              if (window.confirm(`Удалить "${habit.name}"?`)) {
+                onDelete();
+              }
+            }
+          }}
+          style={{
+            padding: '8px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '18px',
+            color: 'var(--tg-theme-hint-color)',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'color 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--tg-theme-destructive-text-color)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--tg-theme-hint-color)';
+          }}
+        >
+          ✕
+        </button>
+
         {/* Кнопка меню */}
         <button
           onClick={(e) => {

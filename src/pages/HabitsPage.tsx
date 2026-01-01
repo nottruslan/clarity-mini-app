@@ -3,7 +3,6 @@ import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type Habit } from '../utils/storage';
 import HabitList from '../components/Habits/HabitList';
 import HabitsStatisticsView from '../components/Habits/HabitsStatisticsView';
-import HabitsCalendarView from '../components/Habits/HabitsCalendarView';
 import HabitBottomSheet from '../components/Habits/HabitBottomSheet';
 import HabitDetailsBottomSheet from '../components/Habits/HabitDetailsBottomSheet';
 import EditHabitModal from '../components/Habits/EditHabitModal';
@@ -21,7 +20,7 @@ interface HabitsPageProps {
   storage: ReturnType<typeof useCloudStorage>;
 }
 
-const sectionTitles = ['Список', 'Статистика', 'Календарь'];
+const sectionTitles = ['Привычки', 'Статистика'];
 
 export default function HabitsPage({ storage }: HabitsPageProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -262,9 +261,6 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
     }
   };
 
-  const handleReorder = async (habits: Habit[]) => {
-    await storage.updateHabits(habits);
-  };
 
   const handleDelete = async (id: string) => {
     await storage.deleteHabit(id);
@@ -479,7 +475,6 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
                 onCheck={handleCheck}
                 onUpdate={handleUpdate}
                 onHistoryUpdate={handleHistoryUpdate}
-                onReorder={handleReorder}
                 onDelete={handleDelete}
                 onOpenDetails={handleOpenDetails}
                 onOpenMenu={handleOpenMenu}
@@ -504,21 +499,6 @@ export default function HabitsPage({ storage }: HabitsPageProps) {
             </div>
           </div>
 
-          {/* Слайд 2: Календарь */}
-          <div className={`slide ${currentSlide === 2 ? 'active' : currentSlide > 2 ? 'prev' : 'next'}`}>
-            <div style={{ 
-              flex: 1, 
-              display: 'flex', 
-              flexDirection: 'column', 
-              position: 'relative',
-              paddingTop: '0px',
-              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
-              overflowY: 'auto',
-              overflowX: 'hidden'
-            }}>
-              <HabitsCalendarView habits={storage.habits} />
-            </div>
-          </div>
         </div>
       </div>
 

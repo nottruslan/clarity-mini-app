@@ -61,7 +61,11 @@ export default function HabitDetailsBottomSheet({
     }
   };
 
-  const handleCheck = () => {
+  const handleCheck = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
     if (selectedDate) {
       const value = habit.unit && habit.targetValue && inputValue ? parseFloat(inputValue) : undefined;
       handleDateCheck(selectedDate, value);
@@ -85,9 +89,11 @@ export default function HabitDetailsBottomSheet({
     let newHistory: Habit['history'];
     
     if (isAlreadyChecked) {
+      // Убираем отметку
       newHistory = { ...habit.history };
       delete newHistory[dateKey];
     } else {
+      // Добавляем отметку
       newHistory = {
         ...habit.history,
         [dateKey]: {
@@ -100,17 +106,13 @@ export default function HabitDetailsBottomSheet({
     onHistoryUpdate(newHistory);
   };
 
-  const handleCancel = () => {
+  const handleCancel = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
     if (selectedDate) {
-      const historyEntry = habit.history[selectedDate];
-      const isChecked = historyEntry?.completed || false;
-      
-      if (isChecked) {
-        const newHistory = { ...habit.history };
-        delete newHistory[selectedDate];
-        onHistoryUpdate(newHistory);
-      }
-      
+      // Просто сбрасываем выбор даты, не меняя историю
       setSelectedDate('');
       setInputValue('');
     }
@@ -270,11 +272,18 @@ export default function HabitDetailsBottomSheet({
             <MonthCalendar 
               habit={habit}
               selectedDate={selectedDate}
-              onDateClick={(dateKey) => {
-                if (selectedDate === dateKey) {
-                  setSelectedDate('');
-                } else {
-                  setSelectedDate(dateKey);
+              onDateClick={(dateKey, value) => {
+                // Разрешаем выбирать любую прошедшую дату или сегодня
+                const date = new Date(dateKey);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                if (date <= today) {
+                  if (selectedDate === dateKey) {
+                    setSelectedDate('');
+                  } else {
+                    setSelectedDate(dateKey);
+                  }
                 }
               }}
             />
@@ -312,9 +321,8 @@ export default function HabitDetailsBottomSheet({
               <>
                 <button
                   className="tg-button"
-                  onClick={handleCheck}
+                  onClick={(e) => handleCheck(e)}
                   style={{ flex: 1 }}
-                  disabled={isSelectedDateCompleted}
                 >
                   {isSelectedDateCompleted 
                     ? `✓ Выполнено ${new Date(selectedDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
@@ -323,7 +331,7 @@ export default function HabitDetailsBottomSheet({
                 </button>
                 <button
                   className="tg-button"
-                  onClick={handleCancel}
+                  onClick={(e) => handleCancel(e)}
                   style={{
                     background: 'var(--tg-theme-secondary-bg-color)',
                     color: 'var(--tg-theme-text-color)',
@@ -336,7 +344,7 @@ export default function HabitDetailsBottomSheet({
             ) : (
               <button
                 className="tg-button"
-                onClick={handleCheck}
+                onClick={(e) => handleCheck(e)}
                 style={{ flex: 1 }}
                 disabled={isTodayCompleted}
               >
