@@ -29,14 +29,20 @@ interface HabitListProps {
   onHistoryUpdate: (id: string, history: Habit['history']) => void;
   onReorder: (habits: Habit[]) => void;
   onDelete: (id: string) => void;
+  onOpenDetails: (habit: Habit) => void;
+  onOpenMenu: (habit: Habit) => void;
+  onEdit: (habit: Habit) => void;
 }
 
-function SortableHabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, onDelete }: {
+function SortableHabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, onDelete, onOpenDetails, onOpenMenu, onEdit }: {
   habit: Habit;
   onCheck: (value?: number) => void;
   onUpdate: (updates: Partial<Habit>) => void;
   onHistoryUpdate: (history: Habit['history']) => void;
   onDelete: () => void;
+  onOpenDetails: () => void;
+  onOpenMenu: () => void;
+  onEdit: () => void;
 }) {
   const {
     attributes,
@@ -84,6 +90,9 @@ function SortableHabitItem({ habit, onCheck, onUpdate, onHistoryUpdate, onDelete
           onUpdate={onUpdate}
           onHistoryUpdate={onHistoryUpdate}
           onDelete={onDelete}
+          onOpenDetails={onOpenDetails}
+          onOpenMenu={onOpenMenu}
+          onEdit={onEdit}
         />
       </div>
     </div>
@@ -109,7 +118,10 @@ export default function HabitList({
   onUpdate, 
   onHistoryUpdate,
   onReorder,
-  onDelete
+  onDelete,
+  onOpenDetails,
+  onOpenMenu,
+  onEdit
 }: HabitListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -238,6 +250,9 @@ export default function HabitList({
                   onUpdate={(updates) => onUpdate(habit.id, updates)}
                   onHistoryUpdate={(history) => onHistoryUpdate(habit.id, history)}
                   onDelete={() => onDelete(habit.id)}
+                  onOpenDetails={() => onOpenDetails(habit)}
+                  onOpenMenu={() => onOpenMenu(habit)}
+                  onEdit={() => onEdit(habit)}
                 />
               ))}
             </SortableContext>

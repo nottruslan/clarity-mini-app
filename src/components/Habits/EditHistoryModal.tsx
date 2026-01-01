@@ -102,35 +102,50 @@ export default function EditHistoryModal({ habit, onSave, onClose, initialDate }
       bottom: 0,
       background: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-end',
       justifyContent: 'center',
       zIndex: 10000,
-      padding: '20px'
+      paddingTop: 'env(safe-area-inset-top)'
     }} onClick={onClose}>
       <div style={{
         background: 'var(--tg-theme-bg-color)',
-        borderRadius: '16px',
-        padding: '20px',
+        borderTopLeftRadius: '20px',
+        borderTopRightRadius: '20px',
+        padding: '8px 0 20px',
         paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))',
-        maxWidth: '400px',
+        maxWidth: '500px',
         width: '100%',
         maxHeight: '90vh',
         overflowY: 'auto',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+        boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.3)'
       }} onClick={(e) => e.stopPropagation()}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px'
-        }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: 'var(--tg-theme-text-color)'
+        {/* Индикатор */}
+        <div
+          style={{
+            width: '40px',
+            height: '4px',
+            backgroundColor: 'var(--tg-theme-hint-color)',
+            borderRadius: '2px',
+            margin: '8px auto 16px',
+            opacity: 0.3
+          }}
+        />
+
+        <div style={{ padding: '0 20px' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
           }}>
-            Редактировать историю
-          </h2>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '600',
+              color: 'var(--tg-theme-text-color)',
+              margin: 0
+            }}>
+              Редактировать историю
+            </h2>
           <button
             onClick={onClose}
             style={{
@@ -150,13 +165,15 @@ export default function EditHistoryModal({ habit, onSave, onClose, initialDate }
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
               marginBottom: '8px',
-              display: 'block'
+              display: 'block',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
             }}>
               Выберите дату
             </label>
@@ -169,31 +186,35 @@ export default function EditHistoryModal({ habit, onSave, onClose, initialDate }
           {selectedDate && (
             <>
               <div>
-                <label style={{
-                  fontSize: '14px',
-                  color: 'var(--tg-theme-hint-color)',
-                  marginBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={completed}
-                    onChange={(e) => setCompleted(e.target.checked)}
-                    style={{ width: '20px', height: '20px' }}
-                  />
-                  <span>Выполнено</span>
-                </label>
+                  <label style={{
+                    fontSize: '12px',
+                    color: 'var(--tg-theme-hint-color)',
+                    marginBottom: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={completed}
+                      onChange={(e) => setCompleted(e.target.checked)}
+                      style={{ width: '20px', height: '20px' }}
+                    />
+                    <span>Выполнено</span>
+                  </label>
               </div>
 
               {completed && habit.unit && (
                 <div>
                   <label style={{
-                    fontSize: '14px',
+                    fontSize: '12px',
                     color: 'var(--tg-theme-hint-color)',
                     marginBottom: '8px',
-                    display: 'block'
+                    display: 'block',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
                   }}>
                     Значение ({habit.unit})
                   </label>
@@ -244,6 +265,7 @@ export default function EditHistoryModal({ habit, onSave, onClose, initialDate }
               </div>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>

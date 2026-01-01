@@ -171,7 +171,8 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           background: 'var(--tg-theme-bg-color)',
           borderTopLeftRadius: '20px',
           borderTopRightRadius: '20px',
-          padding: '20px',
+          padding: '8px 0 20px',
+          paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))',
           width: '100%',
           maxWidth: '500px',
           maxHeight: window.visualViewport 
@@ -183,8 +184,7 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           scrollBehavior: 'auto',
           overscrollBehavior: 'contain',
           WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y',
-          paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))'
+          touchAction: 'pan-y'
         }} 
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
@@ -193,19 +193,33 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           e.stopPropagation();
         }}
       >
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px'
-        }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: 'var(--tg-theme-text-color)'
+        {/* Индикатор */}
+        <div
+          style={{
+            width: '40px',
+            height: '4px',
+            backgroundColor: 'var(--tg-theme-hint-color)',
+            borderRadius: '2px',
+            margin: '8px auto 16px',
+            opacity: 0.3
+          }}
+        />
+
+        <div style={{ padding: '0 20px' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
           }}>
-            Редактировать привычку
-          </h2>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '600',
+              color: 'var(--tg-theme-text-color)',
+              margin: 0
+            }}>
+              Редактировать привычку
+            </h2>
           <button
             onClick={onClose}
             style={{
@@ -229,7 +243,7 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           style={{ 
             display: 'flex', 
             flexDirection: 'column', 
-            gap: '16px',
+            gap: '20px',
             overscrollBehavior: 'contain',
             scrollBehavior: 'auto'
           }}
@@ -237,10 +251,12 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
         >
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
               marginBottom: '8px',
-              display: 'block'
+              display: 'block',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
             }}>
               Название
             </label>
@@ -254,10 +270,12 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
 
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
               marginBottom: '8px',
-              display: 'block'
+              display: 'block',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
             }}>
               Иконка
             </label>
@@ -298,10 +316,12 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
 
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
               marginBottom: '8px',
-              display: 'block'
+              display: 'block',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
             }}>
               Категория
             </label>
@@ -348,10 +368,12 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
 
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
               marginBottom: '8px',
-              display: 'block'
+              display: 'block',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
             }}>
               Единица измерения
             </label>
@@ -367,10 +389,12 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
           {unit && (
             <div>
               <label style={{
-                fontSize: '14px',
+                fontSize: '12px',
                 color: 'var(--tg-theme-hint-color)',
                 marginBottom: '8px',
-                display: 'block'
+                display: 'block',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
               }}>
                 Целевое значение
               </label>
@@ -388,10 +412,12 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
 
           <div>
             <label style={{
-              fontSize: '14px',
+              fontSize: '12px',
               color: 'var(--tg-theme-hint-color)',
               marginBottom: '8px',
-              display: 'block'
+              display: 'block',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
             }}>
               Цель по дням (опционально)
             </label>
@@ -425,6 +451,7 @@ export default function EditHabitModal({ habit, onSave, onClose }: EditHabitModa
               Отмена
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>

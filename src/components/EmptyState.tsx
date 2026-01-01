@@ -7,7 +7,15 @@ interface EmptyStateProps {
 
 export default function EmptyState({ message, animationData }: EmptyStateProps) {
   return (
-    <div className="empty-state">
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '60px 20px',
+      minHeight: '200px',
+      textAlign: 'center'
+    }}>
       {animationData ? (
         <LottieAnimation 
           className="empty-state-animation"
@@ -15,14 +23,23 @@ export default function EmptyState({ message, animationData }: EmptyStateProps) 
           autoplay={true}
         />
       ) : (
-        <div className="empty-state-animation" style={{ 
-          fontSize: 64,
-          color: 'var(--tg-theme-hint-color)'
+        <div style={{ 
+          fontSize: '64px',
+          color: 'var(--tg-theme-hint-color)',
+          marginBottom: '16px',
+          opacity: 0.5
         }}>
           📭
         </div>
       )}
-      <p className="empty-state-text">{message}</p>
+      <p style={{
+        fontSize: '16px',
+        color: 'var(--tg-theme-hint-color)',
+        margin: 0,
+        lineHeight: '1.5'
+      }}>
+        {message}
+      </p>
     </div>
   );
 }
