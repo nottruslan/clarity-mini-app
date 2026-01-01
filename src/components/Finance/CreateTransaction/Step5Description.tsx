@@ -9,6 +9,7 @@ interface Step5DescriptionProps {
   date: number;
   onComplete: (description?: string) => void;
   onBack: () => void;
+  initialDescription?: string;
 }
 
 export default function Step5Description({ 
@@ -17,9 +18,10 @@ export default function Step5Description({
   category, 
   date, 
   onComplete, 
-  onBack 
+  onBack,
+  initialDescription
 }: Step5DescriptionProps) {
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(initialDescription || '');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleComplete = () => {

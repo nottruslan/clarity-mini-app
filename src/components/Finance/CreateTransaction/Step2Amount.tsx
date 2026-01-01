@@ -6,10 +6,11 @@ interface Step2AmountProps {
   type: 'income' | 'expense';
   onNext: (amount: number) => void;
   onBack: () => void;
+  initialValue?: number;
 }
 
-export default function Step2Amount({ type, onNext, onBack }: Step2AmountProps) {
-  const [amount, setAmount] = useState('');
+export default function Step2Amount({ type, onNext, onBack, initialValue }: Step2AmountProps) {
+  const [amount, setAmount] = useState(initialValue ? initialValue.toString() : '');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleNext = () => {

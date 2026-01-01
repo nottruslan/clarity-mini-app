@@ -228,57 +228,6 @@ export default function TransactionDetails({
               </div>
             )}
           </div>
-
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            marginTop: '8px'
-          }}>
-            <button
-              onClick={onEdit}
-              className="tg-button"
-              style={{
-                width: '100%'
-              }}
-            >
-              Редактировать
-            </button>
-            <button
-              onClick={onDuplicate}
-              style={{
-                width: '100%',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                border: '2px solid var(--tg-theme-button-color)',
-                backgroundColor: 'transparent',
-                color: 'var(--tg-theme-button-color)',
-                fontSize: '16px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                minHeight: '44px'
-              }}
-            >
-              Дублировать
-            </button>
-            <button
-              onClick={onDelete}
-              style={{
-                width: '100%',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                border: 'none',
-                backgroundColor: 'var(--tg-theme-destructive-text-color)',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                minHeight: '44px'
-              }}
-            >
-              Удалить
-            </button>
-          </div>
         </div>
         </div>
       </div>

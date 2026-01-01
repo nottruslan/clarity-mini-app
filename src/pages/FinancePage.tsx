@@ -170,7 +170,8 @@ export default function FinancePage({ storage }: FinancePageProps) {
       category: transaction.category,
       date: transaction.date
     });
-    setCreateStep(0);
+    // Пропускаем шаг выбора типа, так как тип уже есть - начинаем с суммы
+    setCreateStep(1);
     setIsCreating(true);
     setIsEditing(true);
     setSelectedTransaction(null);
@@ -214,9 +215,20 @@ export default function FinancePage({ storage }: FinancePageProps) {
   };
 
   const handleBack = () => {
-    if (createStep > 0) {
+    if (createStep > 1) {
+      // Если редактирование и не на первом шаге редактирования (сумма)
+      setCreateStep(createStep - 1);
+    } else if (createStep === 1 && isEditing) {
+      // Если редактирование на первом шаге (сумма), закрываем визард
+      setIsCreating(false);
+      setIsEditing(false);
+      setEditingTransaction(null);
+      setTransactionData({});
+    } else if (createStep > 0) {
+      // Обычное создание
       setCreateStep(createStep - 1);
     } else {
+      // На шаге выбора типа
       setIsCreating(false);
       setTransactionData({});
     }
@@ -229,14 +241,16 @@ export default function FinancePage({ storage }: FinancePageProps) {
     return (
       <WizardContainer 
         currentStep={createStep + 1} 
-        totalSteps={5}
+        totalSteps={transactionData.type ? 5 : 5}
         progressColor={colors.primary}
       >
-        <div 
-          className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}
-        >
-          <Step1Type onNext={handleStep1Complete} />
-        </div>
+        {!transactionData.type && (
+          <div 
+            className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}
+          >
+            <Step1Type onNext={handleStep1Complete} />
+          </div>
+        )}
         {transactionData.type && (
           <div 
             className={`wizard-slide ${createStep === 1 ? 'active' : createStep > 1 ? 'prev' : 'next'}`}
@@ -245,6 +259,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
               type={transactionData.type}
               onNext={handleStep2Complete}
               onBack={handleBack}
+              initialValue={transactionData.amount}
             />
           </div>
         )}
@@ -259,6 +274,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
               onBack={handleBack}
               onCreateCategory={handleCreateCategory}
               onDeleteCategory={handleDeleteCategory}
+              initialCategory={transactionData.category}
             />
           </div>
         )}
@@ -272,6 +288,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
               category={transactionData.category}
               onNext={handleStep4Complete}
               onBack={handleBack}
+              initialDate={transactionData.date}
             />
           </div>
         )}
@@ -286,6 +303,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
               date={transactionData.date}
               onComplete={handleStep5Complete}
               onBack={handleBack}
+              initialDescription={editingTransaction?.description}
             />
           </div>
         )}
@@ -355,35 +373,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
                 budgets={storage.finance.budgets || []}
                 transactions={storage.finance.transactions}
               />
-              <div style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-                display: 'flex',
-                justifyContent: 'center'
-              }}>
-                <button
-                  onClick={() => setShowBudget(true)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tg-theme-secondary-bg-color)',
-                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                    color: 'var(--tg-theme-text-color)',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'opacity 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.7';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                  }}
-                >
-                  💰 Управление бюджетом
-                </button>
-              </div>
             </div>
           </div>
 
@@ -454,6 +443,36 @@ export default function FinancePage({ storage }: FinancePageProps) {
               paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
               overflow: 'hidden'
             }}>
+              <div style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
+                display: 'flex',
+                justifyContent: 'center',
+                backgroundColor: 'var(--tg-theme-section-bg-color)'
+              }}>
+                <button
+                  onClick={() => setShowBudget(true)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--tg-theme-secondary-bg-color)',
+                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                    color: 'var(--tg-theme-text-color)',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.7';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                >
+                  💰 Управление бюджетом
+                </button>
+              </div>
               <StatisticsView finance={storage.finance} period={period} />
             </div>
           </div>
@@ -469,26 +488,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
           gap: '12px',
           zIndex: 100
         }}>
-          <button 
-            onClick={() => handleStartCreate('income')}
-            className="fab"
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              backgroundColor: '#4caf50',
-              color: 'white',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            💰
-          </button>
           <button 
             onClick={() => handleStartCreate('expense')}
             className="fab"
@@ -509,14 +508,34 @@ export default function FinancePage({ storage }: FinancePageProps) {
           >
             💸
           </button>
+          <button 
+            onClick={() => handleStartCreate('income')}
+            className="fab"
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: '#4caf50',
+              color: 'white',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            💰
+          </button>
         </div>
       </div>
       {selectedTransaction && (
         <TransactionDetails
           transaction={selectedTransaction}
-          onEdit={() => handleEdit(selectedTransaction)}
-          onDelete={() => handleDelete(selectedTransaction)}
-          onDuplicate={() => handleDuplicate(selectedTransaction)}
+          onEdit={() => {}}
+          onDelete={() => {}}
+          onDuplicate={() => {}}
           onClose={() => setSelectedTransaction(null)}
         />
       )}

@@ -11,6 +11,7 @@ interface Step3CategoryProps {
   onBack: () => void;
   onCreateCategory: (name: string) => void;
   onDeleteCategory?: (categoryId: string) => void;
+  initialCategory?: string;
 }
 
 // Дефолтные категории (по именам)
@@ -29,9 +30,10 @@ export default function Step3Category({
   onNext, 
   onBack,
   onCreateCategory,
-  onDeleteCategory
+  onDeleteCategory,
+  initialCategory
 }: Step3CategoryProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || '');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);

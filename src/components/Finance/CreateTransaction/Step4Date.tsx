@@ -8,10 +8,13 @@ interface Step4DateProps {
   category: string;
   onNext: (date: number) => void;
   onBack: () => void;
+  initialDate?: number;
 }
 
-export default function Step4Date({ type, amount, category, onNext, onBack }: Step4DateProps) {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+export default function Step4Date({ type, amount, category, onNext, onBack, initialDate }: Step4DateProps) {
+  const [date, setDate] = useState(
+    initialDate ? new Date(initialDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+  );
 
   const handleNext = () => {
     const selectedDate = new Date(date);
