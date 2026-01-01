@@ -549,17 +549,42 @@ export default function TasksPage({ storage }: TasksPageProps) {
       setModifiedFields(new Set());
     } else {
       // Создание новой задачи
-      const dueDate = taskData.dueDate || selectedDate.getTime();
-      const startTime = taskData.startTime 
-        ? minutesOfDayToTimestamp(dueDate, taskData.startTime)
-        : undefined;
+      // ВАЖНО: используем taskData.dueDate только если он был явно установлен пользователем
+      // Если дата не установлена, но есть время, используем selectedDate
+      // Если ничего не установлено, dueDate остается undefined
+      let dueDate: number | undefined;
+      if (modifiedFields.has('dueDate')) {
+        // Пользователь явно установил или сбросил дату
+        dueDate = taskData.dueDate;
+      } else if (taskData.startTime || taskData.duration) {
+        // Если установлено время или длительность, но не дата, используем selectedDate
+        dueDate = selectedDate.getTime();
+      } else {
+        // Если ничего не установлено, dueDate остается undefined
+        dueDate = undefined;
+      }
       
-      const endTime = taskData.startTime && taskData.duration
+      const startTime = taskData.startTime && dueDate
+        ? minutesOfDayToTimestamp(dueDate, taskData.startTime)
+        : (taskData.startTime || undefined); // Если нет даты, сохраняем startTime как минуты от полуночи
+      
+      const endTime = taskData.startTime && taskData.duration && dueDate
         ? minutesOfDayToTimestamp(dueDate, taskData.startTime + taskData.duration)
-        : undefined;
+        : (taskData.startTime && taskData.duration 
+          ? taskData.startTime + taskData.duration 
+          : undefined); // Если нет даты, сохраняем endTime как минуты от полуночи
 
       // Проверяем, что name не пустая строка
       const taskName = taskData.name?.trim() || 'Новая задача';
+
+      console.log('[DEBUG] Creating new task:', {
+        dueDate,
+        taskDataDueDate: taskData.dueDate,
+        hasDueDateInModified: modifiedFields.has('dueDate'),
+        startTime,
+        endTime,
+        taskName
+      });
 
       const newTask: Task = {
         id: generateId(),
@@ -568,7 +593,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
         createdAt: Date.now(),
         priority: taskData.priority,
         dueDate,
-        plannedDate: dueDate,
+        plannedDate: dueDate, // plannedDate всегда равен dueDate
         startTime,
         endTime,
         duration: taskData.duration,
