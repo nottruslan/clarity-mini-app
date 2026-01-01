@@ -11,7 +11,7 @@ interface StatisticsViewProps {
 }
 
 export default function StatisticsView({ finance, period }: StatisticsViewProps) {
-  const [activeTab, setActiveTab] = useState<'categories' | 'trends' | 'statistics'>('categories');
+  const [activeTab, setActiveTab] = useState<'categories' | 'trends' | 'statistics'>('statistics');
   
   const periodTransactions = filterTransactionsByPeriod(finance.transactions || [], period);
 
