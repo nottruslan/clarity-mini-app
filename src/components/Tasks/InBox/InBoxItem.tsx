@@ -5,7 +5,6 @@ interface InBoxItemProps {
   task: Task;
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
-  onMove: (id: string) => void;
   isEditing?: boolean;
   onStartEdit?: (id: string) => void;
   onCancelEdit?: () => void;
@@ -15,7 +14,6 @@ export default function InBoxItem({
   task,
   onEdit,
   onDelete,
-  onMove,
   isEditing = false,
   onStartEdit,
   onCancelEdit
@@ -181,8 +179,6 @@ export default function InBoxItem({
             fontSize: '16px',
             color: task.completed || task.status === 'completed' 
               ? 'var(--tg-theme-hint-color)' 
-              : task.movedToList
-              ? '#4caf50' // зеленый цвет для перемещенных задач
               : 'var(--tg-theme-text-color)',
             lineHeight: '1.5',
             whiteSpace: 'pre-wrap',
@@ -191,44 +187,6 @@ export default function InBoxItem({
           }}>
             {task.text}
           </div>
-          {/* Кнопка перемещения в список - показываем только если не редактируем */}
-          {!isEditing && (
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              marginTop: '8px'
-            }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMove(task.id);
-                }}
-                style={{
-                  padding: '10px 16px',
-                  minHeight: '44px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: task.movedToList 
-                    ? '#4caf50' // зеленый цвет когда уже в списке
-                    : 'var(--tg-theme-button-color)',
-                  color: task.movedToList 
-                    ? '#ffffff' // белый текст на зеленом фоне
-                    : 'var(--tg-theme-button-text-color)',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'opacity 0.2s',
-                  touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                {task.movedToList ? '✓ В списке' : 'В список'}
-              </button>
-            </div>
-          )}
         </div>
       </div>
       {swipeOffset > 0 && (

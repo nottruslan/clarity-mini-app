@@ -647,35 +647,11 @@ export default function TasksPage({ storage }: TasksPageProps) {
             // Показываем только задачи без дат/времени
             !task.dueDate && !task.startTime && !task.endTime
           )}
-          onTaskAdd={async (task) => {
-            await storage.addTask(task);
-          }}
           onTaskEdit={async (id, text) => {
             await storage.updateTask(id, { text });
           }}
           onTaskDelete={async (id) => {
             await storage.deleteTask(id);
-          }}
-          onTaskMove={async (id) => {
-            // Перемещаем задачу в список: добавляем dueDate и plannedDate, убираем movedToList
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayTimestamp = today.getTime();
-            
-            // Получаем текущую задачу
-            const task = storage.tasks.find(t => t.id === id);
-            if (!task) return;
-            
-            // Создаем обновленную задачу со всеми полями
-            const updatedTask: Task = {
-              ...task,
-              movedToList: false,
-              dueDate: todayTimestamp,
-              plannedDate: todayTimestamp
-            };
-            
-            // Обновляем задачу
-            await storage.updateTask(id, updatedTask);
           }}
         />
       ) : viewMode === 'list' ? (
@@ -703,7 +679,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
         />
       )}
 
-      {/* Кнопка создания - скрываем в InBox, там своя кнопка добавления */}
+      {/* Кнопка создания - скрываем в InBox */}
       {viewMode !== 'inbox' && (
         <button 
           className="fab"
