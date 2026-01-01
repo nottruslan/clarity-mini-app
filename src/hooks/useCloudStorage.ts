@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   getTasks,
   saveTasks,
@@ -557,7 +557,8 @@ export function useCloudStorage() {
     await updateInBoxNotes(newNotes);
   }, [inBoxNotes, updateInBoxNotes]);
 
-  return {
+  // Мемоизируем возвращаемый объект, чтобы React видел изменения в tasks
+  return useMemo(() => ({
     // Data
     tasks,
     habits,
@@ -621,6 +622,51 @@ export function useCloudStorage() {
     
     // Reload
     reload: loadAllData
-  };
+  }), [
+    tasks,
+    habits,
+    finance,
+    onboarding,
+    yearlyReports,
+    taskCategories,
+    taskTags,
+    inBoxNotes,
+    loading,
+    updateTasks,
+    addTask,
+    updateTask,
+    deleteTask,
+    updateHabits,
+    addHabit,
+    updateHabit,
+    deleteHabit,
+    updateFinance,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    addCategory,
+    deleteCategory,
+    addBudget,
+    updateBudget,
+    deleteBudget,
+    markOnboardingShown,
+    updateYearlyReports,
+    addYearlyReport,
+    updateYearlyReport,
+    deleteYearlyReport,
+    updateTaskCategories,
+    addTaskCategory,
+    updateTaskCategory,
+    deleteTaskCategory,
+    updateTaskTags,
+    addTaskTag,
+    updateTaskTag,
+    deleteTaskTag,
+    updateInBoxNotes,
+    addInBoxNote,
+    updateInBoxNote,
+    deleteInBoxNote,
+    loadAllData
+  ]);
 }
 
