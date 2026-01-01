@@ -7,6 +7,7 @@ interface YearlyReportViewProps {
   report: YearlyReport;
   onClose: () => void;
   onUpdate: (updatedReport: YearlyReport) => Promise<void>;
+  hideHeader?: boolean;
 }
 
 interface EditingField {
@@ -18,7 +19,7 @@ interface EditingField {
   arrayIndex?: number; // Индекс элемента в массиве для редактирования
 }
 
-export default function YearlyReportView({ report, onClose, onUpdate }: YearlyReportViewProps) {
+export default function YearlyReportView({ report, onClose, onUpdate, hideHeader = false }: YearlyReportViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [editingField, setEditingField] = useState<EditingField | null>(null);
   const [localReport, setLocalReport] = useState<YearlyReport>(report);
@@ -111,42 +112,43 @@ export default function YearlyReportView({ report, onClose, onUpdate }: YearlyRe
 
   return (
     <div style={{ 
-      flex: 1, 
       display: 'flex', 
       flexDirection: 'column',
-      overflow: 'hidden'
+      minHeight: hideHeader ? 'auto' : '100%'
     }}>
-      <div style={{
-        padding: '16px',
-        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        position: 'sticky',
-        top: 0,
-        backgroundColor: 'var(--tg-theme-bg-color)',
-        zIndex: 10
-      }}>
-        <button
-          onClick={onClose}
-          style={{
-            padding: '8px',
-            border: 'none',
-            backgroundColor: 'transparent',
-            color: 'var(--tg-theme-text-color)',
-            cursor: 'pointer',
-            fontSize: '18px',
-            transition: 'opacity 0.2s'
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-        >
-          ←
-        </button>
-        <h2 style={{ fontSize: '18px', fontWeight: '600', flex: 1 }}>
-          Отчет за {localReport.year}
-        </h2>
-      </div>
+      {!hideHeader && (
+        <div style={{
+          padding: '16px',
+          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          position: 'sticky',
+          top: 0,
+          backgroundColor: 'var(--tg-theme-bg-color)',
+          zIndex: 10
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px',
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: 'var(--tg-theme-text-color)',
+              cursor: 'pointer',
+              fontSize: '18px',
+              transition: 'opacity 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+          >
+            ←
+          </button>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', flex: 1 }}>
+            Отчет за {localReport.year}
+          </h2>
+        </div>
+      )}
       <div
         ref={scrollRef}
         style={{
@@ -167,12 +169,10 @@ export default function YearlyReportView({ report, onClose, onUpdate }: YearlyRe
         {/* Прошлый год */}
         <section id="past-year" style={{ marginBottom: '32px' }}>
           <h2 style={{
-            fontSize: '24px',
+            fontSize: '20px',
             fontWeight: '600',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            marginBottom: '16px',
+            marginTop: '8px'
           }}>
             📅 Прошлый год
           </h2>
@@ -660,12 +660,10 @@ export default function YearlyReportView({ report, onClose, onUpdate }: YearlyRe
         {/* Будущий год */}
         <section id="future-year" style={{ marginBottom: '32px' }}>
           <h2 style={{
-            fontSize: '24px',
+            fontSize: '20px',
             fontWeight: '600',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            marginBottom: '16px',
+            marginTop: '8px'
           }}>
             🌟 Будущий год
           </h2>
