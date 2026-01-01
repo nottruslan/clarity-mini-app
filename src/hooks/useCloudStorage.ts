@@ -240,26 +240,50 @@ export function useCloudStorage() {
       taskText: task.text,
       taskDueDate: task.dueDate,
       taskPlannedDate: task.plannedDate,
-      taskFull: task
+      taskFull: task,
+      timestamp: Date.now()
     });
     try {
-      setTasks(prevTasks => {
-        const newTasks = [...prevTasks, task];
-        console.log('[DEBUG] addTask - newTasks created:', {
-          newTasksCount: newTasks.length,
-          addedTaskDueDate: task.dueDate,
-          addedTaskPlannedDate: task.plannedDate,
-          lastTaskInArray: newTasks[newTasks.length - 1]?.dueDate
-        });
-        // Асинхронно сохраняем в хранилище (без обновления состояния, оно уже обновлено)
-        saveTasksToStorage(newTasks, task.id).catch(err => console.error('Error saving task:', err));
-        return newTasks;
+      // КРИТИЧЕСКИ ВАЖНО: сначала сохраняем в хранилище, потом обновляем состояние
+      // Это гарантирует, что если сохранение не удалось, состояние не обновится
+      const currentTasks = tasksRef.current.length > 0 ? tasksRef.current : tasks;
+      const newTasks = [...currentTasks, task];
+      
+      console.log('[DEBUG] addTask - preparing to save:', {
+        currentTasksCount: currentTasks.length,
+        newTasksCount: newTasks.length,
+        addedTaskDueDate: task.dueDate,
+        addedTaskPlannedDate: task.plannedDate,
+        addedTaskId: task.id,
+        addedTaskText: task.text
+      });
+      
+      // Сохраняем в хранилище ПЕРЕД обновлением состояния
+      await saveTasksToStorage(newTasks, task.id);
+      
+      console.log('[DEBUG] addTask - saved to storage successfully, now updating state');
+      
+      // Только после успешного сохранения обновляем состояние
+      setTasks(newTasks);
+      tasksRef.current = newTasks;
+      
+      console.log('[DEBUG] addTask - state updated successfully:', {
+        taskId: task.id,
+        tasksCount: newTasks.length,
+        taskInState: newTasks.find(t => t.id === task.id) ? 'YES' : 'NO'
       });
     } catch (error) {
-      console.error('Error adding task:', error);
+      console.error('[ERROR] Error adding task:', {
+        error: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        taskId: task.id,
+        taskText: task.text,
+        taskDueDate: task.dueDate
+      });
+      // Если сохранение не удалось, состояние не обновляется
       throw error;
     }
-  }, [saveTasksToStorage]);
+  }, [saveTasksToStorage, tasks]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     // #region agent log

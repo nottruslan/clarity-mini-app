@@ -42,7 +42,7 @@ export default function TasksPage({ storage }: TasksPageProps) {
   const [filters, setFilters] = useState<TaskFilterOptions>({
     status: 'all',
     priority: 'all',
-    dateFilter: 'today'
+    dateFilter: 'all' // Изменено с 'today' на 'all', чтобы показывать все задачи, включая созданные с датой в будущем
   });
   const [sortBy, setSortBy] = useState<TaskSortOption>('time');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
@@ -604,7 +604,10 @@ export default function TasksPage({ storage }: TasksPageProps) {
         hasDueDateInModified: modifiedFields.has('dueDate'),
         startTime,
         endTime,
-        taskName
+        taskName,
+        currentFilters: filters,
+        currentDateFilter: filters.dateFilter,
+        selectedDate: selectedDate.getTime()
       });
 
       const newTask: Task = {
@@ -648,18 +651,33 @@ export default function TasksPage({ storage }: TasksPageProps) {
           savedTaskFromStoragePlannedDate: savedTaskFromStorage?.plannedDate
         });
         
+        // Если задача не сохранилась, выбрасываем ошибку
+        if (!savedTaskFromStorage) {
+          const errorMsg = 'Задача не была сохранена в хранилище';
+          console.error('[ERROR]', errorMsg, { newTask });
+          throw new Error(errorMsg);
+        }
+        
         // Если дата не сохранилась, выводим ошибку
-        if (savedTaskFromStorage?.dueDate !== newTask.dueDate) {
+        if (savedTaskFromStorage.dueDate !== newTask.dueDate) {
           console.error('[ERROR] DueDate was not saved correctly when creating new task!', {
             expected: newTask.dueDate,
-            savedInStorage: savedTaskFromStorage?.dueDate,
+            savedInStorage: savedTaskFromStorage.dueDate,
             newTaskFull: newTask,
             savedTaskFromStorageFull: savedTaskFromStorage
           });
+          // Это не критическая ошибка, но логируем
         }
       } catch (error) {
-        console.error('Error adding task:', error);
-        // Состояние уже обновлено в addTask, продолжаем
+        console.error('[ERROR] Error adding task:', error);
+        // Теперь addTask сначала сохраняет, потом обновляет состояние
+        // Если мы здесь, значит сохранение не удалось, и состояние не обновлено
+        // Поэтому откат не нужен, но логируем для ясности
+        console.log('[DEBUG] Task was not added to state because save failed');
+        // Показываем ошибку пользователю (можно добавить toast/alert)
+        alert(`Ошибка при создании задачи: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+        // НЕ закрываем форму создания, чтобы пользователь мог попробовать снова
+        return; // Прерываем выполнение, не закрывая форму
       }
     }
 
