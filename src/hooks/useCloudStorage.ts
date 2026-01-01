@@ -223,9 +223,16 @@ export function useCloudStorage() {
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     // #region agent log
-    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:172',message:'updateTask called',data:{id,updatesKeys:Object.keys(updates),updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:226',message:'updateTask called',data:{id,updatesKeys:Object.keys(updates),updates},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
     // #endregion
     try {
+      // Сохраняем текущее состояние для сравнения
+      const currentTasksBeforeUpdate = tasks;
+      // #region agent log
+      const taskBeforeUpdate = currentTasksBeforeUpdate.find(t => t.id === id);
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:231',message:'updateTask before setTasks',data:{id,currentTasksCount:currentTasksBeforeUpdate.length,taskBeforeUpdate:{id:taskBeforeUpdate?.id,text:taskBeforeUpdate?.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+      // #endregion
+      
       setTasks(prevTasks => {
         const taskIndex = prevTasks.findIndex(task => task.id === id);
         // #region agent log
@@ -283,6 +290,19 @@ export function useCloudStorage() {
         
         return newTasks;
       });
+      
+      // Проверяем состояние React после setTasks (через больший интервал)
+      // Используем useEffect для отслеживания изменений состояния
+      setTimeout(() => {
+        // #region agent log
+        // Проверяем состояние через функцию setTasks (не изменяя его)
+        setTasks(currentTasks => {
+          const updatedTaskInState = currentTasks.find((t: Task) => t.id === id);
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:293',message:'updateTask state after setTasks (callback)',data:{id,currentTasksCount:currentTasks.length,updatedTaskInState:{id:updatedTaskInState?.id,text:updatedTaskInState?.text}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+          return currentTasks; // Не изменяем состояние, только проверяем
+        });
+        // #endregion
+      }, 300);
     } catch (error) {
       console.error('Error updating task:', error);
       // #region agent log
