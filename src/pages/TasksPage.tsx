@@ -192,9 +192,10 @@ export default function TasksPage({ storage }: TasksPageProps) {
       }
 
       // Вычисляем dueDate: если поле было изменено, используем taskData.dueDate, иначе исходную дату
+      // Не используем selectedDate как fallback, если задача уже имеет дату
       const finalDueDate = modifiedFields.has('dueDate')
         ? taskData.dueDate  // Может быть undefined, если пользователь удалил дату
-        : (originalTask.dueDate || selectedDate.getTime());
+        : originalTask.dueDate;  // Используем только существующую дату, если она есть
       
       // Вычисляем startTime и endTime на основе finalDueDate
       // Обрабатываем различные сценарии:
@@ -308,12 +309,18 @@ export default function TasksPage({ storage }: TasksPageProps) {
       }
       
       // dueDate и plannedDate обрабатываем отдельно, так как они могут быть изменены косвенно
-      // dueDate всегда обновляем, так как это может быть изменено
-      updates.dueDate = finalDueDate;
-      // plannedDate должна соответствовать dueDate, если dueDate была изменена
-      updates.plannedDate = modifiedFields.has('dueDate') 
-        ? finalDueDate  // Если дата изменена, plannedDate = новой дате (может быть undefined)
-        : originalTask.plannedDate;  // Если дата не изменялась, сохраняем исходное значение
+      // dueDate: устанавливаем только если было изменено или если его нет
+      if (modifiedFields.has('dueDate') || !originalTask.dueDate) {
+        updates.dueDate = finalDueDate;
+        // plannedDate должна соответствовать dueDate
+        updates.plannedDate = finalDueDate;
+      } else {
+        // Если dueDate не изменялась, сохраняем исходные значения
+        // Но если plannedDate нет, устанавливаем его равным dueDate
+        if (originalTask.plannedDate === undefined && originalTask.dueDate) {
+          updates.plannedDate = originalTask.dueDate;
+        }
+      }
       
       // startTime и endTime обновляем только если были изменены связанные поля
       if (modifiedFields.has('startTime') || modifiedFields.has('duration') || modifiedFields.has('dueDate')) {
