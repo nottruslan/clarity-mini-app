@@ -15,7 +15,7 @@ interface HabitDetailsBottomSheetProps {
 }
 
 export default function HabitDetailsBottomSheet({
-  habit,
+  habit: initialHabit,
   onClose,
   onCheck,
   onHistoryUpdate
@@ -24,6 +24,12 @@ export default function HabitDetailsBottomSheet({
   const sheetRef = useRef<HTMLDivElement>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [inputValue, setInputValue] = useState<string>('');
+  const [habit, setHabit] = useState<Habit>(initialHabit);
+
+  // Обновляем локальное состояние habit при изменении пропса
+  useEffect(() => {
+    setHabit(initialHabit);
+  }, [initialHabit]);
 
   const goalProgress = calculateGoalProgress(habit);
   const today = new Date().toISOString().split('T')[0];
@@ -103,19 +109,22 @@ export default function HabitDetailsBottomSheet({
       };
     }
     
+    // Обновляем локальное состояние сразу для немедленного отображения
+    setHabit({ ...habit, history: newHistory });
+    
+    // Вызываем callback для сохранения
     onHistoryUpdate(newHistory);
   };
 
   const handleCancel = (e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
+      e.preventDefault();
     }
     
-    if (selectedDate) {
-      // Просто сбрасываем выбор даты, не меняя историю
-      setSelectedDate('');
-      setInputValue('');
-    }
+    // Сбрасываем выбор даты и введенное значение
+    setSelectedDate('');
+    setInputValue('');
   };
 
   return (
@@ -274,7 +283,9 @@ export default function HabitDetailsBottomSheet({
               selectedDate={selectedDate}
               onDateClick={(dateKey, value) => {
                 // Разрешаем выбирать любую прошедшую дату или сегодня
-                const date = new Date(dateKey);
+                // Парсим dateKey (формат YYYY-MM-DD) в локальное время
+                const [year, month, day] = dateKey.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 
@@ -325,8 +336,16 @@ export default function HabitDetailsBottomSheet({
                   style={{ flex: 1 }}
                 >
                   {isSelectedDateCompleted 
-                    ? `✓ Выполнено ${new Date(selectedDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
-                    : `Отметить ${new Date(selectedDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
+                    ? (() => {
+                        const [year, month, day] = selectedDate.split('-').map(Number);
+                        const date = new Date(year, month - 1, day);
+                        return `✓ Выполнено ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`;
+                      })()
+                    : (() => {
+                        const [year, month, day] = selectedDate.split('-').map(Number);
+                        const date = new Date(year, month - 1, day);
+                        return `Отметить ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`;
+                      })()
                   }
                 </button>
                 <button
