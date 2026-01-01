@@ -327,7 +327,7 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     let resolved = false;
     let timeoutId: ReturnType<typeof setTimeout>;
     
-    // Таймаут 3 секунды на каждый вызов getItem
+    // Таймаут 1.5 секунды на каждый вызов getItem
     timeoutId = setTimeout(() => {
       if (!resolved) {
         resolved = true;
@@ -352,7 +352,7 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
           resolve(null);
         }
       }
-    }, 3000);
+    }, 1500);
 
     try {
       cloudStorage.getItem(key, (error, value) => {
