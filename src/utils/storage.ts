@@ -273,6 +273,12 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
   if (!hasCloudStorage || !isCloudStorageSupported) {
     try {
       const data = localStorage.getItem(key);
+      // #region agent log
+      if (key === 'tasks' && data) {
+        const parsed = JSON.parse(data);
+        console.log('[DEBUG]', JSON.stringify({location:'storage.ts:276',message:'getStorageData from localStorage',data:{key,tasksCount:parsed?.length,firstTaskId:parsed?.[0]?.id,firstTaskText:parsed?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      }
+      // #endregion
       if (data) {
         return JSON.parse(data);
       }
@@ -290,6 +296,12 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
           // Fallback to localStorage
           try {
             const data = localStorage.getItem(key);
+            // #region agent log
+            if (key === 'tasks' && data) {
+              const parsed = JSON.parse(data);
+              console.log('[DEBUG]', JSON.stringify({location:'storage.ts:293',message:'getStorageData fallback from localStorage',data:{key,tasksCount:parsed?.length,firstTaskId:parsed?.[0]?.id,firstTaskText:parsed?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+            }
+            // #endregion
             resolve(data ? JSON.parse(data) : null);
           } catch (parseError) {
             console.error('Error parsing localStorage data:', parseError);
@@ -297,12 +309,24 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
           }
           return;
         }
+        // #region agent log
+        if (key === 'tasks' && value) {
+          const parsed = JSON.parse(value);
+          console.log('[DEBUG]', JSON.stringify({location:'storage.ts:300',message:'getStorageData from CloudStorage',data:{key,tasksCount:parsed?.length,firstTaskId:parsed?.[0]?.id,firstTaskText:parsed?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        }
+        // #endregion
         resolve(value ? JSON.parse(value) : null);
       });
     } catch (syncError) {
       // Синхронная ошибка при вызове getItem
       try {
         const data = localStorage.getItem(key);
+        // #region agent log
+        if (key === 'tasks' && data) {
+          const parsed = JSON.parse(data);
+          console.log('[DEBUG]', JSON.stringify({location:'storage.ts:306',message:'getStorageData sync error from localStorage',data:{key,tasksCount:parsed?.length,firstTaskId:parsed?.[0]?.id,firstTaskText:parsed?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        }
+        // #endregion
         resolve(data ? JSON.parse(data) : null);
       } catch (parseError) {
         console.error('Error parsing localStorage data:', parseError);
@@ -318,6 +342,13 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
 export async function setStorageData<T>(key: string, data: T): Promise<void> {
   const jsonData = JSON.stringify(data);
 
+  // #region agent log
+  if (key === 'tasks') {
+    const tasks = data as any[];
+    console.log('[DEBUG]', JSON.stringify({location:'storage.ts:319',message:'setStorageData called for tasks',data:{key,tasksCount:tasks?.length,firstTaskId:tasks?.[0]?.id,firstTaskText:tasks?.[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+  }
+  // #endregion
+
   // Проверяем доступность CloudStorage и метода setItem
   const cloudStorage = window.Telegram?.WebApp?.CloudStorage;
   const hasCloudStorage = cloudStorage && typeof cloudStorage.setItem === 'function';
@@ -330,6 +361,11 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
   if (!hasCloudStorage || !isCloudStorageSupported) {
     try {
       localStorage.setItem(key, jsonData);
+      // #region agent log
+      if (key === 'tasks') {
+        console.log('[DEBUG]', JSON.stringify({location:'storage.ts:333',message:'setStorageData saved to localStorage',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      }
+      // #endregion
       return;
     } catch (localStorageError) {
       console.error('Error saving to localStorage:', localStorageError);
@@ -344,6 +380,11 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
           // Fallback to localStorage при любой ошибке
           try {
             localStorage.setItem(key, jsonData);
+            // #region agent log
+            if (key === 'tasks') {
+              console.log('[DEBUG]', JSON.stringify({location:'storage.ts:347',message:'setStorageData fallback to localStorage',data:{key,error:error.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+            }
+            // #endregion
             resolve();
           } catch (localStorageError) {
             console.error('Error saving to localStorage:', localStorageError);
@@ -351,12 +392,22 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
           }
           return;
         }
+        // #region agent log
+        if (key === 'tasks') {
+          console.log('[DEBUG]', JSON.stringify({location:'storage.ts:354',message:'setStorageData saved to CloudStorage',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        }
+        // #endregion
         resolve();
       });
     } catch (syncError) {
       // Синхронная ошибка при вызове setItem
       try {
         localStorage.setItem(key, jsonData);
+        // #region agent log
+        if (key === 'tasks') {
+          console.log('[DEBUG]', JSON.stringify({location:'storage.ts:361',message:'setStorageData sync error fallback to localStorage',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        }
+        // #endregion
         resolve();
       } catch (localStorageError) {
         console.error('Error saving to localStorage:', localStorageError);

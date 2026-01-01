@@ -111,12 +111,20 @@ export function useCloudStorage() {
       const newInstances = generateUpcomingInstances(tasksData, 30);
       const allTasks = [...tasksData, ...newInstances];
       
+      // #region agent log
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:111',message:'loadAllData tasks loaded',data:{tasksDataCount:tasksData.length,newInstancesCount:newInstances.length,allTasksCount:allTasks.length,firstTaskId:allTasks[0]?.id,firstTaskText:allTasks[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      // #endregion
+      
       // Сохраняем новые экземпляры, если они есть
       if (newInstances.length > 0) {
         await saveTasks(allTasks);
       }
       
       setTasks(allTasks);
+      
+      // #region agent log
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:120',message:'loadAllData setTasks called',data:{allTasksCount:allTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      // #endregion
       setHabits(migratedHabits);
       setFinance(financeData);
       setOnboarding(onboardingData);
@@ -140,17 +148,31 @@ export function useCloudStorage() {
   // Функция только для сохранения в хранилище (без обновления состояния)
   const saveTasksToStorage = useCallback(async (newTasks: Task[]) => {
     // #region agent log
-    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:141',message:'saveTasksToStorage called',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+    const taskToSave = newTasks.find(t => t.id);
+    console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:141',message:'saveTasksToStorage called',data:{tasksCount:newTasks.length,firstTaskId:taskToSave?.id,firstTaskText:taskToSave?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
     // #endregion
     try {
       await saveTasks(newTasks);
       // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:144',message:'saveTasksToStorage success',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:145',message:'saveTasksToStorage success',data:{tasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
+      
+      // Проверяем, что данные действительно записались - читаем обратно
+      try {
+        const verifyTasks = await getTasks();
+        const savedTask = verifyTasks.find(t => taskToSave && t.id === taskToSave.id);
+        // #region agent log
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:150',message:'saveTasksToStorage verification read',data:{verifyTasksCount:verifyTasks.length,savedTaskFound:!!savedTask,savedTaskId:savedTask?.id,savedTaskText:savedTask?.text,expectedText:taskToSave?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        // #endregion
+      } catch (verifyError) {
+        // #region agent log
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:153',message:'saveTasksToStorage verification error',data:{error:verifyError instanceof Error?verifyError.message:String(verifyError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        // #endregion
+      }
     } catch (error) {
       console.error('Error saving tasks:', error);
       // #region agent log
-      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:146',message:'saveTasksToStorage error',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+      console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:157',message:'saveTasksToStorage error',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
       // #endregion
       throw error;
     }
@@ -206,14 +228,19 @@ export function useCloudStorage() {
           task.id === id ? updatedTask : task
         );
         
+        // #region agent log
+        const updatedTaskInNewTasks = newTasks.find(t => t.id === id);
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:189',message:'updateTask newTasks created',data:{id,newTasksCount:newTasks.length,updatedTaskInState:{id:updatedTaskInNewTasks?.id,text:updatedTaskInNewTasks?.text,dueDate:updatedTaskInNewTasks?.dueDate,plannedDate:updatedTaskInNewTasks?.plannedDate}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        // #endregion
+        
         // Асинхронно сохраняем в хранилище
         // #region agent log
-        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:189',message:'updateTask calling saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+        console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:195',message:'updateTask calling saveTasksToStorage',data:{id,newTasksCount:newTasks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
         // #endregion
         saveTasksToStorage(newTasks).catch(err => {
           console.error('Error saving task:', err);
           // #region agent log
-          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:191',message:'updateTask saveTasksToStorage error',data:{id,error:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
+          console.log('[DEBUG]', JSON.stringify({location:'useCloudStorage.ts:198',message:'updateTask saveTasksToStorage error',data:{id,error:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}));
           // #endregion
         });
         
