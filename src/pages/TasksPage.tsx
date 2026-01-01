@@ -28,6 +28,11 @@ interface TasksPageProps {
 type ViewMode = 'day' | 'list' | 'inbox';
 
 export default function TasksPage({ storage }: TasksPageProps) {
+  // #region agent log
+  // Логируем каждый рендер компонента для отладки
+  console.log('[DEBUG]', JSON.stringify({location:'TasksPage.tsx:30',message:'TasksPage render',data:{tasksCount:storage.tasks.length,firstTaskId:storage.tasks[0]?.id,firstTaskText:storage.tasks[0]?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}));
+  // #endregion
+  
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
