@@ -64,11 +64,9 @@ export default function TasksPage({ storage }: TasksPageProps) {
   // Отслеживаем, какие поля были явно изменены пользователем
   const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
 
-  // Фильтруем задачи для списка: показываем только задачи с датами/временем
+  // Задачи для списка: показываем все задачи (с датами и без)
   const tasksForList = useMemo(() => {
-    return storage.tasks.filter(task => 
-      task.dueDate || task.startTime || task.endTime
-    );
+    return storage.tasks;
   }, [storage.tasks]);
 
   // Используем хук для фильтрации

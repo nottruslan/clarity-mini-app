@@ -73,7 +73,8 @@ export function useTaskFilters({
         case 'today':
           result = result.filter(task => {
             const taskDate = task.plannedDate || task.dueDate;
-            if (!taskDate) return false;
+            // Задачи без дат показываются в списке
+            if (!taskDate) return true;
             const d = new Date(taskDate);
             d.setHours(0, 0, 0, 0);
             return d.getTime() === today.getTime();
@@ -85,7 +86,8 @@ export function useTaskFilters({
           tomorrow.setDate(tomorrow.getDate() + 1);
           result = result.filter(task => {
             const taskDate = task.plannedDate || task.dueDate;
-            if (!taskDate) return false;
+            // Задачи без дат показываются в списке
+            if (!taskDate) return true;
             const d = new Date(taskDate);
             d.setHours(0, 0, 0, 0);
             return d.getTime() === tomorrow.getTime();
@@ -99,7 +101,8 @@ export function useTaskFilters({
           weekEnd.setDate(weekEnd.getDate() + 6);
           result = result.filter(task => {
             const taskDate = task.plannedDate || task.dueDate;
-            if (!taskDate) return false;
+            // Задачи без дат показываются в списке
+            if (!taskDate) return true;
             return taskDate >= weekStart.getTime() && taskDate <= weekEnd.getTime();
           });
           break;
@@ -107,6 +110,7 @@ export function useTaskFilters({
         case 'overdue':
           result = result.filter(task => {
             const taskDate = task.plannedDate || task.dueDate;
+            // Просроченные задачи должны иметь дату
             if (!taskDate) return false;
             return taskDate < today.getTime() && 
                    (task.status !== 'completed' && !task.completed);
