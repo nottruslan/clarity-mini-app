@@ -19,7 +19,7 @@ import Step10Energy from '../components/Tasks/CreateTask/Step10Energy';
 import ConfirmDeleteDialog from '../components/Tasks/ConfirmDeleteDialog';
 import { sectionColors } from '../utils/sectionColors';
 import { useTaskFilters } from '../hooks/useTaskFilters';
-import { minutesOfDayToTimestamp } from '../utils/taskTimeUtils';
+import { minutesOfDayToTimestamp, timestampToMinutesOfDay } from '../utils/taskTimeUtils';
 
 interface TasksPageProps {
   storage: ReturnType<typeof useCloudStorage>;
@@ -204,22 +204,26 @@ export default function TasksPage({ storage }: TasksPageProps) {
       // Берем originalTask как основу и применяем все изменения из taskData
       
       // Вычисляем dueDate
-      const finalDueDate = modifiedFields.has('dueDate') 
+      let finalDueDate = modifiedFields.has('dueDate') 
         ? taskData.dueDate 
         : originalTask.dueDate;
       
       // Вычисляем startTime и endTime
+      // Используем finalDueDate или selectedDate как дату по умолчанию для вычисления timestamp
+      const dateForTime = finalDueDate || (modifiedFields.has('startTime') || modifiedFields.has('duration') ? selectedDate.getTime() : undefined);
+      
       let finalStartTime: number | undefined;
       let finalEndTime: number | undefined;
       
-      if (finalDueDate) {
-        // Если есть дата, вычисляем время
-        if (modifiedFields.has('startTime') && taskData.startTime !== undefined) {
-          finalStartTime = minutesOfDayToTimestamp(finalDueDate, taskData.startTime);
+      // Если пользователь изменил startTime
+      if (modifiedFields.has('startTime') && taskData.startTime !== undefined) {
+        if (dateForTime) {
+          // Если есть дата (новая или по умолчанию), вычисляем timestamp
+          finalStartTime = minutesOfDayToTimestamp(dateForTime, taskData.startTime);
           
           // Вычисляем endTime
           if (modifiedFields.has('duration') && taskData.duration !== undefined) {
-            finalEndTime = minutesOfDayToTimestamp(finalDueDate, taskData.startTime + taskData.duration);
+            finalEndTime = minutesOfDayToTimestamp(dateForTime, taskData.startTime + taskData.duration);
           } else if (originalTask.endTime && originalTask.dueDate) {
             // Если duration не изменялся, пересчитываем endTime на новую дату
             const originalEndDate = new Date(originalTask.endTime);
@@ -228,18 +232,35 @@ export default function TasksPage({ storage }: TasksPageProps) {
                 originalEndDate.getMonth() === originalDueDate.getMonth() &&
                 originalEndDate.getFullYear() === originalDueDate.getFullYear()) {
               const endMinutes = originalEndDate.getHours() * 60 + originalEndDate.getMinutes();
-              finalEndTime = minutesOfDayToTimestamp(finalDueDate, endMinutes);
+              finalEndTime = minutesOfDayToTimestamp(dateForTime, endMinutes);
             } else {
               finalEndTime = originalTask.endTime;
             }
           } else {
             finalEndTime = originalTask.endTime;
           }
-        } else if (originalTask.startTime && originalTask.dueDate) {
-          // Если startTime не изменялся, пересчитываем на новую дату если дата изменилась
+        } else {
+          // Если нет даты, сохраняем startTime как минуты от полуночи
+          finalStartTime = taskData.startTime;
+          
+          // Вычисляем endTime как минуты от полуночи
+          if (modifiedFields.has('duration') && taskData.duration !== undefined) {
+            finalEndTime = taskData.startTime + taskData.duration;
+          } else if (originalTask.endTime && originalTask.endTime <= 86400000) {
+            // Если endTime был в минутах от полуночи, сохраняем его
+            finalEndTime = originalTask.endTime;
+          } else {
+            finalEndTime = originalTask.endTime;
+          }
+        }
+      } else if (originalTask.startTime) {
+        // Если startTime не изменялся пользователем
+        if (finalDueDate && originalTask.dueDate) {
+          // Если есть дата (новая или старая), пересчитываем на новую дату если дата изменилась
           if (modifiedFields.has('dueDate')) {
             const originalStartDate = new Date(originalTask.startTime);
             const originalDueDate = new Date(originalTask.dueDate);
+            // Проверяем, был ли startTime timestamp для той же даты
             if (originalStartDate.getDate() === originalDueDate.getDate() &&
                 originalStartDate.getMonth() === originalDueDate.getMonth() &&
                 originalStartDate.getFullYear() === originalDueDate.getFullYear()) {
@@ -266,7 +287,54 @@ export default function TasksPage({ storage }: TasksPageProps) {
             finalStartTime = originalTask.startTime;
             finalEndTime = originalTask.endTime;
           }
+        } else if (!finalDueDate && !originalTask.dueDate) {
+          // Если нет даты (ни новой, ни старой), сохраняем startTime как есть (минуты от полуночи)
+          finalStartTime = originalTask.startTime;
+          finalEndTime = originalTask.endTime;
+        } else {
+          // Если дата была добавлена, но startTime не изменялся, нужно преобразовать минуты в timestamp
+          if (finalDueDate && !originalTask.dueDate && originalTask.startTime && originalTask.startTime <= 86400000) {
+            // startTime был в минутах от полуночи, преобразуем в timestamp
+            finalStartTime = minutesOfDayToTimestamp(finalDueDate, originalTask.startTime);
+            if (originalTask.endTime && originalTask.endTime <= 86400000) {
+              finalEndTime = minutesOfDayToTimestamp(finalDueDate, originalTask.endTime);
+            } else {
+              finalEndTime = originalTask.endTime;
+            }
+          } else {
+            finalStartTime = originalTask.startTime;
+            finalEndTime = originalTask.endTime;
+          }
         }
+      } else if (modifiedFields.has('duration') && taskData.duration !== undefined && originalTask.startTime) {
+        // Если изменен только duration, пересчитываем endTime
+        const dateForDuration = finalDueDate || (originalTask.dueDate || selectedDate.getTime());
+        if (dateForDuration) {
+          // Если есть дата, вычисляем timestamp
+          const startMinutes = originalTask.startTime > 86400000 
+            ? timestampToMinutesOfDay(originalTask.startTime)
+            : originalTask.startTime;
+          finalStartTime = originalTask.startTime > 86400000 
+            ? originalTask.startTime
+            : minutesOfDayToTimestamp(dateForDuration, originalTask.startTime);
+          finalEndTime = minutesOfDayToTimestamp(dateForDuration, startMinutes + taskData.duration);
+        } else {
+          // Если нет даты, вычисляем endTime как минуты от полуночи
+          const startMinutes = originalTask.startTime <= 86400000 
+            ? originalTask.startTime 
+            : timestampToMinutesOfDay(originalTask.startTime);
+          finalStartTime = originalTask.startTime;
+          finalEndTime = startMinutes + taskData.duration;
+        }
+      } else {
+        // Если время не изменялось, сохраняем как есть
+        finalStartTime = originalTask.startTime;
+        finalEndTime = originalTask.endTime;
+      }
+      
+      // Если была добавлена дата или время, обновляем dueDate и plannedDate
+      if (dateForTime && !finalDueDate) {
+        finalDueDate = dateForTime;
       }
       
       // Создаем обновленную задачу: берем originalTask и применяем изменения
