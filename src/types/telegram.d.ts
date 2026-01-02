@@ -16,10 +16,6 @@ declare global {
           offClick: (callback: () => void) => void;
           isVisible: boolean;
         };
-        CloudStorage?: {
-          getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => void;
-          setItem: (key: string, value: string, callback: (error: Error | null) => void) => void;
-        };
         openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
         openTelegramLink?: (url: string) => void; // Метод для открытия Telegram-ссылок напрямую в приложении (API 6.0+)
         showAlert: (message: string) => void;

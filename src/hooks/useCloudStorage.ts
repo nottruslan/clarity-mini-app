@@ -16,7 +16,6 @@ import {
   saveBooksData,
   calculateQuadrant,
   getQuadrantValues,
-  initializePendingSavesProcessor,
   type Habit,
   type FinanceData,
   type Category,
@@ -50,27 +49,10 @@ export function useCloudStorage() {
   const [books, setBooks] = useState<BooksData>({ books: [], goals: [] });
   const [loading, setLoading] = useState(true);
   const isLoadingRef = useRef(false);
-  const hasLoadedRef = useRef(false); // Флаг для отслеживания, были ли данные уже загружены
 
   // Загрузка данных при монтировании
   useEffect(() => {
     loadAllData();
-    // Инициализируем обработку очереди отложенных сохранений
-    initializePendingSavesProcessor();
-    
-    // Периодическая синхронизация с CloudStorage
-    const syncInterval = setInterval(() => {
-      if (!isLoadingRef.current) {
-        console.log('[SYNC] Periodic sync: reloading data from CloudStorage');
-        loadAllData(); // Перезагружаем данные для синхронизации
-      } else {
-        console.log('[SYNC] Periodic sync: skipping (already loading)');
-      }
-    }, 30000); // Каждые 30 секунд
-    
-    return () => {
-      clearInterval(syncInterval);
-    };
   }, []);
 
   const loadAllData = async () => {
@@ -80,16 +62,12 @@ export function useCloudStorage() {
       return;
     }
     
-    // УБРАНА проверка hasLoadedRef - разрешаем повторную загрузку для синхронизации
-    // Это позволяет периодически обновлять данные из CloudStorage
-    
     isLoadingRef.current = true;
     try {
       setLoading(true);
       const loadStartTime = Date.now();
       
-      // Загружаем данные из localStorage (быстро и надежно)
-      // Cloud Storage синхронизируется в фоне автоматически
+      // Загружаем данные из localStorage
       const [habitsData, financeData, onboardingData, reportsData, tasksData, coveyMatrixData, booksData] = await Promise.all([
         getHabits().catch(err => {
           console.error('Error loading habits:', err);
@@ -166,9 +144,6 @@ export function useCloudStorage() {
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
         await saveHabits(migratedHabits);
       }
-      
-      // Отмечаем, что данные загружены
-      hasLoadedRef.current = true;
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
