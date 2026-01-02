@@ -4,6 +4,7 @@ import { useCloudStorage } from './hooks/useCloudStorage';
 import { type Section } from './types/navigation';
 import { sectionColors } from './utils/sectionColors';
 import { restoreFromBackup } from './utils/storage';
+import { triggerHapticFeedback } from './utils/hapticFeedback';
 import AppHeader from './components/Navigation/AppHeader';
 import NavigationMenu from './components/Navigation/NavigationMenu';
 import SplashScreen from './components/SplashScreen/SplashScreen';
@@ -138,6 +139,46 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [currentSection, tg, isReady]);
 
+  // Глобальный эффект для автоматической вибрации всех кнопок
+  useEffect(() => {
+    // Используем делегирование событий для обработки всех кнопок, включая динамически созданные
+    const handleButtonClick = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // Проверяем, что клик был на button элементе
+      // Также проверяем родительские элементы на случай вложенных элементов
+      let buttonElement: HTMLElement | null = null;
+      
+      if (target.tagName === 'BUTTON') {
+        buttonElement = target;
+      } else {
+        // Проверяем родительские элементы
+        let parent = target.parentElement;
+        while (parent && parent !== document.body) {
+          if (parent.tagName === 'BUTTON') {
+            buttonElement = parent;
+            break;
+          }
+          parent = parent.parentElement;
+        }
+      }
+
+      if (buttonElement) {
+        // Выполняем вибрацию на основе контекста кнопки
+        triggerHapticFeedback(buttonElement);
+      }
+    };
+
+    // Обработчики для клика и touch
+    document.addEventListener('click', handleButtonClick, true); // Используем capture phase
+    document.addEventListener('touchend', handleButtonClick, true);
+
+    return () => {
+      document.removeEventListener('click', handleButtonClick, true);
+      document.removeEventListener('touchend', handleButtonClick, true);
+    };
+  }, []);
+
   if (!isReady) {
     return (
       <div style={{ 
@@ -184,7 +225,13 @@ function App() {
   };
 
   return (
-    <div className="app">
+    <div 
+      className="app"
+      style={{
+        opacity: showSplash ? 0 : 1,
+        transition: 'opacity 0.5s ease-in'
+      }}
+    >
       {currentSection !== 'home' && (
         <AppHeader 
           currentSection={currentSection} 

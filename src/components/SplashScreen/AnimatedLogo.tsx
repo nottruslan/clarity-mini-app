@@ -2,9 +2,10 @@ import { useState } from 'react';
 
 interface AnimatedLogoProps {
   size?: number;
+  isExiting?: boolean;
 }
 
-export default function AnimatedLogo({ size = 200 }: AnimatedLogoProps) {
+export default function AnimatedLogo({ size = 200, isExiting = false }: AnimatedLogoProps) {
   const [imageError, setImageError] = useState(false);
 
   // Адаптивный размер на основе размера экрана
@@ -21,7 +22,9 @@ export default function AnimatedLogo({ size = 200 }: AnimatedLogoProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        animation: 'fadeInScale 0.8s ease-out'
+        animation: isExiting 
+          ? 'fadeOutScale 0.4s ease-in forwards'
+          : 'fadeInScale 0.6s ease-out'
       }}
     >
       {!imageError ? (
@@ -58,11 +61,22 @@ export default function AnimatedLogo({ size = 200 }: AnimatedLogoProps) {
         @keyframes fadeInScale {
           0% {
             opacity: 0;
-            transform: scale(0.95);
+            transform: scale(0.7);
           }
           100% {
             opacity: 1;
             transform: scale(1);
+          }
+        }
+        
+        @keyframes fadeOutScale {
+          0% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: scale(0.8);
           }
         }
       `}</style>

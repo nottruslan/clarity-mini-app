@@ -25,6 +25,11 @@ declare global {
         showConfirm: (message: string, callback?: (confirmed: boolean) => void) => void;
         disableVerticalSwipes?: () => void;
         enableClosingConfirmation?: () => void;
+        HapticFeedback?: {
+          impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
+          notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
+          selectionChanged: () => void;
+        };
         initDataUnsafe?: {
           user?: {
             id: number;

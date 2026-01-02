@@ -8,16 +8,20 @@ interface SplashScreenProps {
 
 export default function SplashScreen({ isLoading, onComplete }: SplashScreenProps) {
   const [show, setShow] = useState(true);
-  const [startTime] = useState(Date.now());
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
     // Показываем ровно 3 секунды
     const timer = setTimeout(() => {
-      setShow(false);
-      // Даем время на crossfade анимацию
+      setIsExiting(true);
+      // Даем время на анимацию уменьшения
       setTimeout(() => {
-        onComplete();
-      }, 300);
+        setShow(false);
+        // Даем время на crossfade анимацию
+        setTimeout(() => {
+          onComplete();
+        }, 200);
+      }, 400);
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -40,11 +44,11 @@ export default function SplashScreen({ isLoading, onComplete }: SplashScreenProp
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 100000,
-        opacity: show ? 1 : 0,
-        transition: 'opacity 0.3s ease-out'
+        opacity: isExiting ? 0 : 1,
+        transition: 'opacity 0.4s ease-out'
       }}
     >
-      <AnimatedLogo size={250} />
+      <AnimatedLogo size={250} isExiting={isExiting} />
     </div>
   );
 }
