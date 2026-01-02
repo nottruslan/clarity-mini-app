@@ -2,19 +2,27 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 // #region agent log
 const log = (location: string, message: string, data: any, hypothesisId?: string) => {
-  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: hypothesisId || 'A'
-    })
-  }).catch(() => {});
+  const logEntry = {
+    location,
+    message,
+    data,
+    timestamp: Date.now(),
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: hypothesisId || 'A'
+  };
+  console.log('[DIARY_DEBUG]', JSON.stringify(logEntry));
+  // Попытка отправить на сервер, но не блокируем при ошибке
+  try {
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(logEntry),
+      mode: 'no-cors'
+    }).catch(() => {});
+  } catch (e) {
+    // Игнорируем ошибки CORS
+  }
 };
 // #endregion
 import {
@@ -1323,25 +1331,13 @@ export function useCloudStorage() {
   // Diary
   const addDiaryEntry = useCallback(async (entry: DiaryEntry) => {
     // #region agent log
-    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'useCloudStorage.ts:addDiaryEntry',
-        message: 'addDiaryEntry called',
-        data: {
-          entryId: entry.id,
-          entryTitle: entry.title,
-          entryContent: entry.content?.substring(0, 50),
-          entryDate: entry.date,
-          diaryCountBefore: diary.length
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'E'
-      })
-    }).catch(() => {});
+    log('useCloudStorage.ts:addDiaryEntry', 'addDiaryEntry called', {
+      entryId: entry.id,
+      entryTitle: entry.title,
+      entryContent: entry.content?.substring(0, 50),
+      entryDate: entry.date,
+      diaryCountBefore: diary.length
+    }, 'E');
     // #endregion
     
     try {
@@ -1351,23 +1347,11 @@ export function useCloudStorage() {
         saveDiaryData(newData).catch(err => console.error('Error saving diary:', err));
         
         // #region agent log
-        fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'useCloudStorage.ts:addDiaryEntry',
-            message: 'diary state updated',
-            data: {
-              entryId: entry.id,
-              diaryCountAfter: newDiary.length,
-              allEntryIds: newDiary.map(e => e.id)
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'E'
-          })
-        }).catch(() => {});
+        log('useCloudStorage.ts:addDiaryEntry', 'diary state updated', {
+          entryId: entry.id,
+          diaryCountAfter: newDiary.length,
+          allEntryIds: newDiary.map(e => e.id)
+        }, 'E');
         // #endregion
         
         return newDiary;

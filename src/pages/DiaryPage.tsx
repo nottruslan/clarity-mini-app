@@ -7,19 +7,27 @@ import DiaryEntryBottomSheet from '../components/Diary/DiaryEntryBottomSheet';
 
 // #region agent log
 const log = (location: string, message: string, data: any, hypothesisId?: string) => {
-  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: hypothesisId || 'A'
-    })
-  }).catch(() => {});
+  const logEntry = {
+    location,
+    message,
+    data,
+    timestamp: Date.now(),
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: hypothesisId || 'A'
+  };
+  console.log('[DIARY_DEBUG]', JSON.stringify(logEntry));
+  // Попытка отправить на сервер, но не блокируем при ошибке
+  try {
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(logEntry),
+      mode: 'no-cors'
+    }).catch(() => {});
+  } catch (e) {
+    // Игнорируем ошибки CORS
+  }
 };
 // #endregion
 
