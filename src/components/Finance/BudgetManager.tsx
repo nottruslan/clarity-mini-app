@@ -9,6 +9,7 @@ interface BudgetManagerProps {
   onBudgetUpdate: (budget: Budget) => void;
   onBudgetDelete: (categoryId: string) => void;
   onClose: () => void;
+  isModal?: boolean;
 }
 
 export default function BudgetManager({
@@ -18,7 +19,8 @@ export default function BudgetManager({
   onBudgetAdd,
   onBudgetUpdate,
   onBudgetDelete,
-  onClose
+  onClose,
+  isModal = true
 }: BudgetManagerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
@@ -123,43 +125,37 @@ export default function BudgetManager({
     }).format(amount);
   };
 
-  return (
+  const content = (
     <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      zIndex: 10000,
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center'
-    }}>
-      <div style={{
-        width: '100%',
+      width: '100%',
+      backgroundColor: 'var(--tg-theme-bg-color)',
+      padding: isModal ? '20px' : '20px 16px',
+      paddingBottom: isModal && isKeyboardVisible ? '20px' : isModal ? 'calc(20px + env(safe-area-inset-bottom))' : '20px',
+      ...(isModal ? {
         maxWidth: '500px',
-        backgroundColor: 'var(--tg-theme-bg-color)',
         borderTopLeftRadius: '20px',
         borderTopRightRadius: '20px',
-        padding: '20px',
-        paddingBottom: isKeyboardVisible ? '20px' : 'calc(20px + env(safe-area-inset-bottom))',
         maxHeight: '80vh',
         overflowY: 'auto' as const,
         WebkitOverflowScrolling: 'touch' as any
+      } : {
+        minHeight: '100%'
+      })
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '24px'
       }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px'
+        <h2 style={{
+          fontSize: '24px',
+          fontWeight: '600',
+          color: 'var(--tg-theme-text-color)'
         }}>
-          <h2 style={{
-            fontSize: '24px',
-            fontWeight: '600'
-          }}>
-            Бюджет
-          </h2>
+          Бюджет
+        </h2>
+        {isModal && (
           <button
             onClick={onClose}
             style={{
@@ -177,7 +173,8 @@ export default function BudgetManager({
           >
             ×
           </button>
-        </div>
+        )}
+      </div>
 
         {!showAddForm ? (
           <>
@@ -475,7 +472,27 @@ export default function BudgetManager({
           </div>
         )}
       </div>
-    </div>
   );
+
+  if (isModal) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 10000,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center'
+      }}>
+        {content}
+      </div>
+    );
+  }
+
+  return content;
 }
 

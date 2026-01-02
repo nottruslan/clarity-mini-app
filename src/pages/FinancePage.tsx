@@ -33,7 +33,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [showBudget, setShowBudget] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [menuTransaction, setMenuTransaction] = useState<Transaction | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({ type: 'all' });
@@ -46,7 +45,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
     date?: number;
   }>({});
   
-  const sectionTitles = ['Обзор', 'Транзакции', 'Статистика'];
+  const sectionTitles = ['Обзор', 'Транзакции', 'Статистика', 'Бюджет'];
   
   // Отслеживаем изменения transactions для диагностики
   useEffect(() => {
@@ -542,37 +541,32 @@ export default function FinancePage({ storage }: FinancePageProps) {
               overflowY: 'auto',
               overflowX: 'hidden'
             }}>
-        <div style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-          display: 'flex',
-                justifyContent: 'center',
-                backgroundColor: 'var(--tg-theme-section-bg-color)'
-        }}>
-          <button 
-                  onClick={() => setShowBudget(true)}
-            style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tg-theme-secondary-bg-color)',
-                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                    color: 'var(--tg-theme-text-color)',
-                    fontSize: '14px',
-                    fontWeight: '500',
-              cursor: 'pointer',
-                    transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.7';
-            }}
-            onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1';
-            }}
-          >
-                  💰 Управление бюджетом
-          </button>
-              </div>
               <StatisticsView finance={storage.finance} />
+            </div>
+          </div>
+
+          {/* Слайд 3: Бюджет */}
+          <div className={`slide ${currentSlide === 3 ? 'active' : currentSlide > 3 ? 'prev' : 'next'}`}>
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              position: 'relative',
+              paddingTop: '0px',
+              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
+              overflowY: 'auto',
+              overflowX: 'hidden'
+            }}>
+              <BudgetManager
+                budgets={storage.finance.budgets || []}
+                categories={storage.finance.categories}
+                transactions={Array.isArray(storage.finance.transactions) ? storage.finance.transactions : []}
+                onBudgetAdd={(budget) => storage.addBudget(budget)}
+                onBudgetUpdate={(budget) => storage.updateBudget(budget)}
+                onBudgetDelete={(categoryId) => storage.deleteBudget(categoryId)}
+                onClose={() => {}}
+                isModal={false}
+              />
             </div>
           </div>
         </div>
@@ -592,17 +586,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
           filters={filters}
           onFiltersChange={setFilters}
           onClose={() => setShowFilters(false)}
-        />
-      )}
-      {showBudget && (
-        <BudgetManager
-          budgets={storage.finance.budgets || []}
-          categories={storage.finance.categories}
-          transactions={Array.isArray(storage.finance.transactions) ? storage.finance.transactions : []}
-          onBudgetAdd={(budget) => storage.addBudget(budget)}
-          onBudgetUpdate={(budget) => storage.updateBudget(budget)}
-          onBudgetDelete={(categoryId) => storage.deleteBudget(categoryId)}
-          onClose={() => setShowBudget(false)}
         />
       )}
       {showBottomSheet && menuTransaction && (
