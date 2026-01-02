@@ -778,10 +778,10 @@ export async function getFinanceData(): Promise<FinanceData> {
   
   if (!data) {
     console.log('[getFinanceData] No data found, initializing default data');
-    // Инициализируем с категориями по умолчанию
+    // Инициализируем с пустыми категориями (базовые категории больше не создаются)
     const defaultData: FinanceData = {
       transactions: [],
-      categories: getDefaultCategories(),
+      categories: [],
       budgets: []
     };
     await saveFinanceData(defaultData);
@@ -794,10 +794,10 @@ export async function getFinanceData(): Promise<FinanceData> {
     data.transactions = [];
     needsSave = true;
   }
-  // Если категорий нет, добавляем их
-  if (!data.categories || data.categories.length === 0) {
-    console.log('[getFinanceData] Categories missing, adding default categories');
-    data.categories = getDefaultCategories();
+  // Если categories нет, инициализируем пустым массивом (базовые категории больше не создаются)
+  if (!data.categories) {
+    console.log('[getFinanceData] Categories missing, initializing empty array');
+    data.categories = [];
     needsSave = true;
   }
   // Если budgets нет, инициализируем пустым массивом

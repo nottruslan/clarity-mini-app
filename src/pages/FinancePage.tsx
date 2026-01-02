@@ -9,6 +9,7 @@ import TransactionBottomSheet from '../components/Finance/TransactionBottomSheet
 import StatisticsView from '../components/Finance/StatisticsView';
 import BudgetManager from '../components/Finance/BudgetManager';
 import BudgetOverview from '../components/Finance/BudgetOverview';
+import CategoriesView from '../components/Finance/CategoriesView';
 import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Type from '../components/Finance/CreateTransaction/Step1Type';
 import Step2Amount from '../components/Finance/CreateTransaction/Step2Amount';
@@ -45,7 +46,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
     date?: number;
   }>({});
   
-  const sectionTitles = ['Обзор', 'Транзакции', 'Статистика', 'Бюджет'];
+  const sectionTitles = ['Обзор', 'Транзакции', 'Статистика', 'Бюджет', 'Категории'];
   
   // Отслеживаем изменения transactions для диагностики
   useEffect(() => {
@@ -233,25 +234,17 @@ export default function FinancePage({ storage }: FinancePageProps) {
     setSelectedTransaction(null);
   };
 
-  const handleCreateCategory = async (name: string, icon?: string) => {
+  const handleCreateCategory = async (categoryData: { type: 'income' | 'expense'; name: string; icon: string }) => {
     const newCategory: Category = {
       id: generateId(),
-      name,
-      type: transactionData.type!,
-      color: transactionData.type === 'income' ? '#4caf50' : '#f44336',
-      icon: icon || (transactionData.type === 'income' ? '💰' : '💸'),
-      order: storage.finance.categories.filter(c => c.type === transactionData.type!).length
+      name: categoryData.name,
+      type: categoryData.type,
+      color: categoryData.type === 'income' ? '#4caf50' : '#f44336',
+      icon: categoryData.icon,
+      order: storage.finance.categories.filter(c => c.type === categoryData.type).length
     };
 
     await storage.addCategory(newCategory);
-  };
-
-  const handleDeleteCategory = async (categoryId: string, newCategoryName?: string) => {
-    try {
-      await storage.deleteCategory(categoryId, newCategoryName);
-    } catch (error) {
-      alert('Ошибка при удалении категории');
-    }
   };
 
   const handleBack = () => {
@@ -311,10 +304,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
               onNext={handleStep3Complete}
               onBack={handleBack}
               onCreateCategory={handleCreateCategory}
-              onDeleteCategory={handleDeleteCategory}
-              onUpdateCategory={storage.updateCategory}
-              onMoveCategoryUp={storage.moveCategoryUp}
-              onMoveCategoryDown={storage.moveCategoryDown}
               initialCategory={transactionData.category}
             />
           </div>
@@ -579,6 +568,29 @@ export default function FinancePage({ storage }: FinancePageProps) {
                 onBudgetDelete={(categoryId) => storage.deleteBudget(categoryId)}
                 onClose={() => {}}
                 isModal={false}
+              />
+            </div>
+          </div>
+
+          {/* Слайд 4: Категории */}
+          <div className={`slide ${currentSlide === 4 ? 'active' : currentSlide > 4 ? 'prev' : 'next'}`}>
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              position: 'relative',
+              paddingTop: '0px',
+              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
+              overflowY: 'auto',
+              overflowX: 'hidden'
+            }}>
+              <CategoriesView
+                categories={storage.finance.categories}
+                onCategoryAdd={storage.addCategory}
+                onCategoryUpdate={storage.updateCategory}
+                onCategoryDelete={storage.deleteCategory}
+                onCategoryMoveUp={storage.moveCategoryUp}
+                onCategoryMoveDown={storage.moveCategoryDown}
               />
             </div>
           </div>
