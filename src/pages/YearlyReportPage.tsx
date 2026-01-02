@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type YearlyReport, type PastYearData, type FutureYearData } from '../utils/storage';
 import WizardContainer from '../components/Wizard/WizardContainer';
@@ -43,6 +43,13 @@ interface YearlyReportPageProps {
 }
 
 export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
+  // Логирование для диагностики
+  console.log('[YearlyReportPage] Render start', {
+    loading: storage.loading,
+    yearlyReportsCount: storage.yearlyReports?.length ?? 0,
+    hasYearlyReports: !!storage.yearlyReports
+  });
+
   const [isCreating, setIsCreating] = useState(false);
   const [viewingReportId, setViewingReportId] = useState<string | null>(null);
   const [editingReport, setEditingReport] = useState<YearlyReport | null>(null);
@@ -56,6 +63,7 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
 
   // Проверка состояния загрузки
   if (storage.loading) {
+    console.log('[YearlyReportPage] Showing loading state');
     return (
       <div style={{
         flex: 1,
@@ -69,8 +77,12 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
     );
   }
 
-  // Безопасный доступ к данным
-  const yearlyReports = storage.yearlyReports ?? [];
+  // Безопасный доступ к данным - объявляем ДО использования в функциях
+  const yearlyReports = useMemo(() => {
+    const reports = storage.yearlyReports ?? [];
+    console.log('[YearlyReportPage] yearlyReports memoized', { count: reports.length });
+    return reports;
+  }, [storage.yearlyReports]);
 
   const handleCreateNew = () => {
     const existingReport = yearlyReports.find(r => r.year === currentYear);
@@ -166,9 +178,44 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
     setViewingReportId(null);
   };
 
-
+  // Обработка ошибок при рендеринге
   if (isCreating && editingReport) {
+    console.log('[YearlyReportPage] Rendering wizard mode', { currentStep, isCreating: !!editingReport });
     const colors = sectionColors['yearly-report'];
+    if (!colors) {
+      console.error('[YearlyReportPage] sectionColors for yearly-report not found');
+      return (
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '32px'
+        }}>
+          <p style={{ color: 'var(--tg-theme-destructive-text-color, #ff0000)', marginBottom: '16px' }}>
+            Ошибка конфигурации
+          </p>
+          <button
+            onClick={() => {
+              setIsCreating(false);
+              setEditingReport(null);
+              setCurrentStep(0);
+            }}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: 'var(--tg-theme-button-color)',
+              color: 'var(--tg-theme-button-text-color)',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            Вернуться назад
+          </button>
+        </div>
+      );
+    }
     const totalSteps = 32;
 
     return (
@@ -698,10 +745,18 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
     );
   }
 
+  // Логирование перед основным рендерингом
+  console.log('[YearlyReportPage] Rendering main view', {
+    yearlyReportsCount: yearlyReports.length,
+    viewingReportId,
+    isCreating
+  });
+
   const viewingReport = viewingReportId 
     ? yearlyReports.find(r => r.id === viewingReportId)
     : null;
 
+  // Основной рендеринг
   return (
     <div style={{ 
       flex: 1, 
