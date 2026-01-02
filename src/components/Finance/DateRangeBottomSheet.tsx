@@ -142,13 +142,15 @@ export default function DateRangeBottomSheet({
           </h3>
 
           {/* Поле "От" */}
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <label style={{
               fontSize: '14px',
               fontWeight: '600',
               marginBottom: '8px',
               display: 'block',
-              color: 'var(--tg-theme-text-color)'
+              color: 'var(--tg-theme-text-color)',
+              width: '100%',
+              maxWidth: '100%'
             }}>
               От
             </label>
@@ -157,18 +159,26 @@ export default function DateRangeBottomSheet({
               value={localStartDate}
               onChange={(e) => setLocalStartDate(e.target.value)}
               className="wizard-input"
-              style={{ marginTop: 0, fontFamily: 'inherit' }}
+              style={{ 
+                marginTop: 0, 
+                fontFamily: 'inherit',
+                width: '100%',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}
             />
           </div>
 
           {/* Поле "До" */}
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <label style={{
               fontSize: '14px',
               fontWeight: '600',
               marginBottom: '8px',
               display: 'block',
-              color: 'var(--tg-theme-text-color)'
+              color: 'var(--tg-theme-text-color)',
+              width: '100%',
+              maxWidth: '100%'
             }}>
               До
             </label>
@@ -177,7 +187,13 @@ export default function DateRangeBottomSheet({
               value={localEndDate}
               onChange={(e) => setLocalEndDate(e.target.value)}
               className="wizard-input"
-              style={{ marginTop: 0, fontFamily: 'inherit' }}
+              style={{ 
+                marginTop: 0, 
+                fontFamily: 'inherit',
+                width: '100%',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}
             />
           </div>
 

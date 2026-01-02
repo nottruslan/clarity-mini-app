@@ -16,7 +16,7 @@ const periods: { value: Period; label: string; icon: string }[] = [
   { value: 'week', label: 'Неделя', icon: '📆' },
   { value: 'month', label: 'Месяц', icon: '🗓️' },
   { value: 'year', label: 'Год', icon: '📊' },
-  { value: 'date', label: 'Выбрать...', icon: '📌' }
+  { value: 'date', label: 'Дата', icon: '📌' }
 ];
 
 // Функция для форматирования даты в YYYY-MM-DD в локальном времени
@@ -31,7 +31,7 @@ const formatDateToInput = (timestamp: number): string => {
 // Функция для форматирования диапазона дат для отображения (DD.MM - DD.MM)
 const formatDateRangeForDisplay = (startDate?: string, endDate?: string): string => {
   if (!startDate || !endDate) {
-    return 'Выбрать...';
+    return 'Дата';
   }
 
   try {
@@ -43,7 +43,7 @@ const formatDateRangeForDisplay = (startDate?: string, endDate?: string): string
     
     return `${startFormatted} - ${endFormatted}`;
   } catch (e) {
-    return 'Выбрать...';
+    return 'Дата';
   }
 };
 
