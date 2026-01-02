@@ -48,7 +48,7 @@ export default function SplashScreen({ isLoading, onComplete }: SplashScreenProp
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'var(--tg-theme-button-color, #673ab7)',
+        backgroundColor: '#ffffff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
