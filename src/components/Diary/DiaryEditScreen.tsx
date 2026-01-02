@@ -5,9 +5,11 @@ interface DiaryEditScreenProps {
   entry?: DiaryEntry | null;
   onSave: (entry: DiaryEntry) => void;
   onClose: () => void;
+  readOnly?: boolean;
+  onEditRequest?: () => void;
 }
 
-export default function DiaryEditScreen({ entry, onSave, onClose }: DiaryEditScreenProps) {
+export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = false, onEditRequest }: DiaryEditScreenProps) {
   const [title, setTitle] = useState(entry?.title || '');
   const [content, setContent] = useState(entry?.content || '');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -25,10 +27,12 @@ export default function DiaryEditScreen({ entry, onSave, onClose }: DiaryEditScr
       setContent('');
     }
     setHasUnsavedChanges(false);
-    // Фокус на поле заголовка при открытии
-    setTimeout(() => {
-      titleInputRef.current?.focus();
-    }, 100);
+    // Фокус на поле заголовка при открытии (только в режиме редактирования)
+    if (!readOnly) {
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+    }
   }, [entry]);
 
   // Отслеживание изменений
@@ -175,59 +179,97 @@ export default function DiaryEditScreen({ entry, onSave, onClose }: DiaryEditScr
         >
           ←
         </button>
-        <button
-          onClick={handleSave}
-          disabled={!canSave}
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            border: 'none',
-            backgroundColor: canSave
-              ? 'var(--tg-theme-button-color, #3390ec)'
-              : 'var(--tg-theme-secondary-bg-color, #f0f0f0)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: canSave ? 'pointer' : 'not-allowed',
-            fontSize: '20px',
-            color: canSave
-              ? 'var(--tg-theme-button-text-color, #ffffff)'
-              : 'var(--tg-theme-hint-color, #999999)',
-            padding: 0,
-            transition: 'background-color 0.2s'
-          }}
-          aria-label="Сохранить"
-        >
-          ✓
-        </button>
+        {readOnly ? (
+          <button
+            onClick={onEditRequest}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '16px',
+              color: 'var(--tg-theme-button-text-color, #ffffff)',
+              fontWeight: '500',
+              transition: 'background-color 0.2s'
+            }}
+            aria-label="Править"
+          >
+            Править
+          </button>
+        ) : (
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              border: 'none',
+              backgroundColor: canSave
+                ? 'var(--tg-theme-button-color, #3390ec)'
+                : 'var(--tg-theme-secondary-bg-color, #f0f0f0)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: canSave ? 'pointer' : 'not-allowed',
+              fontSize: '20px',
+              color: canSave
+                ? 'var(--tg-theme-button-text-color, #ffffff)'
+                : 'var(--tg-theme-hint-color, #999999)',
+              padding: 0,
+              transition: 'background-color 0.2s'
+            }}
+            aria-label="Сохранить"
+          >
+            ✓
+          </button>
+        )}
       </div>
 
       {/* Поле заголовка */}
       <div
         style={{
           padding: '16px',
-          borderBottom: '1px solid var(--tg-theme-secondary-bg-color, #f0f0f0)'
+          borderBottom: readOnly ? 'none' : '1px solid var(--tg-theme-secondary-bg-color, #f0f0f0)'
         }}
       >
-        <input
-          ref={titleInputRef}
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Заголовок (опционально)"
-          style={{
-            width: '100%',
-            padding: '0',
-            border: 'none',
-            backgroundColor: 'transparent',
-            color: 'var(--tg-theme-text-color, #000000)',
-            fontSize: '18px',
-            fontWeight: '600',
-            outline: 'none',
-            boxSizing: 'border-box'
-          }}
-        />
+        {readOnly ? (
+          title ? (
+            <div
+              style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: 'var(--tg-theme-text-color, #000000)',
+                lineHeight: '1.4'
+              }}
+            >
+              {title}
+            </div>
+          ) : null
+        ) : (
+          <input
+            ref={titleInputRef}
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Заголовок (опционально)"
+            style={{
+              width: '100%',
+              padding: '0',
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: 'var(--tg-theme-text-color, #000000)',
+              fontSize: '18px',
+              fontWeight: '600',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+        )}
       </div>
 
       {/* Поле текста */}
@@ -236,29 +278,44 @@ export default function DiaryEditScreen({ entry, onSave, onClose }: DiaryEditScr
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: readOnly ? 'auto' : 'hidden',
+          padding: readOnly ? '16px' : '0'
         }}
       >
-        <textarea
-          ref={contentTextareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Введите ваши мысли..."
-          style={{
-            flex: 1,
-            width: '100%',
-            padding: '16px',
-            border: 'none',
-            backgroundColor: 'transparent',
-            color: 'var(--tg-theme-text-color, #000000)',
-            fontSize: '16px',
-            fontFamily: 'inherit',
-            resize: 'none',
-            outline: 'none',
-            boxSizing: 'border-box',
-            lineHeight: '1.5'
-          }}
-        />
+        {readOnly ? (
+          <div
+            style={{
+              fontSize: '16px',
+              color: 'var(--tg-theme-text-color, #000000)',
+              lineHeight: '1.5',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word'
+            }}
+          >
+            {content}
+          </div>
+        ) : (
+          <textarea
+            ref={contentTextareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Введите ваши мысли..."
+            style={{
+              flex: 1,
+              width: '100%',
+              padding: '16px',
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: 'var(--tg-theme-text-color, #000000)',
+              fontSize: '16px',
+              fontFamily: 'inherit',
+              resize: 'none',
+              outline: 'none',
+              boxSizing: 'border-box',
+              lineHeight: '1.5'
+            }}
+          />
+        )}
       </div>
 
       {/* Toast уведомление */}

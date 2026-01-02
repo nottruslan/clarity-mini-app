@@ -3,11 +3,11 @@ import DiaryEntryCard from './DiaryEntryCard';
 
 interface DiaryEntryListProps {
   entries: DiaryEntry[];
-  onEdit: (entry: DiaryEntry) => void;
-  onDelete: (entry: DiaryEntry) => void;
+  onView: (entry: DiaryEntry) => void;
+  onOpenMenu: (entry: DiaryEntry) => void;
 }
 
-export default function DiaryEntryList({ entries, onEdit, onDelete }: DiaryEntryListProps) {
+export default function DiaryEntryList({ entries, onView, onOpenMenu }: DiaryEntryListProps) {
   if (entries.length === 0) {
     return (
       <div
@@ -69,8 +69,8 @@ export default function DiaryEntryList({ entries, onEdit, onDelete }: DiaryEntry
               <DiaryEntryCard
                 key={entry.id}
                 entry={entry}
-                onEdit={() => onEdit(entry)}
-                onDelete={() => onDelete(entry)}
+                onView={() => onView(entry)}
+                onOpenMenu={() => onOpenMenu(entry)}
               />
             ))}
         </div>

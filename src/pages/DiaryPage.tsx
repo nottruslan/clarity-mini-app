@@ -3,6 +3,7 @@ import { useCloudStorage } from '../hooks/useCloudStorage';
 import { type DiaryEntry } from '../utils/storage';
 import DiaryEntryList from '../components/Diary/DiaryEntryList';
 import DiaryEditScreen from '../components/Diary/DiaryEditScreen';
+import DiaryEntryBottomSheet from '../components/Diary/DiaryEntryBottomSheet';
 
 interface DiaryPageProps {
   storage: ReturnType<typeof useCloudStorage>;
@@ -11,6 +12,9 @@ interface DiaryPageProps {
 export default function DiaryPage({ storage }: DiaryPageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
+  const [viewingEntry, setViewingEntry] = useState<DiaryEntry | null>(null);
+  const [menuEntry, setMenuEntry] = useState<DiaryEntry | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
   // Получаем сегодняшнюю дату (начало дня)
@@ -66,20 +70,54 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
     // Закрытие произойдет в DiaryEditScreen после показа уведомления
   };
 
+  const handleView = (entry: DiaryEntry) => {
+    setViewingEntry(entry);
+  };
+
+  const handleOpenMenu = (entry: DiaryEntry) => {
+    setMenuEntry(entry);
+    setShowMenu(true);
+  };
+
+  const handleEditFromRead = () => {
+    if (viewingEntry) {
+      setEditingEntry(viewingEntry);
+      setViewingEntry(null);
+      setIsEditing(true);
+    }
+  };
+
   const handleEdit = (entry: DiaryEntry) => {
     setEditingEntry(entry);
+    setViewingEntry(null);
     setIsEditing(true);
+    setShowMenu(false);
+    setMenuEntry(null);
   };
 
   const handleDelete = async (entry: DiaryEntry) => {
-    if (window.confirm('Вы уверены, что хотите удалить эту запись?')) {
-      await storage.deleteDiaryEntry(entry.id);
+    if (window.Telegram?.WebApp?.showConfirm) {
+      window.Telegram.WebApp.showConfirm(
+        'Вы уверены, что хотите удалить эту запись?',
+        (confirmed: boolean) => {
+          if (confirmed) {
+            storage.deleteDiaryEntry(entry.id);
+          }
+        }
+      );
+    } else {
+      if (window.confirm('Вы уверены, что хотите удалить эту запись?')) {
+        await storage.deleteDiaryEntry(entry.id);
+      }
     }
+    setShowMenu(false);
+    setMenuEntry(null);
   };
 
   const handleClose = () => {
     setIsEditing(false);
     setEditingEntry(null);
+    setViewingEntry(null);
   };
 
 
@@ -102,6 +140,19 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
     ];
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
+
+  // Если открыт экран просмотра, показываем его в режиме чтения
+  if (viewingEntry) {
+    return (
+      <DiaryEditScreen
+        entry={viewingEntry}
+        onSave={handleSave}
+        onClose={handleClose}
+        readOnly={true}
+        onEditRequest={handleEditFromRead}
+      />
+    );
+  }
 
   // Если открыт экран редактирования, показываем его
   if (isEditing) {
@@ -168,8 +219,8 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
       >
         <DiaryEntryList
           entries={filteredEntries}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onView={handleView}
+          onOpenMenu={handleOpenMenu}
         />
       </div>
 
@@ -211,6 +262,18 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
       >
         +
       </button>
+
+      {/* BottomSheet меню */}
+      {showMenu && menuEntry && (
+        <DiaryEntryBottomSheet
+          onClose={() => {
+            setShowMenu(false);
+            setMenuEntry(null);
+          }}
+          onEdit={() => handleEdit(menuEntry)}
+          onDelete={() => handleDelete(menuEntry)}
+        />
+      )}
     </div>
   );
 }

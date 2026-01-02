@@ -2,11 +2,11 @@ import { type DiaryEntry } from '../../utils/storage';
 
 interface DiaryEntryCardProps {
   entry: DiaryEntry;
-  onEdit: () => void;
-  onDelete: () => void;
+  onView: () => void;
+  onOpenMenu: () => void;
 }
 
-export default function DiaryEntryCard({ entry, onEdit, onDelete }: DiaryEntryCardProps) {
+export default function DiaryEntryCard({ entry, onView, onOpenMenu }: DiaryEntryCardProps) {
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     const weekDays = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
@@ -22,12 +22,14 @@ export default function DiaryEntryCard({ entry, onEdit, onDelete }: DiaryEntryCa
 
   return (
     <div
+      onClick={onView}
       style={{
         backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
         borderRadius: '12px',
         padding: '16px',
         marginBottom: '12px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        cursor: 'pointer'
       }}
     >
       {entry.title && (
@@ -73,58 +75,7 @@ export default function DiaryEntryCard({ entry, onEdit, onDelete }: DiaryEntryCa
         <button
           onClick={(e) => {
             e.stopPropagation();
-            // Показываем меню для редактирования/удаления
-            const menu = document.createElement('div');
-            menu.style.position = 'fixed';
-            menu.style.top = `${e.clientY}px`;
-            menu.style.left = `${e.clientX}px`;
-            menu.style.backgroundColor = 'var(--tg-theme-bg-color)';
-            menu.style.border = '1px solid var(--tg-theme-secondary-bg-color)';
-            menu.style.borderRadius = '8px';
-            menu.style.padding = '8px 0';
-            menu.style.zIndex = '10000';
-            menu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-            menu.style.minWidth = '120px';
-            
-            const editBtn = document.createElement('button');
-            editBtn.textContent = 'Редактировать';
-            editBtn.style.width = '100%';
-            editBtn.style.padding = '8px 16px';
-            editBtn.style.border = 'none';
-            editBtn.style.background = 'transparent';
-            editBtn.style.color = 'var(--tg-theme-text-color)';
-            editBtn.style.textAlign = 'left';
-            editBtn.style.cursor = 'pointer';
-            editBtn.onclick = () => {
-              document.body.removeChild(menu);
-              onEdit();
-            };
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Удалить';
-            deleteBtn.style.width = '100%';
-            deleteBtn.style.padding = '8px 16px';
-            deleteBtn.style.border = 'none';
-            deleteBtn.style.background = 'transparent';
-            deleteBtn.style.color = '#ff4444';
-            deleteBtn.style.textAlign = 'left';
-            deleteBtn.style.cursor = 'pointer';
-            deleteBtn.onclick = () => {
-              document.body.removeChild(menu);
-              onDelete();
-            };
-            
-            menu.appendChild(editBtn);
-            menu.appendChild(deleteBtn);
-            document.body.appendChild(menu);
-            
-            const removeMenu = (e: MouseEvent) => {
-              if (!menu.contains(e.target as Node)) {
-                document.body.removeChild(menu);
-                document.removeEventListener('click', removeMenu);
-              }
-            };
-            setTimeout(() => document.addEventListener('click', removeMenu), 0);
+            onOpenMenu();
           }}
           style={{
             width: '32px',
@@ -137,7 +88,8 @@ export default function DiaryEntryCard({ entry, onEdit, onDelete }: DiaryEntryCa
             justifyContent: 'center',
             cursor: 'pointer',
             fontSize: '20px',
-            color: 'var(--tg-theme-hint-color, #999999)'
+            color: 'var(--tg-theme-hint-color, #999999)',
+            flexShrink: 0
           }}
         >
           ⋯
