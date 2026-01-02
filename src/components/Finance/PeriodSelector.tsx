@@ -115,6 +115,23 @@ export function filterTransactionsByPeriod<T extends { date: number }>(
   period: Period
 ): T[] {
   const { start, end } = getPeriodDates(period);
-  return transactions.filter(t => t.date >= start && t.date <= end);
+  console.log('[filterTransactionsByPeriod] Filtering transactions:', {
+    period,
+    startDate: new Date(start).toISOString(),
+    endDate: new Date(end).toISOString(),
+    inputCount: transactions.length,
+    transactions: transactions.map((t, index) => ({
+      index,
+      date: new Date(t.date).toISOString(),
+      timestamp: t.date,
+      inRange: t.date >= start && t.date <= end
+    }))
+  });
+  const filtered = transactions.filter(t => t.date >= start && t.date <= end);
+  console.log('[filterTransactionsByPeriod] Filtered result:', {
+    filteredCount: filtered.length,
+    filteredDates: filtered.map(t => new Date(t.date).toISOString())
+  });
+  return filtered;
 }
 

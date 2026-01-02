@@ -64,6 +64,15 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
   };
 
   // Группируем транзакции по дате (используем ISO-дату как ключ)
+  console.log('[TransactionList] Grouping transactions:', {
+    inputCount: safeTransactions.length,
+    transactions: safeTransactions.map(t => ({
+      id: t.id,
+      date: new Date(t.date).toISOString(),
+      timestamp: t.date,
+      dateKey: getDateKey(t.date)
+    }))
+  });
   const grouped = safeTransactions.reduce((acc, transaction) => {
     const dateKey = getDateKey(transaction.date);
     if (!acc[dateKey]) {
@@ -72,6 +81,13 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
     acc[dateKey].push(transaction);
     return acc;
   }, {} as Record<string, Transaction[]>);
+  console.log('[TransactionList] Grouped transactions:', {
+    groups: Object.keys(grouped).map(key => ({
+      dateKey: key,
+      count: grouped[key].length,
+      transactionIds: grouped[key].map(t => t.id)
+    }))
+  });
 
   // Сортируем транзакции внутри каждой группы по createdAt (новые сверху)
   Object.keys(grouped).forEach(dateKey => {
