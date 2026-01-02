@@ -337,8 +337,11 @@ function wrapData<T>(data: T): StoredData<T> {
 }
 
 function unwrapData<T>(wrapped: StoredData<T> | T): T {
-  if (wrapped && typeof wrapped === 'object' && 'timestamp' in wrapped && 'data' in wrapped) {
-    return (wrapped as StoredData<T>).data;
+  if (wrapped && typeof wrapped === 'object' && !Array.isArray(wrapped)) {
+    const obj = wrapped as any;
+    if (obj.timestamp !== undefined && obj.data !== undefined) {
+      return obj.data as T;
+    }
   }
   return wrapped as T;
 }
@@ -370,13 +373,23 @@ function loadFromCloudStorage<T>(key: string): Promise<{ data: T; timestamp: num
         }
         try {
           const parsed = JSON.parse(value);
-          if (parsed && typeof parsed === 'object' && 'timestamp' in parsed && 'data' in parsed) {
-            resolve({
-              data: parsed.data as T,
-              timestamp: parsed.timestamp || 0
-            });
+          // Проверяем наличие обертки с timestamp и data
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            const obj = parsed as any;
+            if (obj.timestamp !== undefined && obj.data !== undefined) {
+              resolve({
+                data: obj.data as T,
+                timestamp: obj.timestamp || 0
+              });
+            } else {
+              // Старый формат без обертки
+              resolve({
+                data: parsed as T,
+                timestamp: 0
+              });
+            }
           } else {
-            // Старый формат без обертки
+            // Не объект (массив или примитив)
             resolve({
               data: parsed as T,
               timestamp: 0
@@ -430,18 +443,26 @@ function saveToCloudStorage(key: string, jsonData: string): Promise<boolean> {
 // ============================================================================
 
 export async function getStorageData<T>(key: string): Promise<T | null> {
-  // Загружаем из localStorage (кэш)
+  // Загружаем из localStorage
   let localData: T | null = null;
   let localTimestamp = 0;
+  
   try {
     const stored = localStorage.getItem(key);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (parsed && typeof parsed === 'object' && 'timestamp' in parsed && 'data' in parsed) {
-        localTimestamp = parsed.timestamp || 0;
-        localData = parsed.data as T;
+      // Проверяем, есть ли обертка с timestamp и data
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const obj = parsed as any;
+        if (obj.timestamp !== undefined && obj.data !== undefined) {
+          localTimestamp = obj.timestamp || 0;
+          localData = obj.data as T;
+        } else {
+          // Старый формат или данные напрямую (для обратной совместимости)
+          localData = parsed as T;
+        }
       } else {
-        // Старый формат без обертки
+        // Массив или примитив - данные напрямую
         localData = parsed as T;
       }
     }
@@ -449,32 +470,23 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     console.error(`Error loading from localStorage (${key}):`, error);
   }
 
-  // Загружаем из Cloud Storage
+  // Загружаем из Cloud Storage (для синхронизации)
   const cloudResult = await loadFromCloudStorage<T>(key);
 
-  // Выбираем более новые данные
-  if (cloudResult && localData) {
-    if (cloudResult.timestamp > localTimestamp) {
-      // Cloud Storage новее - обновляем localStorage
+  // Если есть данные в Cloud Storage
+  if (cloudResult) {
+    // Если локальных данных нет или Cloud Storage новее - используем Cloud Storage
+    if (!localData || cloudResult.timestamp > localTimestamp) {
       try {
+        // Сохраняем в localStorage для кэширования
         const wrapped = wrapData(cloudResult.data);
         localStorage.setItem(key, JSON.stringify(wrapped));
       } catch {}
       return cloudResult.data;
     }
-    // Локальные данные новее или равны - возвращаем локальные
-    return localData;
   }
 
-  if (cloudResult && !localData) {
-    // Данные только в Cloud Storage - сохраняем в localStorage
-    try {
-      const wrapped = wrapData(cloudResult.data);
-      localStorage.setItem(key, JSON.stringify(wrapped));
-    } catch {}
-    return cloudResult.data;
-  }
-
+  // Возвращаем локальные данные (если они есть)
   return localData;
 }
 
