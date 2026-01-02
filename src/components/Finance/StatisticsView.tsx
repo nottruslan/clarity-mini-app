@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FinanceData, Transaction } from '../../utils/storage';
-import { Period, filterTransactionsByPeriod } from './PeriodSelector';
+import PeriodSelector, { type Period, filterTransactionsByPeriod } from './PeriodSelector';
 import CategoryChart from './CategoryChart';
 import TrendsChart from './TrendsChart';
 import PieChart from './PieChart';
@@ -8,10 +8,10 @@ import CategoryTransactionsBottomSheet from './CategoryTransactionsBottomSheet';
 
 interface StatisticsViewProps {
   finance: FinanceData;
-  period: Period;
 }
 
-export default function StatisticsView({ finance, period }: StatisticsViewProps) {
+export default function StatisticsView({ finance }: StatisticsViewProps) {
+  const [period, setPeriod] = useState<Period>('month');
   const [activeTab, setActiveTab] = useState<'categories' | 'trends' | 'statistics'>('statistics');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCategoryType, setSelectedCategoryType] = useState<'income' | 'expense' | null>(null);
@@ -49,6 +49,26 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
       paddingBottom: '40px',
       minHeight: '100%'
     }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '16px'
+      }}>
+        <h2 style={{
+          fontSize: '20px',
+          fontWeight: '600',
+          color: 'var(--tg-theme-text-color)',
+          margin: 0
+        }}>
+          Статистика
+        </h2>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </div>
+
       <div style={{
         display: 'flex',
         gap: '6px',

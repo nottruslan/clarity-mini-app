@@ -572,7 +572,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
                   💰 Управление бюджетом
           </button>
               </div>
-              <StatisticsView finance={storage.finance} period={period} />
+              <StatisticsView finance={storage.finance} />
             </div>
           </div>
         </div>
