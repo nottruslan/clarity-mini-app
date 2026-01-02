@@ -18,6 +18,7 @@ import {
   getQuadrantValues,
   type Habit,
   type FinanceData,
+  type Category,
   type OnboardingFlags,
   type YearlyReport,
   type Task,
@@ -288,14 +289,22 @@ export function useCloudStorage() {
     }
   }, []);
 
-  const deleteCategory = useCallback(async (id: string) => {
+  const deleteCategory = useCallback(async (id: string, newCategoryName?: string) => {
     try {
       setFinance(prevFinance => {
+        const categoryToDelete = prevFinance.categories.find(c => c.id === id);
+        if (!categoryToDelete) {
+          return prevFinance;
+        }
+
         const newFinance = {
           ...prevFinance,
           categories: prevFinance.categories.filter(c => c.id !== id),
           transactions: prevFinance.transactions.map(t => 
-            t.category === id ? { ...t, category: '' } : t
+            // Транзакции хранят category как название (строку), а не ID
+            t.category === categoryToDelete.name 
+              ? { ...t, category: newCategoryName || 'Прочее' } 
+              : t
           )
         };
         saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
@@ -303,6 +312,116 @@ export function useCloudStorage() {
       });
     } catch (error) {
       console.error('Error deleting category:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateCategory = useCallback(async (id: string, updates: Partial<Category>) => {
+    try {
+      setFinance(prevFinance => {
+        const newFinance = {
+          ...prevFinance,
+          categories: prevFinance.categories.map(c => 
+            c.id === id ? { ...c, ...updates } : c
+          )
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      throw error;
+    }
+  }, []);
+
+  const moveCategoryUp = useCallback(async (id: string) => {
+    try {
+      setFinance(prevFinance => {
+        const category = prevFinance.categories.find(c => c.id === id);
+        if (!category) {
+          return prevFinance;
+        }
+
+        // Фильтруем категории того же типа и сортируем по order
+        const sameTypeCategories = prevFinance.categories
+          .filter(c => c.type === category.type)
+          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+
+        const categoryIndex = sameTypeCategories.findIndex(c => c.id === id);
+        if (categoryIndex === 0) {
+          return prevFinance;
+        }
+
+        // Меняем местами order
+        const prevCategory = sameTypeCategories[categoryIndex - 1];
+        const categoryOrder = category.order ?? categoryIndex;
+        const prevCategoryOrder = prevCategory.order ?? categoryIndex - 1;
+
+        const newCategories = prevFinance.categories.map(c => {
+          if (c.id === id) {
+            return { ...c, order: prevCategoryOrder };
+          }
+          if (c.id === prevCategory.id) {
+            return { ...c, order: categoryOrder };
+          }
+          return c;
+        });
+
+        const newFinance = {
+          ...prevFinance,
+          categories: newCategories
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error moving category up:', error);
+      throw error;
+    }
+  }, []);
+
+  const moveCategoryDown = useCallback(async (id: string) => {
+    try {
+      setFinance(prevFinance => {
+        const category = prevFinance.categories.find(c => c.id === id);
+        if (!category) {
+          return prevFinance;
+        }
+
+        // Фильтруем категории того же типа и сортируем по order
+        const sameTypeCategories = prevFinance.categories
+          .filter(c => c.type === category.type)
+          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+
+        const categoryIndex = sameTypeCategories.findIndex(c => c.id === id);
+        if (categoryIndex === sameTypeCategories.length - 1) {
+          return prevFinance;
+        }
+
+        // Меняем местами order
+        const nextCategory = sameTypeCategories[categoryIndex + 1];
+        const categoryOrder = category.order ?? categoryIndex;
+        const nextCategoryOrder = nextCategory.order ?? categoryIndex + 1;
+
+        const newCategories = prevFinance.categories.map(c => {
+          if (c.id === id) {
+            return { ...c, order: nextCategoryOrder };
+          }
+          if (c.id === nextCategory.id) {
+            return { ...c, order: categoryOrder };
+          }
+          return c;
+        });
+
+        const newFinance = {
+          ...prevFinance,
+          categories: newCategories
+        };
+        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        return newFinance;
+      });
+    } catch (error) {
+      console.error('Error moving category down:', error);
       throw error;
     }
   }, []);
@@ -1067,6 +1186,9 @@ export function useCloudStorage() {
     deleteTransaction,
     addCategory,
     deleteCategory,
+    updateCategory,
+    moveCategoryUp,
+    moveCategoryDown,
     addBudget,
     updateBudget,
     deleteBudget,

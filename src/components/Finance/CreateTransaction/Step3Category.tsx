@@ -3,26 +3,20 @@ import { Category } from '../../../utils/storage';
 import WizardSlide from '../../Wizard/WizardSlide';
 import WizardCard from '../../Wizard/WizardCard';
 import GradientButton from '../../Wizard/GradientButton';
+import CategoryBottomSheet from '../CategoryBottomSheet';
 
 interface Step3CategoryProps {
   type: 'income' | 'expense';
   categories: Category[];
   onNext: (category: string) => void;
   onBack: () => void;
-  onCreateCategory: (name: string) => void;
-  onDeleteCategory?: (categoryId: string) => void;
+  onCreateCategory: (name: string, icon?: string) => void;
+  onDeleteCategory?: (categoryId: string, newCategoryName?: string) => void;
+  onUpdateCategory?: (categoryId: string, updates: Partial<Category>) => void;
+  onMoveCategoryUp?: (categoryId: string) => void;
+  onMoveCategoryDown?: (categoryId: string) => void;
   initialCategory?: string;
 }
-
-// Дефолтные категории (по именам)
-const DEFAULT_CATEGORY_NAMES = [
-  'Зарплата', 'Подарки', 'Инвестиции', 'Фриланс', 'Прочее',
-  'Еда', 'Транспорт', 'Развлечения', 'Здоровье', 'Покупки', 'Жилье', 'Образование'
-];
-
-const isDefaultCategory = (categoryName: string): boolean => {
-  return DEFAULT_CATEGORY_NAMES.includes(categoryName);
-};
 
 export default function Step3Category({ 
   type, 
@@ -31,14 +25,25 @@ export default function Step3Category({
   onBack,
   onCreateCategory,
   onDeleteCategory,
+  onUpdateCategory,
+  onMoveCategoryUp,
+  onMoveCategoryDown,
   initialCategory
 }: Step3CategoryProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || '');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [menuCategory, setMenuCategory] = useState<Category | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
 
-  const filteredCategories = categories.filter(c => c.type === type);
+  const filteredCategories = categories
+    .filter(c => c.type === type)
+    .sort((a, b) => {
+      const orderA = a.order ?? 999;
+      const orderB = b.order ?? 999;
+      return orderA - orderB;
+    });
 
   const handleCreateCategory = () => {
     if (newCategoryName.trim()) {
@@ -59,19 +64,18 @@ export default function Step3Category({
     }
   };
 
-  const getCategoryIcon = (categoryName: string) => {
-    // Простая логика для иконок категорий
-    const iconMap: Record<string, string> = {
-      'Зарплата': '💰',
-      'Подарки': '🎁',
-      'Еда': '🍔',
-      'Транспорт': '🚗',
-      'Развлечения': '🎬',
-      'Здоровье': '🏥',
-      'Покупки': '🛍️'
-    };
-    return iconMap[categoryName] || (type === 'income' ? '💰' : '💸');
+  const getCategoryIcon = (category: Category) => {
+    if (category.icon) {
+      return category.icon;
+    }
+    // Fallback для старых категорий без иконки
+    return type === 'income' ? '💰' : '💸';
   };
+
+  // Вычисляем индексы для меню категории
+  const menuCategoryIndex = menuCategory ? filteredCategories.findIndex(c => c.id === menuCategory.id) : -1;
+  const canMoveUpMenu = menuCategoryIndex > 0;
+  const canMoveDownMenu = menuCategoryIndex >= 0 && menuCategoryIndex < filteredCategories.length - 1;
 
   return (
     <WizardSlide
@@ -98,7 +102,6 @@ export default function Step3Category({
       {!showCreateForm ? (
         <>
           {filteredCategories.map((category) => {
-            const canDelete = !isDefaultCategory(category.name) && onDeleteCategory;
             
             return (
               <div
@@ -112,38 +115,30 @@ export default function Step3Category({
               >
                 <div style={{ flex: 1, width: '100%' }}>
                   <WizardCard
-                    icon={getCategoryIcon(category.name)}
+                    icon={getCategoryIcon(category)}
                     title={category.name}
                     selected={selectedCategory === category.name}
                     onClick={() => setSelectedCategory(category.name)}
                   />
                 </div>
-                {canDelete && (
+                {(onDeleteCategory || onMoveCategoryUp || onMoveCategoryDown || onUpdateCategory) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm(`Удалить категорию "${category.name}"?`)) {
-                        onDeleteCategory(category.id);
-                      }
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (window.confirm(`Удалить категорию "${category.name}"?`)) {
-                        onDeleteCategory(category.id);
-                      }
+                      setMenuCategory(category);
+                      setShowMenu(true);
                     }}
                     style={{
                       position: 'absolute',
                       right: '12px',
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
                       border: 'none',
-                      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                      color: 'var(--tg-theme-destructive-text-color)',
-                      fontSize: '18px',
-                      fontWeight: '600',
+                      backgroundColor: 'transparent',
+                      color: 'var(--tg-theme-hint-color)',
+                      fontSize: '20px',
+                      fontWeight: '400',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -155,15 +150,13 @@ export default function Step3Category({
                       WebkitTapHighlightColor: 'transparent'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--tg-theme-destructive-text-color)';
-                      e.currentTarget.style.color = 'white';
+                      e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
-                      e.currentTarget.style.color = 'var(--tg-theme-destructive-text-color)';
+                      e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    ×
+                    ⋯
                   </button>
                 )}
               </div>
@@ -212,6 +205,41 @@ export default function Step3Category({
             </GradientButton>
           </div>
         </div>
+      )}
+      
+      {showMenu && menuCategory && (
+        <CategoryBottomSheet
+          key={menuCategory.id}
+          category={menuCategory}
+          onClose={() => {
+            setShowMenu(false);
+            setMenuCategory(null);
+          }}
+          onMoveUp={canMoveUpMenu && onMoveCategoryUp ? () => {
+            onMoveCategoryUp(menuCategory.id);
+            setShowMenu(false);
+            setMenuCategory(null);
+          } : undefined}
+          onMoveDown={canMoveDownMenu && onMoveCategoryDown ? () => {
+            onMoveCategoryDown(menuCategory.id);
+            setShowMenu(false);
+            setMenuCategory(null);
+          } : undefined}
+          onChangeIcon={onUpdateCategory ? () => {
+            // TODO: открыть emoji picker для изменения иконки
+            setShowMenu(false);
+            setMenuCategory(null);
+          } : undefined}
+          onDelete={onDeleteCategory ? () => {
+            // TODO: показать диалог выбора новой категории для транзакций
+            // Пока просто удаляем
+            onDeleteCategory(menuCategory.id);
+            setShowMenu(false);
+            setMenuCategory(null);
+          } : undefined}
+          canMoveUp={canMoveUpMenu}
+          canMoveDown={canMoveDownMenu}
+        />
       )}
     </WizardSlide>
   );

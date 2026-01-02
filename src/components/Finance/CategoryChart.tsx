@@ -4,9 +4,10 @@ interface CategoryChartProps {
   transactions: Transaction[];
   categories: Category[];
   type: 'income' | 'expense';
+  onCategoryClick?: (categoryName: string) => void;
 }
 
-export default function CategoryChart({ transactions, categories, type }: CategoryChartProps) {
+export default function CategoryChart({ transactions, categories, type, onCategoryClick }: CategoryChartProps) {
   const filteredTransactions = transactions.filter(t => t.type === type);
   
   // Группируем по категориям
@@ -43,6 +44,11 @@ export default function CategoryChart({ transactions, categories, type }: Catego
   };
 
   const getCategoryIcon = (categoryName: string) => {
+    const category = categories.find(c => c.name === categoryName);
+    if (category?.icon) {
+      return category.icon;
+    }
+    // Fallback для старых категорий без иконки
     const iconMap: Record<string, string> = {
       'Зарплата': '💰',
       'Подарки': '🎁',
@@ -71,11 +77,25 @@ export default function CategoryChart({ transactions, categories, type }: Catego
         const category = categories.find(c => c.name === categoryName);
         
         return (
-          <div key={categoryName} style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
+          <div 
+            key={categoryName} 
+            onClick={() => onCategoryClick?.(categoryName)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              cursor: onCategoryClick ? 'pointer' : 'default',
+              padding: onCategoryClick ? '8px' : '0',
+              borderRadius: onCategoryClick ? '8px' : '0',
+              transition: onCategoryClick ? 'background-color 0.2s' : 'none'
+            }}
+            onMouseEnter={onCategoryClick ? (e) => {
+              e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
+            } : undefined}
+            onMouseLeave={onCategoryClick ? (e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            } : undefined}
+          >
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',

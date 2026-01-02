@@ -103,6 +103,8 @@ export interface Category {
   name: string;
   type: 'income' | 'expense';
   color?: string;
+  icon?: string;
+  order?: number;
 }
 
 export interface OnboardingFlags {
@@ -664,23 +666,38 @@ export async function saveHabits(habits: Habit[]): Promise<void> {
  * Категории по умолчанию
  */
 export function getDefaultCategories(): Category[] {
+  const iconMap: Record<string, string> = {
+    'Зарплата': '💰',
+    'Подарки': '🎁',
+    'Инвестиции': '💹',
+    'Фриланс': '💼',
+    'Прочее': '📦',
+    'Еда': '🍔',
+    'Транспорт': '🚗',
+    'Развлечения': '🎬',
+    'Здоровье': '🏥',
+    'Покупки': '🛍️',
+    'Жилье': '🏠',
+    'Образование': '📚'
+  };
+
   const incomeCategories: Category[] = [
-    { id: generateId(), name: 'Зарплата', type: 'income', color: '#4caf50' },
-    { id: generateId(), name: 'Подарки', type: 'income', color: '#4caf50' },
-    { id: generateId(), name: 'Инвестиции', type: 'income', color: '#4caf50' },
-    { id: generateId(), name: 'Фриланс', type: 'income', color: '#4caf50' },
-    { id: generateId(), name: 'Прочее', type: 'income', color: '#4caf50' }
+    { id: generateId(), name: 'Зарплата', type: 'income', color: '#4caf50', icon: iconMap['Зарплата'], order: 0 },
+    { id: generateId(), name: 'Подарки', type: 'income', color: '#4caf50', icon: iconMap['Подарки'], order: 1 },
+    { id: generateId(), name: 'Инвестиции', type: 'income', color: '#4caf50', icon: iconMap['Инвестиции'], order: 2 },
+    { id: generateId(), name: 'Фриланс', type: 'income', color: '#4caf50', icon: iconMap['Фриланс'], order: 3 },
+    { id: generateId(), name: 'Прочее', type: 'income', color: '#4caf50', icon: iconMap['Прочее'], order: 4 }
   ];
 
   const expenseCategories: Category[] = [
-    { id: generateId(), name: 'Еда', type: 'expense', color: '#f44336' },
-    { id: generateId(), name: 'Транспорт', type: 'expense', color: '#f44336' },
-    { id: generateId(), name: 'Развлечения', type: 'expense', color: '#f44336' },
-    { id: generateId(), name: 'Здоровье', type: 'expense', color: '#f44336' },
-    { id: generateId(), name: 'Покупки', type: 'expense', color: '#f44336' },
-    { id: generateId(), name: 'Жилье', type: 'expense', color: '#f44336' },
-    { id: generateId(), name: 'Образование', type: 'expense', color: '#f44336' },
-    { id: generateId(), name: 'Прочее', type: 'expense', color: '#f44336' }
+    { id: generateId(), name: 'Еда', type: 'expense', color: '#f44336', icon: iconMap['Еда'], order: 0 },
+    { id: generateId(), name: 'Транспорт', type: 'expense', color: '#f44336', icon: iconMap['Транспорт'], order: 1 },
+    { id: generateId(), name: 'Развлечения', type: 'expense', color: '#f44336', icon: iconMap['Развлечения'], order: 2 },
+    { id: generateId(), name: 'Здоровье', type: 'expense', color: '#f44336', icon: iconMap['Здоровье'], order: 3 },
+    { id: generateId(), name: 'Покупки', type: 'expense', color: '#f44336', icon: iconMap['Покупки'], order: 4 },
+    { id: generateId(), name: 'Жилье', type: 'expense', color: '#f44336', icon: iconMap['Жилье'], order: 5 },
+    { id: generateId(), name: 'Образование', type: 'expense', color: '#f44336', icon: iconMap['Образование'], order: 6 },
+    { id: generateId(), name: 'Прочее', type: 'expense', color: '#f44336', icon: iconMap['Прочее'], order: 7 }
   ];
 
   return [...incomeCategories, ...expenseCategories];

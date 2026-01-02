@@ -195,22 +195,24 @@ export default function FinancePage({ storage }: FinancePageProps) {
     setSelectedTransaction(null);
   };
 
-  const handleCreateCategory = async (name: string) => {
+  const handleCreateCategory = async (name: string, icon?: string) => {
     const newCategory: Category = {
       id: generateId(),
       name,
       type: transactionData.type!,
-      color: transactionData.type === 'income' ? '#4caf50' : '#f44336'
+      color: transactionData.type === 'income' ? '#4caf50' : '#f44336',
+      icon: icon || (transactionData.type === 'income' ? '💰' : '💸'),
+      order: storage.finance.categories.filter(c => c.type === transactionData.type!).length
     };
 
     await storage.addCategory(newCategory);
   };
 
-  const handleDeleteCategory = async (categoryId: string) => {
+  const handleDeleteCategory = async (categoryId: string, newCategoryName?: string) => {
     try {
-      await storage.deleteCategory(categoryId);
+      await storage.deleteCategory(categoryId, newCategoryName);
     } catch (error) {
-      alert('Нельзя удалить категорию, которая используется в транзакциях');
+      alert('Ошибка при удалении категории');
     }
   };
 
@@ -272,6 +274,9 @@ export default function FinancePage({ storage }: FinancePageProps) {
               onBack={handleBack}
               onCreateCategory={handleCreateCategory}
               onDeleteCategory={handleDeleteCategory}
+              onUpdateCategory={storage.updateCategory}
+              onMoveCategoryUp={storage.moveCategoryUp}
+              onMoveCategoryDown={storage.moveCategoryDown}
               initialCategory={transactionData.category}
             />
           </div>
@@ -438,7 +443,8 @@ export default function FinancePage({ storage }: FinancePageProps) {
               position: 'relative',
               paddingTop: '0px',
               paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              backgroundColor: 'transparent'
             }}>
         <div style={{
           display: 'flex',

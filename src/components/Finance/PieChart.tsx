@@ -4,9 +4,10 @@ interface PieChartProps {
   transactions: Transaction[];
   categories: Category[];
   type: 'income' | 'expense';
+  onCategoryClick?: (categoryName: string) => void;
 }
 
-export default function PieChart({ transactions, type }: PieChartProps) {
+export default function PieChart({ transactions, categories, type, onCategoryClick }: PieChartProps) {
   const filteredTransactions = transactions.filter(t => t.type === type);
   
   // Группируем по категориям
@@ -132,10 +133,11 @@ export default function PieChart({ transactions, type }: PieChartProps) {
                 strokeWidth="2"
                 style={{
                   transition: 'opacity 0.2s',
-                  cursor: 'pointer'
+                  cursor: onCategoryClick ? 'pointer' : 'default'
                 }}
+                onClick={() => onCategoryClick?.(categoryName)}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '0.8';
+                  e.currentTarget.style.opacity = onCategoryClick ? '0.8' : '1';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.opacity = '1';
@@ -159,6 +161,11 @@ export default function PieChart({ transactions, type }: PieChartProps) {
           const color = getCategoryColor(categoryName, index);
           
           const getCategoryIcon = (name: string) => {
+            const category = categories.find(c => c.name === name);
+            if (category?.icon) {
+              return category.icon;
+            }
+            // Fallback для старых категорий без иконки
             const iconMap: Record<string, string> = {
               'Зарплата': '💰', 'Подарки': '🎁', 'Инвестиции': '💹', 'Фриланс': '💼',
               'Еда': '🍔', 'Транспорт': '🚗', 'Развлечения': '🎬', 'Здоровье': '🏥',
@@ -170,6 +177,7 @@ export default function PieChart({ transactions, type }: PieChartProps) {
           return (
             <div
               key={categoryName}
+              onClick={() => onCategoryClick?.(categoryName)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -177,8 +185,17 @@ export default function PieChart({ transactions, type }: PieChartProps) {
                 padding: '12px',
                 borderRadius: '10px',
                 backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                transition: 'transform 0.2s'
+                transition: onCategoryClick ? 'transform 0.2s, background-color 0.2s' : 'transform 0.2s',
+                cursor: onCategoryClick ? 'pointer' : 'default'
               }}
+              onMouseEnter={onCategoryClick ? (e) => {
+                e.currentTarget.style.backgroundColor = 'var(--tg-theme-bg-color)';
+                e.currentTarget.style.transform = 'scale(1.02)';
+              } : undefined}
+              onMouseLeave={onCategoryClick ? (e) => {
+                e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
+                e.currentTarget.style.transform = 'scale(1)';
+              } : undefined}
             >
               <div style={{
                 width: '16px',

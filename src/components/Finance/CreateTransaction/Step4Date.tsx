@@ -17,7 +17,11 @@ export default function Step4Date({ type, amount, category, onNext, onBack, init
   );
 
   const handleNext = () => {
-    const selectedDate = new Date(date);
+    // Создаем дату в локальном времени, чтобы избежать проблем с часовыми поясами
+    const [year, month, day] = date.split('-').map(Number);
+    const selectedDate = new Date(year, month - 1, day);
+    // Устанавливаем время на начало дня (00:00:00) в локальном времени
+    selectedDate.setHours(0, 0, 0, 0);
     onNext(selectedDate.getTime());
   };
 

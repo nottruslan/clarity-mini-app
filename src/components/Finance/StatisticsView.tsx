@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { FinanceData } from '../../utils/storage';
+import { FinanceData, Transaction } from '../../utils/storage';
 import { Period, filterTransactionsByPeriod } from './PeriodSelector';
 import CategoryChart from './CategoryChart';
 import TrendsChart from './TrendsChart';
 import PieChart from './PieChart';
+import CategoryTransactionsBottomSheet from './CategoryTransactionsBottomSheet';
 
 interface StatisticsViewProps {
   finance: FinanceData;
@@ -12,6 +13,8 @@ interface StatisticsViewProps {
 
 export default function StatisticsView({ finance, period }: StatisticsViewProps) {
   const [activeTab, setActiveTab] = useState<'categories' | 'trends' | 'statistics'>('statistics');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategoryType, setSelectedCategoryType] = useState<'income' | 'expense' | null>(null);
   
   const periodTransactions = filterTransactionsByPeriod(finance.transactions || [], period);
 
@@ -20,6 +23,15 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
 
   const incomeTransactions = transactions.filter(t => t.type === 'income');
   const expenseTransactions = transactions.filter(t => t.type === 'expense');
+
+  const handleCategoryClick = (categoryName: string, type: 'income' | 'expense') => {
+    setSelectedCategory(categoryName);
+    setSelectedCategoryType(type);
+  };
+
+  const getCategoryTransactions = (categoryName: string, type: 'income' | 'expense'): Transaction[] => {
+    return transactions.filter(t => t.category === categoryName && t.type === type);
+  };
 
   return (
     <div style={{
@@ -124,6 +136,7 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
                 transactions={transactions}
                 categories={categories}
                 type="expense"
+                onCategoryClick={(categoryName) => handleCategoryClick(categoryName, 'expense')}
               />
             </div>
           )}
@@ -141,6 +154,7 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
                 transactions={transactions}
                 categories={categories}
                 type="income"
+                onCategoryClick={(categoryName) => handleCategoryClick(categoryName, 'income')}
               />
             </div>
           )}
@@ -184,6 +198,7 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
               transactions={transactions}
               categories={categories}
               type="expense"
+              onCategoryClick={(categoryName) => handleCategoryClick(categoryName, 'expense')}
             />
           </div>
           <div>
@@ -200,9 +215,21 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
               transactions={transactions}
               categories={categories}
               type="income"
+              onCategoryClick={(categoryName) => handleCategoryClick(categoryName, 'income')}
             />
           </div>
         </div>
+      )}
+
+      {selectedCategory && selectedCategoryType && (
+        <CategoryTransactionsBottomSheet
+          categoryName={selectedCategory}
+          transactions={getCategoryTransactions(selectedCategory, selectedCategoryType)}
+          onClose={() => {
+            setSelectedCategory(null);
+            setSelectedCategoryType(null);
+          }}
+        />
       )}
     </div>
   );

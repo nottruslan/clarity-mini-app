@@ -52,7 +52,16 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
     return acc;
   }, {} as Record<string, Transaction[]>);
 
-  // Сортируем транзакции по дате (новые сначала)
+  // Сортируем транзакции внутри каждой группы по createdAt (новые сверху)
+  Object.keys(grouped).forEach(dateKey => {
+    grouped[dateKey].sort((a, b) => {
+      const aCreated = a.createdAt || 0;
+      const bCreated = b.createdAt || 0;
+      return bCreated - aCreated;
+    });
+  });
+
+  // Сортируем группы по дате (новые сначала)
   const sortedDates = Object.keys(grouped).sort((a, b) => {
     const dateA = grouped[a][0].date;
     const dateB = grouped[b][0].date;
@@ -64,6 +73,8 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
       flex: 1, 
       overflowY: 'auto' as const,
       paddingTop: '0px',
+      paddingBottom: '0px',
+      backgroundColor: 'transparent',
       WebkitOverflowScrolling: 'touch' as any
     }}>
       {sortedDates.map((dateKey) => (
