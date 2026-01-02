@@ -42,9 +42,17 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
     }
   };
 
-  // Группируем транзакции по дате
+  // Получаем ISO-дату для группировки (YYYY-MM-DD)
+  const getDateKey = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    // Устанавливаем время на начало дня для корректной группировки
+    date.setHours(0, 0, 0, 0);
+    return date.toISOString().split('T')[0];
+  };
+
+  // Группируем транзакции по дате (используем ISO-дату как ключ)
   const grouped = transactions.reduce((acc, transaction) => {
-    const dateKey = formatDate(transaction.date);
+    const dateKey = getDateKey(transaction.date);
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }
@@ -63,9 +71,8 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
 
   // Сортируем группы по дате (новые сначала)
   const sortedDates = Object.keys(grouped).sort((a, b) => {
-    const dateA = grouped[a][0].date;
-    const dateB = grouped[b][0].date;
-    return dateB - dateA;
+    // Сортируем по ISO-дате (YYYY-MM-DD) в обратном порядке
+    return b.localeCompare(a);
   });
 
   return (
@@ -77,17 +84,22 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
       backgroundColor: 'transparent',
       WebkitOverflowScrolling: 'touch' as any
     }}>
-      {sortedDates.map((dateKey) => (
-        <div key={dateKey}>
-          <div style={{
-            padding: '12px 16px',
-            fontSize: '14px',
-            fontWeight: '500',
-            color: 'var(--tg-theme-hint-color)',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)'
-          }}>
-            {dateKey}
-          </div>
+      {sortedDates.map((dateKey) => {
+        // Преобразуем ISO-дату обратно в timestamp для formatDate
+        const dateTimestamp = new Date(dateKey + 'T00:00:00').getTime();
+        const displayDate = formatDate(dateTimestamp);
+        
+        return (
+          <div key={dateKey}>
+            <div style={{
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: 'var(--tg-theme-hint-color)',
+              backgroundColor: 'var(--tg-theme-secondary-bg-color)'
+            }}>
+              {displayDate}
+            </div>
           {grouped[dateKey].map((transaction) => (
             <div
               key={transaction.id}
@@ -178,8 +190,9 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
               </div>
             </div>
           ))}
-        </div>
-      ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

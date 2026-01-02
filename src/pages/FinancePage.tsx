@@ -48,8 +48,10 @@ export default function FinancePage({ storage }: FinancePageProps) {
   
   const sectionTitles = ['Обзор', 'Транзакции', 'Статистика'];
   
-  const periodFiltered = filterTransactionsByPeriod(storage.finance.transactions, period);
-  const filteredTransactions = useFinanceFilters(periodFiltered, filters);
+  // Для списка транзакций не применяем фильтрацию по периоду - показываем все транзакции
+  // Фильтрация по периоду применяется только для Обзора и Статистики
+  const allTransactions = storage.finance.transactions || [];
+  const filteredTransactions = useFinanceFilters(allTransactions, filters);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchEndRef.current = null;
