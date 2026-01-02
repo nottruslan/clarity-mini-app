@@ -34,6 +34,25 @@ export interface TasksData {
   completedTasks: Task[];
 }
 
+export interface CoveyTask {
+  id: string;
+  title: string;
+  description?: string;
+  important: boolean;  // Важность
+  urgent: boolean;    // Срочность
+  quadrant: 'q1' | 'q2' | 'q3' | 'q4'; // Вычисляется из important + urgent
+  date?: number;     // timestamp
+  completed: boolean;
+  order?: number;    // Для ручной сортировки
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CoveyMatrixData {
+  tasks: CoveyTask[];
+  completedTasks: CoveyTask[];
+}
+
 export interface Habit {
   id: string;
   name: string;
@@ -194,7 +213,8 @@ const STORAGE_KEYS = {
   FINANCE: 'finance',
   ONBOARDING: 'onboarding',
   YEARLY_REPORTS: 'yearly-reports',
-  TASKS: 'tasks'
+  TASKS: 'tasks',
+  COVEY_MATRIX: 'covey-matrix-data'
 } as const;
 
 // Константы для синхронизации
@@ -718,6 +738,54 @@ export async function saveTasksData(data: TasksData): Promise<void> {
 }
 
 /**
+ * Получить данные матрицы Эйзенхауэра
+ */
+export async function getCoveyMatrixData(): Promise<CoveyMatrixData> {
+  const data = await getStorageData<CoveyMatrixData>(STORAGE_KEYS.COVEY_MATRIX);
+  if (!data) {
+    const defaultData: CoveyMatrixData = {
+      tasks: [],
+      completedTasks: []
+    };
+    await saveCoveyMatrixData(defaultData);
+    return defaultData;
+  }
+  // Инициализация полей, если их нет
+  if (!data.tasks) data.tasks = [];
+  if (!data.completedTasks) data.completedTasks = [];
+  return data;
+}
+
+/**
+ * Сохранить данные матрицы Эйзенхауэра
+ */
+export async function saveCoveyMatrixData(data: CoveyMatrixData): Promise<void> {
+  await setStorageData(STORAGE_KEYS.COVEY_MATRIX, data);
+}
+
+/**
+ * Вычислить квадрант на основе важности и срочности
+ */
+export function calculateQuadrant(important: boolean, urgent: boolean): 'q1' | 'q2' | 'q3' | 'q4' {
+  if (important && urgent) return 'q1';
+  if (important && !urgent) return 'q2';
+  if (!important && urgent) return 'q3';
+  return 'q4';
+}
+
+/**
+ * Получить значения важности и срочности по квадранту
+ */
+export function getQuadrantValues(quadrant: 'q1' | 'q2' | 'q3' | 'q4'): { important: boolean; urgent: boolean } {
+  switch (quadrant) {
+    case 'q1': return { important: true, urgent: true };
+    case 'q2': return { important: true, urgent: false };
+    case 'q3': return { important: false, urgent: true };
+    case 'q4': return { important: false, urgent: false };
+  }
+}
+
+/**
  * Получить список задач (только активные, без выполненных)
  */
 export async function getTasks(): Promise<Task[]> {
@@ -761,7 +829,8 @@ export async function createBackup(): Promise<string | null> {
       STORAGE_KEYS.HABITS,
       STORAGE_KEYS.FINANCE,
       STORAGE_KEYS.YEARLY_REPORTS,
-      STORAGE_KEYS.TASKS
+      STORAGE_KEYS.TASKS,
+      STORAGE_KEYS.COVEY_MATRIX
     ];
     
     for (const key of userDataKeys) {

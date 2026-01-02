@@ -10,13 +10,19 @@ import {
   saveYearlyReports,
   getTasksData,
   saveTasksData,
+  getCoveyMatrixData,
+  saveCoveyMatrixData,
+  calculateQuadrant,
+  getQuadrantValues,
   type Habit,
   type FinanceData,
   type OnboardingFlags,
   type YearlyReport,
   type Task,
   type InBoxItem,
-  type TasksData
+  type TasksData,
+  type CoveyTask,
+  type CoveyMatrixData
 } from '../utils/storage';
 
 export function useCloudStorage() {
@@ -30,6 +36,7 @@ export function useCloudStorage() {
   });
   const [yearlyReports, setYearlyReports] = useState<YearlyReport[]>([]);
   const [tasksData, setTasksData] = useState<TasksData>({ inbox: [], tasks: [], completedTasks: [] });
+  const [coveyMatrixData, setCoveyMatrixData] = useState<CoveyMatrixData>({ tasks: [], completedTasks: [] });
   const [loading, setLoading] = useState(true);
   const isLoadingRef = useRef(false);
   const hasLoadedRef = useRef(false); // Флаг для отслеживания, были ли данные уже загружены
@@ -60,7 +67,7 @@ export function useCloudStorage() {
       
       // Загружаем данные из localStorage (быстро и надежно)
       // Cloud Storage синхронизируется в фоне автоматически
-      const [habitsData, financeData, onboardingData, reportsData, tasksData] = await Promise.all([
+      const [habitsData, financeData, onboardingData, reportsData, tasksData, coveyMatrixData] = await Promise.all([
         getHabits().catch(err => {
           console.error('Error loading habits:', err);
           return [];
@@ -80,6 +87,10 @@ export function useCloudStorage() {
         getTasksData().catch(err => {
           console.error('Error loading tasks:', err);
           return { inbox: [], tasks: [], completedTasks: [] };
+        }),
+        getCoveyMatrixData().catch(err => {
+          console.error('Error loading covey matrix:', err);
+          return { tasks: [], completedTasks: [] };
         })
       ]);
       
@@ -111,6 +122,7 @@ export function useCloudStorage() {
       setOnboarding(onboardingData);
       setYearlyReports(reportsData);
       setTasksData(tasksData);
+      setCoveyMatrixData(coveyMatrixData);
       
       // Сохраняем мигрированные привычки, если они изменились
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
@@ -550,6 +562,125 @@ export function useCloudStorage() {
     }
   }, []);
 
+  // Covey Matrix
+  const updateCoveyMatrixData = useCallback(async (data: CoveyMatrixData) => {
+    setCoveyMatrixData(data);
+    await saveCoveyMatrixData(data);
+  }, []);
+
+  const addCoveyTask = useCallback(async (task: CoveyTask) => {
+    try {
+      setCoveyMatrixData((prevData: CoveyMatrixData) => {
+        const newData = {
+          ...prevData,
+          tasks: [...prevData.tasks, task]
+        };
+        saveCoveyMatrixData(newData).catch(err => console.error('Error saving covey matrix:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error adding covey task:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateCoveyTask = useCallback(async (id: string, updates: Partial<CoveyTask>) => {
+    try {
+      setCoveyMatrixData((prevData: CoveyMatrixData) => {
+        const updatedTasks = prevData.tasks.map((task: CoveyTask) => {
+          if (task.id === id) {
+            const updated = { ...task, ...updates, updatedAt: Date.now() };
+            // Пересчитываем квадрант, если изменились important или urgent
+            if (updates.important !== undefined || updates.urgent !== undefined) {
+              updated.quadrant = calculateQuadrant(
+                updates.important !== undefined ? updates.important : task.important,
+                updates.urgent !== undefined ? updates.urgent : task.urgent
+              );
+            }
+            return updated;
+          }
+          return task;
+        });
+        const newData = {
+          ...prevData,
+          tasks: updatedTasks
+        };
+        saveCoveyMatrixData(newData).catch(err => console.error('Error saving covey matrix:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error updating covey task:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteCoveyTask = useCallback(async (id: string) => {
+    try {
+      setCoveyMatrixData((prevData: CoveyMatrixData) => {
+        const newData = {
+          ...prevData,
+          tasks: prevData.tasks.filter((task: CoveyTask) => task.id !== id),
+          completedTasks: prevData.completedTasks.filter((task: CoveyTask) => task.id !== id)
+        };
+        saveCoveyMatrixData(newData).catch(err => console.error('Error saving covey matrix:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error deleting covey task:', error);
+      throw error;
+    }
+  }, []);
+
+  const moveCoveyTask = useCallback(async (id: string, quadrant: 'q1' | 'q2' | 'q3' | 'q4') => {
+    try {
+      const { important, urgent } = getQuadrantValues(quadrant);
+      await updateCoveyTask(id, { important, urgent, quadrant });
+    } catch (error) {
+      console.error('Error moving covey task:', error);
+      throw error;
+    }
+  }, [updateCoveyTask]);
+
+  const completeCoveyTask = useCallback(async (id: string) => {
+    try {
+      setCoveyMatrixData((prevData: CoveyMatrixData) => {
+        const task = prevData.tasks.find((t: CoveyTask) => t.id === id);
+        if (!task) return prevData;
+
+        const updatedTask = { ...task, completed: true, updatedAt: Date.now() };
+        const newData = {
+          tasks: prevData.tasks.filter((t: CoveyTask) => t.id !== id),
+          completedTasks: [...prevData.completedTasks, updatedTask]
+        };
+        saveCoveyMatrixData(newData).catch(err => console.error('Error saving covey matrix:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error completing covey task:', error);
+      throw error;
+    }
+  }, []);
+
+  const uncompleteCoveyTask = useCallback(async (id: string) => {
+    try {
+      setCoveyMatrixData((prevData: CoveyMatrixData) => {
+        const task = prevData.completedTasks.find((t: CoveyTask) => t.id === id);
+        if (!task) return prevData;
+
+        const updatedTask = { ...task, completed: false, updatedAt: Date.now() };
+        const newData = {
+          tasks: [...prevData.tasks, updatedTask],
+          completedTasks: prevData.completedTasks.filter((t: CoveyTask) => t.id !== id)
+        };
+        saveCoveyMatrixData(newData).catch(err => console.error('Error saving covey matrix:', err));
+        return newData;
+      });
+    } catch (error) {
+      console.error('Error uncompleting covey task:', error);
+      throw error;
+    }
+  }, []);
+
   // Возвращаем объект напрямую
   return {
     // Data
@@ -597,6 +728,16 @@ export function useCloudStorage() {
     // InBox
     addInBoxItem,
     deleteInBoxItem,
+    
+    // Covey Matrix
+    coveyMatrixData,
+    updateCoveyMatrixData,
+    addCoveyTask,
+    updateCoveyTask,
+    deleteCoveyTask,
+    moveCoveyTask,
+    completeCoveyTask,
+    uncompleteCoveyTask,
     
     // Reload
     reload: loadAllData
