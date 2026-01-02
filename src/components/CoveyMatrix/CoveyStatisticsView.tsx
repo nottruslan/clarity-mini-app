@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { type CoveyMatrixData } from '../../utils/storage';
 
 interface CoveyStatisticsViewProps {
@@ -17,10 +17,10 @@ export default function CoveyStatisticsView({ storage }: CoveyStatisticsViewProp
   const data = storage.coveyMatrixData as CoveyMatrixData || { tasks: [], completedTasks: [] };
   
   const stats = useMemo(() => {
-    const q1 = data.tasks.filter(t => t.quadrant === 'q1').length;
-    const q2 = data.tasks.filter(t => t.quadrant === 'q2').length;
-    const q3 = data.tasks.filter(t => t.quadrant === 'q3').length;
-    const q4 = data.tasks.filter(t => t.quadrant === 'q4').length;
+    const q1 = data.tasks.filter((t: any) => t.quadrant === 'q1').length;
+    const q2 = data.tasks.filter((t: any) => t.quadrant === 'q2').length;
+    const q3 = data.tasks.filter((t: any) => t.quadrant === 'q3').length;
+    const q4 = data.tasks.filter((t: any) => t.quadrant === 'q4').length;
     const total = data.tasks.length;
     const completed = data.completedTasks.length;
 
@@ -35,10 +35,10 @@ export default function CoveyStatisticsView({ storage }: CoveyStatisticsViewProp
   ].filter(item => item.value > 0);
 
   const barData = [
-    { name: 'Q1', value: stats.q1, color: COLORS.q1 },
-    { name: 'Q2', value: stats.q2, color: COLORS.q2 },
-    { name: 'Q3', value: stats.q3, color: COLORS.q3 },
-    { name: 'Q4', value: stats.q4, color: COLORS.q4 }
+    { name: 'Q1', value: stats.q1, fill: COLORS.q1 },
+    { name: 'Q2', value: stats.q2, fill: COLORS.q2 },
+    { name: 'Q3', value: stats.q3, fill: COLORS.q3 },
+    { name: 'Q4', value: stats.q4, fill: COLORS.q4 }
   ];
 
   const insights = useMemo(() => {
@@ -210,11 +210,7 @@ export default function CoveyStatisticsView({ storage }: CoveyStatisticsViewProp
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="value" fill="#8884d8">
-                {barData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
+              <Bar dataKey="value" />
             </BarChart>
           </ResponsiveContainer>
         </div>
