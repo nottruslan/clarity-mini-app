@@ -16,6 +16,7 @@ import {
   saveBooksData,
   calculateQuadrant,
   getQuadrantValues,
+  initializePendingSavesProcessor,
   type Habit,
   type FinanceData,
   type Category,
@@ -54,6 +55,8 @@ export function useCloudStorage() {
   // Загрузка данных при монтировании
   useEffect(() => {
     loadAllData();
+    // Инициализируем обработку очереди отложенных сохранений
+    initializePendingSavesProcessor();
   }, []);
 
   const loadAllData = async () => {

@@ -286,6 +286,19 @@ const CLOUD_STORAGE_MIN_VERSION: [number, number] = [6, 1]; // [major, minor] д
 const CLOUD_STORAGE_TIMEOUT = 3000; // 3 секунды для медленных соединений
 const SET_ITEM_MAX_RETRIES = 3;
 const SET_ITEM_RETRY_DELAY = 1000; // 1 секунда между попытками
+const CLOUD_STORAGE_SAVE_TIMEOUT = 5000; // 5 секунд таймаут для ожидания сохранения
+const PENDING_SAVES_QUEUE_MAX_SIZE = 10; // Максимальный размер очереди отложенных сохранений
+const PENDING_SAVES_PROCESS_INTERVAL = 5000; // Интервал обработки очереди (5 секунд)
+
+/**
+ * Задача для отложенного сохранения в CloudStorage
+ */
+interface PendingSaveTask {
+  key: string;
+  jsonData: string;
+  timestamp: number; // Время добавления в очередь
+  attempts: number; // Количество попыток сохранения
+}
 
 /**
  * Безопасно парсит версию Telegram WebApp
@@ -334,24 +347,60 @@ function compareVersions(version1: [number, number], version2: [number, number])
  * Проверяет, поддерживается ли CloudStorage API
  */
 function isCloudStorageSupported(): boolean {
+  console.log('[SYNC] isCloudStorageSupported - START');
+  
   const cloudStorage = window.Telegram?.WebApp?.CloudStorage;
-  if (!cloudStorage || typeof cloudStorage.getItem !== 'function' || typeof cloudStorage.setItem !== 'function') {
+  const hasCloudStorage = !!cloudStorage;
+  const hasGetItem = cloudStorage && typeof cloudStorage.getItem === 'function';
+  const hasSetItem = cloudStorage && typeof cloudStorage.setItem === 'function';
+  
+  console.log('[SYNC] isCloudStorageSupported - API check:', {
+    hasCloudStorage,
+    hasGetItem,
+    hasSetItem,
+    cloudStorageType: typeof cloudStorage
+  });
+  
+  if (!cloudStorage || !hasGetItem || !hasSetItem) {
+    console.log('[SYNC] isCloudStorageSupported - RESULT: false (API not available)');
     return false;
   }
   
   const webAppVersion = window.Telegram?.WebApp?.version;
+  console.log('[SYNC] isCloudStorageSupported - Version check:', {
+    webAppVersion,
+    hasVersion: !!webAppVersion
+  });
+  
   if (!webAppVersion) {
     // Если версия не указана, но API доступен, предполагаем поддержку
+    console.log('[SYNC] isCloudStorageSupported - RESULT: true (version not specified, but API available)');
     return true;
   }
   
   const version = parseVersion(webAppVersion);
+  console.log('[SYNC] isCloudStorageSupported - Parsed version:', {
+    originalVersion: webAppVersion,
+    parsedVersion: version,
+    minRequiredVersion: CLOUD_STORAGE_MIN_VERSION
+  });
+  
   if (version === null) {
     // Если не удалось распарсить версию, но API доступен, предполагаем поддержку
+    console.log('[SYNC] isCloudStorageSupported - RESULT: true (version parse failed, but API available)');
     return true;
   }
   
-  return compareVersions(version, CLOUD_STORAGE_MIN_VERSION);
+  const isSupported = compareVersions(version, CLOUD_STORAGE_MIN_VERSION);
+  console.log('[SYNC] isCloudStorageSupported - Version comparison:', {
+    parsedVersion: version,
+    minVersion: CLOUD_STORAGE_MIN_VERSION,
+    isSupported,
+    comparison: `${version[0]}.${version[1]} >= ${CLOUD_STORAGE_MIN_VERSION[0]}.${CLOUD_STORAGE_MIN_VERSION[1]}`
+  });
+  
+  console.log('[SYNC] isCloudStorageSupported - RESULT:', isSupported);
+  return isSupported;
 }
 
 /**
@@ -368,11 +417,31 @@ interface DataWithMetadata<T> {
  * Обертывает данные метаданными для синхронизации
  */
 function wrapDataWithMetadata<T>(data: T): DataWithMetadata<T> {
-  return {
+  const timestamp = Date.now();
+  const wrapped = {
     data,
-    _syncTimestamp: Date.now(),
+    _syncTimestamp: timestamp,
     _syncVersion: 1
   };
+  
+  // Логируем размер данных для диагностики
+  const dataSize = JSON.stringify(data).length;
+  const wrappedSize = JSON.stringify(wrapped).length;
+  
+  console.log('[SYNC] wrapDataWithMetadata:', {
+    timestamp,
+    dataSize,
+    wrappedSize,
+    overhead: wrappedSize - dataSize,
+    dataType: Array.isArray(data) ? 'array' : typeof data,
+    dataPreview: Array.isArray(data) 
+      ? `array[${(data as any[]).length}]` 
+      : typeof data === 'object' && data !== null
+      ? `object with ${Object.keys(data as object).length} keys`
+      : typeof data
+  });
+  
+  return wrapped;
 }
 
 /**
@@ -389,18 +458,42 @@ function unwrapData<T>(wrapped: DataWithMetadata<T> | T): T {
       '_syncTimestamp' in wrapped;
   
   if (hasMetadata) {
-    const unwrapped = (wrapped as DataWithMetadata<T>).data;
-    // Логируем для finance данных, чтобы проверить, не теряются ли транзакции
-    if (unwrapped && typeof unwrapped === 'object' && 'transactions' in unwrapped) {
-      const financeData = unwrapped as any;
-      console.log('[unwrapData] Unwrapping finance data:', {
-        transactionsCount: financeData.transactions?.length || 0,
-        hasTransactions: !!financeData.transactions,
-        transactionsIsArray: Array.isArray(financeData.transactions)
-      });
-    }
+    const wrappedWithMeta = wrapped as DataWithMetadata<T>;
+    const unwrapped = wrappedWithMeta.data;
+    const timestamp = wrappedWithMeta._syncTimestamp;
+    
+    // Логируем извлечение данных
+    const unwrappedSize = JSON.stringify(unwrapped).length;
+    const wrappedSize = JSON.stringify(wrapped).length;
+    
+    console.log('[SYNC] unwrapData:', {
+      hasMetadata: true,
+      timestamp,
+      syncVersion: wrappedWithMeta._syncVersion,
+      unwrappedSize,
+      wrappedSize,
+      dataType: Array.isArray(unwrapped) ? 'array' : typeof unwrapped,
+      dataPreview: Array.isArray(unwrapped) 
+        ? `array[${(unwrapped as any[]).length}]` 
+        : typeof unwrapped === 'object' && unwrapped !== null
+        ? `object with ${Object.keys(unwrapped as object).length} keys`
+        : typeof unwrapped,
+      // Специальная проверка для finance данных
+      isFinanceData: unwrapped && typeof unwrapped === 'object' && 'transactions' in unwrapped,
+      transactionsCount: (unwrapped as any)?.transactions?.length || 0
+    });
+    
     return unwrapped;
   }
+  
+  // Данные не обернуты метаданными
+  console.log('[SYNC] unwrapData:', {
+    hasMetadata: false,
+    dataType: typeof wrapped,
+    isNull: wrapped === null,
+    isUndefined: wrapped === undefined
+  });
+  
   return wrapped as T;
 }
 
@@ -446,6 +539,10 @@ interface CloudStorageLoadResult<T> {
   hasError: boolean; // true если была ошибка, false если данных просто нет
 }
 
+// Очередь для отложенного сохранения в CloudStorage
+const pendingCloudStorageSaves: PendingSaveTask[] = [];
+let pendingSavesProcessIntervalId: number | null = null;
+
 /**
  * Получить данные из хранилища
  * Согласно документации Telegram: Cloud Storage - основной источник для синхронизации между устройствами
@@ -453,48 +550,59 @@ interface CloudStorageLoadResult<T> {
  * Приоритет: Cloud Storage (синхронизированные данные) > localStorage (кэш)
  */
 export async function getStorageData<T>(key: string): Promise<T | null> {
-  const isFinanceKey = key === STORAGE_KEYS.FINANCE;
-  if (isFinanceKey) {
-    console.log('[getStorageData] START - Loading finance data, key:', key);
-  }
+  const startTime = Date.now();
+  console.log(`[SYNC] getStorageData - START for key: "${key}"`);
   
   // Сначала загружаем из localStorage для быстрого старта (кэш)
   let localData: T | null = null;
   try {
     const data = localStorage.getItem(key);
     if (data) {
+      const dataSize = data.length;
+      console.log(`[SYNC] getStorageData - localStorage data found for key "${key}":`, {
+        dataSize,
+        hasData: true
+      });
+      
       const parsed = JSON.parse(data);
-      if (isFinanceKey) {
-        console.log('[getStorageData] Parsed localStorage data for finance:', {
-          hasSyncTimestamp: '_syncTimestamp' in parsed,
-          hasData: 'data' in parsed,
-          dataType: typeof parsed.data,
-          transactionsInParsed: parsed.data?.transactions?.length || 0
-        });
-      }
+      console.log(`[SYNC] getStorageData - Parsed localStorage data for key "${key}":`, {
+        hasSyncTimestamp: '_syncTimestamp' in parsed,
+        hasData: 'data' in parsed,
+        dataType: typeof parsed.data,
+        parsedKeys: parsed.data && typeof parsed.data === 'object' ? Object.keys(parsed.data) : []
+      });
+      
       localData = unwrapData<T>(parsed);
-      if (isFinanceKey && localData) {
-        const financeData = localData as any;
-        console.log('[getStorageData] Unwrapped localStorage data for finance:', {
-          transactionsCount: financeData.transactions?.length || 0,
-          hasTransactions: !!financeData.transactions,
-          transactionsIsArray: Array.isArray(financeData.transactions)
-        });
-      }
-    } else if (isFinanceKey) {
-      console.log('[getStorageData] No data in localStorage for finance key');
+      
+      const localDataSize = localData ? JSON.stringify(localData).length : 0;
+      console.log(`[SYNC] getStorageData - Unwrapped localStorage data for key "${key}":`, {
+        hasData: !!localData,
+        localDataSize,
+        dataType: Array.isArray(localData) ? 'array' : typeof localData,
+        preview: Array.isArray(localData) 
+          ? `array[${localData.length}]` 
+          : typeof localData === 'object' && localData !== null
+          ? `object with ${Object.keys(localData).length} keys`
+          : typeof localData
+      });
+    } else {
+      console.log(`[SYNC] getStorageData - No data in localStorage for key "${key}"`);
     }
   } catch (parseError) {
-    console.error('[getStorageData] Error parsing localStorage data:', parseError);
+    console.error(`[SYNC] getStorageData - Error parsing localStorage data for key "${key}":`, parseError);
   }
 
   // Проверяем доступность CloudStorage для синхронизации
-  if (!isCloudStorageSupported()) {
-    console.log(`[SYNC] Cloud Storage недоступен для ключа "${key}", используем localStorage`);
+  const isSupported = isCloudStorageSupported();
+  if (!isSupported) {
+    console.log(`[SYNC] getStorageData - Cloud Storage недоступен для ключа "${key}", используем localStorage`);
+    const elapsed = Date.now() - startTime;
+    console.log(`[SYNC] getStorageData - END for key "${key}" (localStorage only, ${elapsed}ms)`);
     return localData;
   }
 
   const cloudStorage = window.Telegram?.WebApp?.CloudStorage!;
+  console.log(`[SYNC] getStorageData - CloudStorage available, attempting to load key "${key}"`);
 
   // Пытаемся загрузить из Cloud Storage (приоритетный источник для синхронизации)
   // Используем увеличенный таймаут для медленных соединений
@@ -509,14 +617,32 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     }, CLOUD_STORAGE_TIMEOUT);
 
     try {
+      const getItemStartTime = Date.now();
+      console.log(`[SYNC] getStorageData - Calling CloudStorage.getItem for key "${key}"`);
+      
       cloudStorage.getItem(key, (error, value) => {
-        if (resolved) return;
+        const getItemElapsed = Date.now() - getItemStartTime;
+        
+        if (resolved) {
+          console.log(`[SYNC] getStorageData - getItem callback already resolved for key "${key}" (ignored)`);
+          return;
+        }
         
         clearTimeout(timeoutId);
         resolved = true;
         
+        console.log(`[SYNC] getStorageData - CloudStorage.getItem callback for key "${key}":`, {
+          elapsed: `${getItemElapsed}ms`,
+          hasError: !!error,
+          error: error ? String(error) : null,
+          hasValue: value !== null && value !== '',
+          valueType: typeof value,
+          valueLength: value ? value.length : 0,
+          valuePreview: value && value.length > 0 ? value.substring(0, 100) + (value.length > 100 ? '...' : '') : null
+        });
+        
         if (error) {
-          console.warn(`[SYNC] Error loading from Cloud Storage for key "${key}":`, error);
+          console.warn(`[SYNC] getStorageData - Error loading from Cloud Storage for key "${key}":`, error);
           resolve({ data: null, hasError: true }); // Ошибка загрузки
           return;
         }
@@ -524,16 +650,32 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
         // value === null означает, что данных нет в CloudStorage (не ошибка)
         // value === "" (пустая строка) также означает отсутствие данных
         if (value === null || value === '') {
+          console.log(`[SYNC] getStorageData - No data in CloudStorage for key "${key}" (not an error)`);
           resolve({ data: null, hasError: false });
           return;
         }
         
         try {
+          console.log(`[SYNC] getStorageData - Parsing CloudStorage value for key "${key}"`);
           const parsed = JSON.parse(value);
+          console.log(`[SYNC] getStorageData - Parsed CloudStorage data for key "${key}":`, {
+            hasSyncTimestamp: '_syncTimestamp' in parsed,
+            hasData: 'data' in parsed,
+            parsedType: typeof parsed
+          });
+          
           const unwrapped = unwrapData<T>(parsed);
+          const unwrappedSize = unwrapped ? JSON.stringify(unwrapped).length : 0;
+          
+          console.log(`[SYNC] getStorageData - Unwrapped CloudStorage data for key "${key}":`, {
+            hasData: !!unwrapped,
+            unwrappedSize,
+            dataType: Array.isArray(unwrapped) ? 'array' : typeof unwrapped
+          });
+          
           resolve({ data: unwrapped, hasError: false });
         } catch (parseError) {
-          console.error('Error parsing Cloud Storage data:', parseError);
+          console.error(`[SYNC] getStorageData - Error parsing Cloud Storage data for key "${key}":`, parseError);
           resolve({ data: null, hasError: true }); // Ошибка парсинга
         }
       });
@@ -548,31 +690,43 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
 
   // Ждем Cloud Storage с таймаутом
   try {
+    const cloudWaitStartTime = Date.now();
+    console.log(`[SYNC] getStorageData - Waiting for CloudStorage response for key "${key}"`);
+    
     const result = await cloudPromise;
+    const cloudWaitElapsed = Date.now() - cloudWaitStartTime;
+    
+    console.log(`[SYNC] getStorageData - CloudStorage response received for key "${key}":`, {
+      elapsed: `${cloudWaitElapsed}ms`,
+      hasData: result.data !== null,
+      hasError: result.hasError
+    });
 
     // Если Cloud Storage вернул данные - они приоритетнее для синхронизации
     if (result.data !== null) {
-      if (isFinanceKey) {
-        const financeData = result.data as any;
-        console.log('[getStorageData] Cloud Storage data found for finance:', {
-          transactionsCount: financeData.transactions?.length || 0,
-          hasTransactions: !!financeData.transactions
-        });
-      }
+      const cloudDataSize = JSON.stringify(result.data).length;
+      console.log(`[SYNC] getStorageData - CloudStorage data found for key "${key}":`, {
+        dataSize: cloudDataSize,
+        dataType: Array.isArray(result.data) ? 'array' : typeof result.data
+      });
+      
       // Обновляем localStorage для кэширования
       // Всегда оборачиваем данные метаданными с новым timestamp при сохранении в localStorage
       // Это обеспечивает актуальность метаданных для разрешения конфликтов
       try {
         const wrapped = wrapDataWithMetadata(result.data);
-        localStorage.setItem(key, JSON.stringify(wrapped));
-        console.log(`[SYNC] Cloud Storage data synced to localStorage for key: "${key}"`);
+        const wrappedJson = JSON.stringify(wrapped);
+        localStorage.setItem(key, wrappedJson);
+        console.log(`[SYNC] getStorageData - CloudStorage data synced to localStorage for key "${key}":`, {
+          wrappedSize: wrappedJson.length
+        });
       } catch (error) {
-        console.error('Error syncing Cloud Storage data to localStorage:', error);
+        console.error(`[SYNC] getStorageData - Error syncing CloudStorage data to localStorage for key "${key}":`, error);
       }
+      
       // Возвращаем данные без метаданных (unwrapData уже был вызван при загрузке)
-      if (isFinanceKey) {
-        console.log('[getStorageData] END - Returning Cloud Storage data for finance');
-      }
+      const elapsed = Date.now() - startTime;
+      console.log(`[SYNC] getStorageData - END for key "${key}" (CloudStorage, ${elapsed}ms)`);
       return result.data;
     }
 
@@ -580,36 +734,164 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     // Разрешаем конфликт: если localStorage содержит данные, используем их
     // но если это была ошибка загрузки, также используем localStorage как fallback
     if (localData !== null) {
+      const resolvedData = resolveConflict(localData, null);
+      const elapsed = Date.now() - startTime;
+      
       if (result.hasError) {
-        console.log(`[SYNC] Cloud Storage error for key "${key}", using localStorage as fallback`);
+        console.log(`[SYNC] getStorageData - CloudStorage error for key "${key}", using localStorage as fallback (${elapsed}ms)`);
       } else {
-        console.log(`[SYNC] No data in Cloud Storage for key "${key}", using localStorage`);
+        console.log(`[SYNC] getStorageData - No data in CloudStorage for key "${key}", using localStorage (${elapsed}ms)`);
       }
-      if (isFinanceKey) {
-        const financeData = localData as any;
-        console.log('[getStorageData] END - Returning localStorage data for finance:', {
-          transactionsCount: financeData.transactions?.length || 0
-        });
-      }
-      // Используем resolveConflict для единообразной обработки
-      return resolveConflict(localData, null);
+      
+      console.log(`[SYNC] getStorageData - END for key "${key}" (localStorage fallback, ${elapsed}ms)`);
+      return resolvedData;
     }
 
     // Нет данных ни в CloudStorage, ни в localStorage
-    if (isFinanceKey) {
-      console.log('[getStorageData] END - No data found for finance key');
-    }
+    const elapsed = Date.now() - startTime;
+    console.log(`[SYNC] getStorageData - END for key "${key}" (no data found, ${elapsed}ms)`);
     return null;
   } catch (error) {
-    console.error('[getStorageData] Error loading from Cloud Storage:', error);
+    const elapsed = Date.now() - startTime;
+    console.error(`[SYNC] getStorageData - Exception loading from CloudStorage for key "${key}" (${elapsed}ms):`, error);
     // При любой ошибке возвращаем localStorage как fallback
-    if (isFinanceKey && localData) {
-      const financeData = localData as any;
-      console.log('[getStorageData] END - Returning localStorage fallback for finance:', {
-        transactionsCount: financeData.transactions?.length || 0
-      });
-    }
+    console.log(`[SYNC] getStorageData - END for key "${key}" (exception fallback to localStorage, ${elapsed}ms)`);
     return localData;
+  }
+}
+
+/**
+ * Добавляет задачу в очередь отложенного сохранения
+ */
+function queuePendingSave(key: string, jsonData: string): void {
+  const dataSize = jsonData.length;
+  
+  // Удаляем существующую задачу для этого ключа (если есть)
+  const existingIndex = pendingCloudStorageSaves.findIndex(task => task.key === key);
+  if (existingIndex !== -1) {
+    const existingTask = pendingCloudStorageSaves[existingIndex];
+    console.log(`[SYNC] queuePendingSave - Replacing existing pending save for key "${key}":`, {
+      existingAttempts: existingTask.attempts,
+      existingAge: Date.now() - existingTask.timestamp
+    });
+    pendingCloudStorageSaves.splice(existingIndex, 1);
+  }
+  
+  // Проверяем размер очереди
+  if (pendingCloudStorageSaves.length >= PENDING_SAVES_QUEUE_MAX_SIZE) {
+    // Удаляем самую старую задачу
+    const oldestTask = pendingCloudStorageSaves.shift();
+    console.warn(`[SYNC] queuePendingSave - Queue full (max: ${PENDING_SAVES_QUEUE_MAX_SIZE}), removing oldest task:`, {
+      key: oldestTask?.key,
+      age: oldestTask ? Date.now() - oldestTask.timestamp : 0,
+      attempts: oldestTask?.attempts
+    });
+  }
+  
+  // Добавляем новую задачу
+  const task: PendingSaveTask = {
+    key,
+    jsonData,
+    timestamp: Date.now(),
+    attempts: 0
+  };
+  
+  pendingCloudStorageSaves.push(task);
+  console.log(`[SYNC] queuePendingSave - Added task to queue for key "${key}":`, {
+    queueSize: pendingCloudStorageSaves.length,
+    dataSize,
+    maxQueueSize: PENDING_SAVES_QUEUE_MAX_SIZE,
+    allKeys: pendingCloudStorageSaves.map(t => t.key)
+  });
+}
+
+/**
+ * Обрабатывает очередь отложенных сохранений
+ */
+async function processPendingSaves(): Promise<void> {
+  if (pendingCloudStorageSaves.length === 0) {
+    return;
+  }
+  
+  console.log(`[SYNC] processPendingSaves - Processing ${pendingCloudStorageSaves.length} pending saves`);
+  
+  const tasksToProcess = [...pendingCloudStorageSaves]; // Копируем массив для безопасной итерации
+  
+  for (const task of tasksToProcess) {
+    task.attempts++;
+    
+    console.log(`[SYNC] processPendingSaves - Attempting to save key "${task.key}" (attempt ${task.attempts})`);
+    
+    try {
+      const success = await saveToCloudStorageWithRetry(task.key, task.jsonData);
+      
+      if (success) {
+        // Успешно сохранено - удаляем из очереди
+        const index = pendingCloudStorageSaves.findIndex(t => t.key === task.key && t.timestamp === task.timestamp);
+        if (index !== -1) {
+          pendingCloudStorageSaves.splice(index, 1);
+          console.log(`[SYNC] processPendingSaves - Successfully saved key "${task.key}", removed from queue`);
+        }
+      } else {
+        // Не удалось сохранить - оставляем в очереди для следующей попытки
+        console.warn(`[SYNC] processPendingSaves - Failed to save key "${task.key}", keeping in queue`);
+        
+        // Если слишком много попыток, удаляем задачу (возможно, проблема с данными)
+        if (task.attempts >= 5) {
+          const index = pendingCloudStorageSaves.findIndex(t => t.key === task.key && t.timestamp === task.timestamp);
+          if (index !== -1) {
+            pendingCloudStorageSaves.splice(index, 1);
+            console.error(`[SYNC] processPendingSaves - Removed key "${task.key}" from queue after ${task.attempts} failed attempts`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`[SYNC] processPendingSaves - Error processing task for key "${task.key}":`, error);
+    }
+  }
+  
+  console.log(`[SYNC] processPendingSaves - Completed, ${pendingCloudStorageSaves.length} tasks remaining in queue`);
+}
+
+/**
+ * Инициализирует периодическую обработку очереди отложенных сохранений
+ * Экспортируется для вызова при загрузке приложения
+ */
+export function initializePendingSavesProcessor(): void {
+  if (pendingSavesProcessIntervalId !== null) {
+    console.log('[SYNC] initializePendingSavesProcessor - Already initialized, skipping');
+    return;
+  }
+  
+  const queueSize = pendingCloudStorageSaves.length;
+  const isSupported = isCloudStorageSupported();
+  
+  console.log('[SYNC] initializePendingSavesProcessor - Starting periodic processing:', {
+    queueSize,
+    isCloudStorageSupported: isSupported,
+    processInterval: PENDING_SAVES_PROCESS_INTERVAL,
+    queueKeys: pendingCloudStorageSaves.map(t => t.key)
+  });
+  
+  // Обрабатываем очередь сразу при инициализации
+  if (queueSize > 0) {
+    console.log(`[SYNC] initializePendingSavesProcessor - Processing ${queueSize} pending saves immediately`);
+    processPendingSaves();
+  }
+  
+  // Затем обрабатываем периодически
+  if (typeof window !== 'undefined') {
+    pendingSavesProcessIntervalId = window.setInterval(() => {
+      const currentQueueSize = pendingCloudStorageSaves.length;
+      if (currentQueueSize > 0) {
+        console.log(`[SYNC] initializePendingSavesProcessor - Periodic processing: ${currentQueueSize} tasks in queue`);
+        processPendingSaves();
+      }
+    }, PENDING_SAVES_PROCESS_INTERVAL);
+    
+    console.log('[SYNC] initializePendingSavesProcessor - Periodic processor started');
+  } else {
+    console.warn('[SYNC] initializePendingSavesProcessor - window is undefined, cannot start interval');
   }
 }
 
@@ -621,50 +903,69 @@ function saveToCloudStorageWithRetry(
   jsonData: string,
   retries: number = SET_ITEM_MAX_RETRIES
 ): Promise<boolean> {
+  const startTime = Date.now();
+  console.log(`[SYNC] saveToCloudStorageWithRetry - START for key "${key}":`, {
+    jsonDataSize: jsonData.length,
+    maxRetries: retries,
+    retryDelay: SET_ITEM_RETRY_DELAY
+  });
+  
   return new Promise((resolve) => {
     const cloudStorage = window.Telegram?.WebApp?.CloudStorage!;
     let attempt = 0;
 
     const trySave = () => {
       attempt++;
+      const attemptStartTime = Date.now();
+      
+      console.log(`[SYNC] saveToCloudStorageWithRetry - Attempt ${attempt}/${retries} for key "${key}":`, {
+        jsonDataSize: jsonData.length,
+        jsonDataPreview: jsonData.substring(0, 100) + (jsonData.length > 100 ? '...' : '')
+      });
       
       try {
         cloudStorage.setItem(key, jsonData, (error) => {
+          const attemptElapsed = Date.now() - attemptStartTime;
+          
           if (error) {
+            console.warn(`[SYNC] saveToCloudStorageWithRetry - Attempt ${attempt}/${retries} failed for key "${key}" (${attemptElapsed}ms):`, {
+              error: String(error),
+              errorType: typeof error,
+              errorMessage: error?.message || 'Unknown error'
+            });
+            
             if (attempt < retries) {
-              console.warn(
-                `[SYNC] Attempt ${attempt}/${retries} failed to save to Cloud Storage for key "${key}", retrying...`,
-                error
-              );
+              console.log(`[SYNC] saveToCloudStorageWithRetry - Retrying in ${SET_ITEM_RETRY_DELAY}ms...`);
               setTimeout(trySave, SET_ITEM_RETRY_DELAY);
             } else {
-              console.error(
-                `[SYNC] All ${retries} attempts failed to save to Cloud Storage for key "${key}":`,
-                error
-              );
+              const totalElapsed = Date.now() - startTime;
+              console.error(`[SYNC] saveToCloudStorageWithRetry - All ${retries} attempts failed for key "${key}" (${totalElapsed}ms)`);
               resolve(false);
             }
           } else {
+            const totalElapsed = Date.now() - startTime;
             if (attempt > 1) {
-              console.log(`[SYNC] Successfully saved to Cloud Storage for key "${key}" after ${attempt} attempts`);
+              console.log(`[SYNC] saveToCloudStorageWithRetry - SUCCESS for key "${key}" after ${attempt} attempts (${totalElapsed}ms)`);
             } else {
-              console.log(`[SYNC] Successfully saved to Cloud Storage for key "${key}"`);
+              console.log(`[SYNC] saveToCloudStorageWithRetry - SUCCESS for key "${key}" on first attempt (${totalElapsed}ms)`);
             }
             resolve(true);
           }
         });
       } catch (syncError) {
+        const attemptElapsed = Date.now() - attemptStartTime;
+        console.warn(`[SYNC] saveToCloudStorageWithRetry - Exception on attempt ${attempt}/${retries} for key "${key}" (${attemptElapsed}ms):`, {
+          error: syncError,
+          errorType: typeof syncError,
+          errorMessage: syncError instanceof Error ? syncError.message : String(syncError)
+        });
+        
         if (attempt < retries) {
-          console.warn(
-            `[SYNC] Attempt ${attempt}/${retries} exception saving to Cloud Storage for key "${key}", retrying...`,
-            syncError
-          );
+          console.log(`[SYNC] saveToCloudStorageWithRetry - Retrying after exception in ${SET_ITEM_RETRY_DELAY}ms...`);
           setTimeout(trySave, SET_ITEM_RETRY_DELAY);
         } else {
-          console.error(
-            `[SYNC] All ${retries} attempts failed with exception for key "${key}":`,
-            syncError
-          );
+          const totalElapsed = Date.now() - startTime;
+          console.error(`[SYNC] saveToCloudStorageWithRetry - All ${retries} attempts failed with exception for key "${key}" (${totalElapsed}ms)`);
           resolve(false);
         }
       }
@@ -682,29 +983,91 @@ function saveToCloudStorageWithRetry(
  * Если Cloud Storage недоступен - данные все равно сохраняются в localStorage
  */
 export async function setStorageData<T>(key: string, data: T): Promise<void> {
+  const startTime = Date.now();
+  console.log(`[SYNC] setStorageData - START for key "${key}"`);
+  
+  // Логируем исходные данные
+  const dataSize = JSON.stringify(data).length;
+  console.log(`[SYNC] setStorageData - Input data for key "${key}":`, {
+    dataSize,
+    dataType: Array.isArray(data) ? 'array' : typeof data,
+    dataPreview: Array.isArray(data) 
+      ? `array[${(data as any[]).length}]` 
+      : typeof data === 'object' && data !== null
+      ? `object with ${Object.keys(data as object).length} keys`
+      : typeof data
+  });
+  
   // Обертываем данные метаданными для синхронизации
   const wrappedData = wrapDataWithMetadata(data);
   const jsonData = JSON.stringify(wrappedData);
+  const wrappedSize = jsonData.length;
+  
+  console.log(`[SYNC] setStorageData - Wrapped data for key "${key}":`, {
+    wrappedSize,
+    overhead: wrappedSize - dataSize,
+    hasSyncTimestamp: !!wrappedData._syncTimestamp,
+    syncTimestamp: wrappedData._syncTimestamp
+  });
 
   // Сначала сохраняем в localStorage (быстро и надежно)
   try {
+    const localStorageStartTime = Date.now();
     localStorage.setItem(key, jsonData);
+    const localStorageElapsed = Date.now() - localStorageStartTime;
+    console.log(`[SYNC] setStorageData - Saved to localStorage for key "${key}" (${localStorageElapsed}ms)`);
   } catch (localStorageError) {
-    console.error('Error saving to localStorage:', localStorageError);
+    console.error(`[SYNC] setStorageData - Error saving to localStorage for key "${key}":`, localStorageError);
     throw localStorageError; // Если localStorage не работает - это критическая ошибка
   }
 
-  // Параллельно пытаемся сохранить в Cloud Storage (в фоне, не блокируем)
-  if (!isCloudStorageSupported()) {
-    console.log(`[SYNC] Cloud Storage недоступен для ключа "${key}", данные сохранены только в localStorage`);
+  // Пытаемся сохранить в Cloud Storage с ожиданием завершения (с таймаутом)
+  const isSupported = isCloudStorageSupported();
+  if (!isSupported) {
+    const elapsed = Date.now() - startTime;
+    console.log(`[SYNC] setStorageData - Cloud Storage недоступен для ключа "${key}", данные сохранены только в localStorage (${elapsed}ms)`);
     return; // Cloud Storage недоступен - данные уже сохранены в localStorage
   }
 
-  // Сохраняем в Cloud Storage с повторными попытками
-  // Не ждем завершения, чтобы не блокировать UI
-  saveToCloudStorageWithRetry(key, jsonData).catch((error) => {
-    console.error(`[SYNC] Unexpected error in saveToCloudStorageWithRetry for key "${key}":`, error);
-  });
+  // Сохраняем в Cloud Storage с повторными попытками и ожиданием завершения
+  console.log(`[SYNC] setStorageData - Starting CloudStorage save for key "${key}" (awaiting completion with timeout)`);
+  
+  try {
+    // Создаем Promise с таймаутом
+    const savePromise = saveToCloudStorageWithRetry(key, jsonData);
+    const timeoutPromise = new Promise<boolean>((resolve) => {
+      setTimeout(() => {
+        console.warn(`[SYNC] setStorageData - Timeout waiting for CloudStorage save for key "${key}" (${CLOUD_STORAGE_SAVE_TIMEOUT}ms)`);
+        resolve(false);
+      }, CLOUD_STORAGE_SAVE_TIMEOUT);
+    });
+    
+    // Ждем либо завершения сохранения, либо таймаута
+    const success = await Promise.race([savePromise, timeoutPromise]);
+    
+    const elapsed = Date.now() - startTime;
+    
+    if (success) {
+      console.log(`[SYNC] setStorageData - CloudStorage save completed successfully for key "${key}" (${elapsed}ms)`);
+    } else {
+      // Сохранение не удалось или истек таймаут - добавляем в очередь для отложенного сохранения
+      console.warn(`[SYNC] setStorageData - CloudStorage save failed or timed out for key "${key}" (${elapsed}ms), adding to pending queue`);
+      queuePendingSave(key, jsonData);
+      
+      // Инициализируем обработчик очереди, если еще не инициализирован
+      initializePendingSavesProcessor();
+    }
+  } catch (error) {
+    const elapsed = Date.now() - startTime;
+    console.error(`[SYNC] setStorageData - Unexpected error in saveToCloudStorageWithRetry for key "${key}" (${elapsed}ms):`, error);
+    
+    // При ошибке также добавляем в очередь
+    queuePendingSave(key, jsonData);
+    initializePendingSavesProcessor();
+  }
+  
+  const elapsed = Date.now() - startTime;
+  console.log(`[SYNC] setStorageData - END for key "${key}" (localStorage saved, CloudStorage processed, ${elapsed}ms)`);
 }
 
 /**
@@ -1229,5 +1592,483 @@ export function forceReload(): void {
   const url = new URL(window.location.href);
   url.searchParams.set('_t', Date.now().toString());
   window.location.href = url.toString();
+}
+
+/**
+ * Виртуальный тест синхронизации между устройствами
+ * Симулирует два устройства и тестирует различные сценарии синхронизации
+ * 
+ * Использование: window.testSync() в консоли браузера
+ */
+export async function testSync(): Promise<void> {
+  console.log('🧪 [TEST] ========================================');
+  console.log('🧪 [TEST] Starting virtual sync test...');
+  console.log('🧪 [TEST] This will simulate two devices and test synchronization scenarios');
+  console.log('🧪 [TEST] ========================================\n');
+  
+  // Сохраняем оригинальные значения
+  const originalCloudStorage = window.Telegram?.WebApp?.CloudStorage;
+  const originalVersion = window.Telegram?.WebApp?.version;
+  
+  // Убеждаемся, что Telegram.WebApp существует для тестов
+  if (!window.Telegram) {
+    (window as any).Telegram = { WebApp: {} };
+  }
+  if (!window.Telegram?.WebApp) {
+    (window.Telegram as any).WebApp = {};
+  }
+  
+  // Устанавливаем версию для поддержки CloudStorage
+  if (window.Telegram?.WebApp && !window.Telegram.WebApp.version) {
+    window.Telegram.WebApp.version = '6.1';
+  }
+  
+  // Тест 1: Сохранение на устройстве 1, загрузка на устройстве 2
+  console.log('\n📱 [TEST] ========================================');
+  console.log('📱 [TEST] Scenario 1: Save on Device 1, Load on Device 2');
+  console.log('📱 [TEST] ========================================');
+  try {
+    // Устройство 1: сохраняем данные
+    const testKey = '__sync_test_key__';
+    const testData = { 
+      device: 'device1', 
+      timestamp: Date.now(),
+      data: { test: 'value', count: 1 }
+    };
+    
+    console.log('[TEST] Device 1: Initial data to save:', testData);
+    
+    // Симулируем CloudStorage для устройства 1 (хранит данные в памяти)
+    let device1CloudStorage: Record<string, string> = {};
+    
+    const mockCloudStorage1 = {
+      getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => {
+        setTimeout(() => {
+          const value = device1CloudStorage[key] || null;
+          console.log(`[TEST] Device 1 CloudStorage.getItem("${key}"):`, value ? `found (${value.length} bytes)` : 'null');
+          callback(null, value);
+        }, 50);
+      },
+      setItem: (key: string, value: string, callback: (error: Error | null) => void) => {
+        setTimeout(() => {
+          device1CloudStorage[key] = value;
+          console.log(`[TEST] Device 1 CloudStorage.setItem("${key}"):`, `saved (${value.length} bytes)`);
+          console.log(`[TEST] Device 1 CloudStorage.setItem value preview:`, value.substring(0, 150) + (value.length > 150 ? '...' : ''));
+          callback(null);
+        }, 50);
+      }
+    };
+    
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.CloudStorage = mockCloudStorage1 as any;
+    }
+    
+    // Очищаем localStorage перед тестом
+    localStorage.removeItem(testKey);
+    
+    console.log('[TEST] Device 1: Calling setStorageData...');
+    await setStorageData(testKey, testData);
+    
+    // Ждем завершения асинхронного сохранения в CloudStorage
+    // Проверяем каждые 50ms, максимум 1 секунду
+    let waitAttempts = 0;
+    const maxWaitAttempts = 20; // 20 * 50ms = 1 секунда максимум
+    while (!device1CloudStorage[testKey] && waitAttempts < maxWaitAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      waitAttempts++;
+    }
+    
+    if (waitAttempts >= maxWaitAttempts) {
+      console.warn('[TEST] Device 1: Timeout waiting for CloudStorage save');
+    } else {
+      console.log(`[TEST] Device 1: CloudStorage save completed after ${waitAttempts * 50}ms`);
+    }
+    
+    // Проверяем, что данные сохранились в localStorage
+    const savedInLocalStorage = localStorage.getItem(testKey);
+    console.log('[TEST] Device 1: localStorage after save:', savedInLocalStorage ? `found (${savedInLocalStorage.length} bytes)` : 'not found');
+    
+    // Проверяем, что данные сохранились в CloudStorage (симуляция)
+    const savedInCloudStorage = device1CloudStorage[testKey];
+    console.log('[TEST] Device 1: CloudStorage after save:', savedInCloudStorage ? `found (${savedInCloudStorage.length} bytes)` : 'not found');
+    
+    if (savedInLocalStorage) {
+      const parsed = JSON.parse(savedInLocalStorage);
+      console.log('[TEST] Device 1: localStorage data structure:', {
+        hasSyncTimestamp: !!parsed._syncTimestamp,
+        syncTimestamp: parsed._syncTimestamp,
+        hasData: !!parsed.data,
+        dataDevice: parsed.data?.device,
+        dataKeys: parsed.data ? Object.keys(parsed.data) : []
+      });
+    }
+    
+    if (savedInCloudStorage) {
+      const parsed = JSON.parse(savedInCloudStorage);
+      console.log('[TEST] Device 1: CloudStorage data structure:', {
+        hasSyncTimestamp: !!parsed._syncTimestamp,
+        syncTimestamp: parsed._syncTimestamp,
+        hasData: !!parsed.data,
+        dataDevice: parsed.data?.device
+      });
+    }
+    
+    // Устройство 2: загружаем данные (симулируем, что CloudStorage вернул данные с устройства 1)
+    console.log('\n[TEST] Device 2: Simulating different device (empty localStorage, CloudStorage has Device 1 data)...');
+    
+    // Очищаем localStorage для устройства 2 (симуляция нового устройства)
+    localStorage.removeItem(testKey);
+    
+    // Симулируем, что CloudStorage содержит данные с устройства 1
+    const mockCloudStorage2 = {
+      getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => {
+        setTimeout(() => {
+          if (key === testKey && savedInCloudStorage) {
+            // Симулируем, что CloudStorage вернул данные с устройства 1
+            console.log(`[TEST] Device 2 CloudStorage.getItem("${key}"):`, `returning Device 1 data (${savedInCloudStorage.length} bytes)`);
+            console.log(`[TEST] Device 2 CloudStorage value preview:`, savedInCloudStorage.substring(0, 150) + (savedInCloudStorage.length > 150 ? '...' : ''));
+            callback(null, savedInCloudStorage);
+          } else {
+            console.log(`[TEST] Device 2 CloudStorage.getItem("${key}"):`, 'null (no data)');
+            callback(null, null);
+          }
+        }, 100);
+      },
+      setItem: (key: string, value: string, callback: (error: Error | null) => void) => {
+        setTimeout(() => {
+          console.log(`[TEST] Device 2 CloudStorage.setItem("${key}"):`, `saved (${value.length} bytes)`);
+          callback(null);
+        }, 50);
+      }
+    };
+    
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.CloudStorage = mockCloudStorage2 as any;
+    }
+    
+    console.log('[TEST] Device 2: Calling getStorageData...');
+    const loadedData = await getStorageData<typeof testData>(testKey);
+    
+    console.log('[TEST] Device 2: Final loaded data:', loadedData);
+    console.log('[TEST] Device 2: Data validation:', {
+      hasData: !!loadedData,
+      device: loadedData?.device,
+      expectedDevice: 'device1',
+      matches: loadedData?.device === 'device1',
+      hasTimestamp: !!loadedData?.timestamp,
+      hasDataField: !!loadedData?.data
+    });
+    
+    const passed = loadedData && loadedData.device === 'device1';
+    console.log(`\n[TEST] Scenario 1 Result: ${passed ? '✅ PASSED' : '❌ FAILED'}`);
+    if (!passed) {
+      console.error('[TEST] Expected device: "device1", got:', loadedData?.device);
+      console.error('[TEST] Full loaded data:', JSON.stringify(loadedData, null, 2));
+    }
+    
+    // Очищаем тестовые данные
+    localStorage.removeItem(testKey);
+    device1CloudStorage = {};
+  } catch (error) {
+    console.error('[TEST] Scenario 1 ERROR:', error);
+    console.error('[TEST] Error stack:', (error as Error).stack);
+  }
+  
+  // Тест 2: Конфликт данных (разные данные на разных устройствах)
+  console.log('\n📱 [TEST] ========================================');
+  console.log('📱 [TEST] Scenario 2: Data Conflict (Different data on different devices)');
+  console.log('📱 [TEST] ========================================');
+  try {
+    const testKey = '__sync_test_conflict__';
+    
+    // Устройство 1: сохраняет данные с timestamp T1 (старые)
+    const device1Data = { 
+      device: 'device1', 
+      timestamp: Date.now() - 10000, // Старые данные
+      data: { version: 1 }
+    };
+    const wrapped1 = wrapDataWithMetadata(device1Data);
+    localStorage.setItem(testKey, JSON.stringify(wrapped1));
+    console.log('[TEST] Device 1: Saved data with timestamp:', wrapped1._syncTimestamp);
+    console.log('[TEST] Device 1: Data:', device1Data);
+    
+    // Устройство 2: сохраняет данные с timestamp T2 (новее)
+    const device2Data = { 
+      device: 'device2', 
+      timestamp: Date.now(), // Новые данные
+      data: { version: 2 }
+    };
+    const wrapped2 = wrapDataWithMetadata(device2Data);
+    console.log('[TEST] Device 2: Has data with timestamp:', wrapped2._syncTimestamp);
+    console.log('[TEST] Device 2: Data:', device2Data);
+    console.log('[TEST] Timestamp comparison:', {
+      device1: wrapped1._syncTimestamp,
+      device2: wrapped2._syncTimestamp,
+      device2Newer: wrapped2._syncTimestamp! > wrapped1._syncTimestamp!
+    });
+    
+    // Симулируем CloudStorage с данными устройства 2 (более новые)
+    const mockCloudStorage2 = {
+      getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => {
+        setTimeout(() => {
+          if (key === testKey) {
+            console.log('[TEST] CloudStorage returning Device 2 data (newer)');
+            callback(null, JSON.stringify(wrapped2));
+          } else {
+            callback(null, null);
+          }
+        }, 100);
+      },
+      setItem: (key: string, value: string, callback: (error: Error | null) => void) => {
+        setTimeout(() => callback(null), 50);
+      }
+    };
+    
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.CloudStorage = mockCloudStorage2 as any;
+    }
+    
+    const resolvedData = await getStorageData<typeof device1Data>(testKey);
+    console.log('[TEST] Resolved data:', resolvedData);
+    const passed = resolvedData && resolvedData.device === 'device2';
+    console.log(`[TEST] Scenario 2: ${passed ? '✅ PASSED (CloudStorage priority)' : '❌ FAILED'}`);
+    if (!passed) {
+      console.error('[TEST] Expected device: "device2", got:', resolvedData?.device);
+    }
+    
+    localStorage.removeItem(testKey);
+  } catch (error) {
+    console.error('[TEST] Scenario 2 ERROR:', error);
+  }
+  
+  // Тест 3: Отсутствие данных в CloudStorage
+  console.log('\n📱 [TEST] ========================================');
+  console.log('📱 [TEST] Scenario 3: No data in CloudStorage');
+  console.log('📱 [TEST] ========================================');
+  try {
+    const testKey = '__sync_test_no_cloud__';
+    const localData = { device: 'local', data: { test: 'local-only' } };
+    const wrapped = wrapDataWithMetadata(localData);
+    localStorage.setItem(testKey, JSON.stringify(wrapped));
+    console.log('[TEST] localStorage has data:', localData);
+    
+    const mockCloudStorage3 = {
+      getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => {
+        setTimeout(() => {
+          console.log('[TEST] CloudStorage returning null (no data)');
+          callback(null, null); // Нет данных в CloudStorage
+        }, 100);
+      },
+      setItem: (key: string, value: string, callback: (error: Error | null) => void) => {
+        setTimeout(() => callback(null), 50);
+      }
+    };
+    
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.CloudStorage = mockCloudStorage3 as any;
+    }
+    
+    const loadedData = await getStorageData<typeof localData>(testKey);
+    console.log('[TEST] Loaded data (should be from localStorage):', loadedData);
+    const passed = loadedData && loadedData.device === 'local';
+    console.log(`[TEST] Scenario 3: ${passed ? '✅ PASSED (localStorage fallback)' : '❌ FAILED'}`);
+    if (!passed) {
+      console.error('[TEST] Expected device: "local", got:', loadedData?.device);
+    }
+    
+    localStorage.removeItem(testKey);
+  } catch (error) {
+    console.error('[TEST] Scenario 3 ERROR:', error);
+  }
+  
+  // Тест 4: Ошибка CloudStorage
+  console.log('\n📱 [TEST] ========================================');
+  console.log('📱 [TEST] Scenario 4: CloudStorage Error');
+  console.log('📱 [TEST] ========================================');
+  try {
+    const testKey = '__sync_test_error__';
+    const localData = { device: 'local', data: { test: 'fallback' } };
+    const wrapped = wrapDataWithMetadata(localData);
+    localStorage.setItem(testKey, JSON.stringify(wrapped));
+    console.log('[TEST] localStorage has data:', localData);
+    
+    const mockCloudStorage4 = {
+      getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => {
+        setTimeout(() => {
+          console.log('[TEST] CloudStorage returning error');
+          callback(new Error('CloudStorage error'), null);
+        }, 100);
+      },
+      setItem: (key: string, value: string, callback: (error: Error | null) => void) => {
+        setTimeout(() => callback(null), 50);
+      }
+    };
+    
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.CloudStorage = mockCloudStorage4 as any;
+    }
+    
+    const loadedData = await getStorageData<typeof localData>(testKey);
+    console.log('[TEST] Loaded data (should be from localStorage after error):', loadedData);
+    const passed = loadedData && loadedData.device === 'local';
+    console.log(`[TEST] Scenario 4: ${passed ? '✅ PASSED (error fallback)' : '❌ FAILED'}`);
+    if (!passed) {
+      console.error('[TEST] Expected device: "local", got:', loadedData?.device);
+    }
+    
+    localStorage.removeItem(testKey);
+  } catch (error) {
+    console.error('[TEST] Scenario 4 ERROR:', error);
+  }
+  
+  // Восстанавливаем оригинальные значения
+  if (window.Telegram?.WebApp) {
+    if (originalCloudStorage) {
+      window.Telegram.WebApp.CloudStorage = originalCloudStorage;
+    } else {
+      delete (window.Telegram.WebApp as any).CloudStorage;
+    }
+    if (window.Telegram?.WebApp) {
+      if (originalVersion) {
+        window.Telegram.WebApp.version = originalVersion;
+      } else {
+        delete (window.Telegram.WebApp as any).version;
+      }
+    }
+  }
+  
+  console.log('\n🧪 [TEST] ========================================');
+  console.log('🧪 [TEST] Virtual sync test completed!');
+  console.log('🧪 [TEST] Check the logs above to see detailed synchronization flow');
+  console.log('🧪 [TEST] ========================================\n');
+}
+
+/**
+ * Диагностическая функция для проверки состояния синхронизации
+ * Показывает текущее состояние localStorage и CloudStorage для всех ключей
+ */
+export async function diagnoseSync(): Promise<void> {
+  console.log('🔍 [DIAG] ========================================');
+  console.log('🔍 [DIAG] Starting sync diagnosis...');
+  console.log('🔍 [DIAG] ========================================\n');
+  
+  // Проверка доступности CloudStorage
+  console.log('📊 [DIAG] CloudStorage Availability:');
+  const isSupported = isCloudStorageSupported();
+  console.log('  - Supported:', isSupported);
+  console.log('  - Telegram.WebApp exists:', !!window.Telegram?.WebApp);
+  console.log('  - CloudStorage exists:', !!window.Telegram?.WebApp?.CloudStorage);
+  console.log('  - Version:', window.Telegram?.WebApp?.version || 'not set');
+  console.log('');
+  
+  // Проверка всех ключей
+  const keys = Object.values(STORAGE_KEYS);
+  console.log(`📊 [DIAG] Checking ${keys.length} storage keys:\n`);
+  
+  for (const key of keys) {
+    console.log(`🔑 [DIAG] Key: "${key}"`);
+    
+    // Проверка localStorage
+    const localData = localStorage.getItem(key);
+    if (localData) {
+      try {
+        const parsed = JSON.parse(localData);
+        const hasMetadata = '_syncTimestamp' in parsed;
+        const size = localData.length;
+        console.log(`  📦 localStorage:`, {
+          exists: true,
+          size,
+          hasMetadata,
+          timestamp: hasMetadata ? parsed._syncTimestamp : 'N/A',
+          dataPreview: hasMetadata && parsed.data 
+            ? (Array.isArray(parsed.data) ? `array[${parsed.data.length}]` : `object`)
+            : 'N/A'
+        });
+      } catch (e) {
+        console.log(`  📦 localStorage: exists but invalid JSON`);
+      }
+    } else {
+      console.log(`  📦 localStorage: no data`);
+    }
+    
+    // Проверка CloudStorage (если доступен)
+    if (isSupported && window.Telegram?.WebApp?.CloudStorage) {
+      try {
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(() => {
+            console.log(`  ☁️  CloudStorage: timeout (no response)`);
+            resolve();
+          }, 2000);
+          
+          window.Telegram?.WebApp?.CloudStorage?.getItem(key, (error, value) => {
+            clearTimeout(timeout);
+            if (error) {
+              console.log(`  ☁️  CloudStorage: error - ${error}`);
+            } else if (value === null || value === '') {
+              console.log(`  ☁️  CloudStorage: no data`);
+            } else {
+              try {
+                const parsed = JSON.parse(value);
+                const hasMetadata = '_syncTimestamp' in parsed;
+                const size = value.length;
+                console.log(`  ☁️  CloudStorage:`, {
+                  exists: true,
+                  size,
+                  hasMetadata,
+                  timestamp: hasMetadata ? parsed._syncTimestamp : 'N/A',
+                  dataPreview: hasMetadata && parsed.data 
+                    ? (Array.isArray(parsed.data) ? `array[${parsed.data.length}]` : `object`)
+                    : 'N/A'
+                });
+                
+                // Сравнение с localStorage
+                if (localData) {
+                  const localParsed = JSON.parse(localData);
+                  const localHasMeta = '_syncTimestamp' in localParsed;
+                  const cloudHasMeta = '_syncTimestamp' in parsed;
+                  
+                  if (localHasMeta && cloudHasMeta) {
+                    const localTs = localParsed._syncTimestamp;
+                    const cloudTs = parsed._syncTimestamp;
+                    const diff = cloudTs - localTs;
+                    console.log(`  🔄 Sync Status:`, {
+                      localTimestamp: localTs,
+                      cloudTimestamp: cloudTs,
+                      difference: `${diff > 0 ? '+' : ''}${diff}ms`,
+                      cloudNewer: cloudTs > localTs,
+                      inSync: Math.abs(diff) < 1000 // Считаем синхронизированным если разница < 1 сек
+                    });
+                  } else {
+                    console.log(`  🔄 Sync Status: metadata missing (cannot compare)`);
+                  }
+                }
+              } catch (e) {
+                console.log(`  ☁️  CloudStorage: exists but invalid JSON`);
+              }
+            }
+            resolve();
+          });
+        });
+      } catch (e) {
+        console.log(`  ☁️  CloudStorage: exception - ${e}`);
+      }
+    } else {
+      console.log(`  ☁️  CloudStorage: not available`);
+    }
+    
+    console.log('');
+  }
+  
+  console.log('🔍 [DIAG] ========================================');
+  console.log('🔍 [DIAG] Diagnosis completed!');
+  console.log('🔍 [DIAG] ========================================\n');
+}
+
+// Делаем функции доступными в глобальной области для вызова из консоли
+if (typeof window !== 'undefined') {
+  (window as any).testSync = testSync;
+  (window as any).diagnoseSync = diagnoseSync;
+  console.log('🧪 [TEST] Virtual sync test function available: call window.testSync() in console');
+  console.log('🔍 [DIAG] Sync diagnosis function available: call window.diagnoseSync() in console');
 }
 
