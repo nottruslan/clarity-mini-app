@@ -11,9 +11,19 @@ interface Step4DateProps {
   initialDate?: number;
 }
 
+// Функция для форматирования даты в YYYY-MM-DD в локальном времени
+const formatDateToInput = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function Step4Date({ type, amount, category, onNext, onBack, initialDate }: Step4DateProps) {
+  // Используем локальное время для инициализации, чтобы избежать проблем с часовыми поясами
   const [date, setDate] = useState(
-    initialDate ? new Date(initialDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+    initialDate ? formatDateToInput(initialDate) : formatDateToInput(Date.now())
   );
 
   const handleNext = () => {
@@ -22,7 +32,17 @@ export default function Step4Date({ type, amount, category, onNext, onBack, init
     const selectedDate = new Date(year, month - 1, day);
     // Устанавливаем время на начало дня (00:00:00) в локальном времени
     selectedDate.setHours(0, 0, 0, 0);
-    onNext(selectedDate.getTime());
+    const timestamp = selectedDate.getTime();
+    console.log('[Step4Date] handleNext - Date selected:', {
+      input: date,
+      year,
+      month,
+      day,
+      selectedDate: selectedDate.toString(),
+      timestamp,
+      timestampDate: new Date(timestamp).toString()
+    });
+    onNext(timestamp);
   };
 
   const formatCurrency = (amount: number) => {
