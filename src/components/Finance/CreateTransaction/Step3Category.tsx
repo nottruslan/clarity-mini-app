@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Category } from '../../../utils/storage';
 import WizardSlide from '../../Wizard/WizardSlide';
-import WizardCard from '../../Wizard/WizardCard';
 import GradientButton from '../../Wizard/GradientButton';
 import CreateCategoryWizard from '../CreateCategoryWizard';
 
@@ -112,15 +111,43 @@ export default function Step3Category({
         </div>
       ) : (
         <>
-          {filteredCategories.map((category) => (
-            <WizardCard
-              key={category.id}
-              icon={getCategoryIcon(category)}
-              title={category.name}
-              selected={selectedCategory === category.name}
-              onClick={() => setSelectedCategory(category.name)}
-            />
-          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+            {filteredCategories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.name)}
+                className="tg-button"
+                style={{
+                  width: '100%',
+                  backgroundColor: selectedCategory === category.name
+                    ? 'var(--tg-theme-button-color)'
+                    : 'var(--tg-theme-secondary-bg-color)',
+                  color: selectedCategory === category.name
+                    ? 'var(--tg-theme-button-text-color)'
+                    : 'var(--tg-theme-text-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  minHeight: '44px'
+                }}
+              >
+                <span style={{ fontSize: '20px', flexShrink: 0 }}>
+                  {getCategoryIcon(category)}
+                </span>
+                <span style={{ flex: 1, textAlign: 'left' }}>
+                  {category.name}
+                </span>
+              </button>
+            ))}
+          </div>
           <div style={{
             display: 'flex',
             justifyContent: 'center',
