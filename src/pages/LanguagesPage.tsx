@@ -5,8 +5,17 @@ export default function LanguagesPage() {
 
   const handleOpenWord = () => {
     if (tg) {
-      tg.openLink('https://t.me/word', { try_instant_view: true });
+      try {
+        // Используем формат ссылки https://t.me/word для открытия бота напрямую в Telegram
+        // Без try_instant_view, чтобы избежать открытия через браузер
+        tg.openLink('https://t.me/word');
+      } catch (error) {
+        console.error('Ошибка при открытии ссылки:', error);
+        // Fallback на window.open, если openLink не работает
+        window.open('https://t.me/word', '_blank');
+      }
     } else {
+      // Fallback для случая, когда Telegram WebApp недоступен
       window.open('https://t.me/word', '_blank');
     }
   };
