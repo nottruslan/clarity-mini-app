@@ -13,6 +13,9 @@ interface NavigationMenuProps {
 
 const sections: Section[] = ['home', 'tasks', 'habits', 'finance', 'languages', 'yearly-report', 'covey-matrix', 'books', 'diary'];
 
+// Порог движения для определения скролла (в пикселях)
+const SCROLL_THRESHOLD = 10;
+
 export default function NavigationMenu({ 
   isOpen, 
   currentSection, 
@@ -21,6 +24,8 @@ export default function NavigationMenu({
 }: NavigationMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number; section: Section | null } | null>(null);
+  const isScrollingRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -57,9 +62,54 @@ export default function NavigationMenu({
     };
   }, [isOpen, onClose]);
 
-  const handleSelect = (section: Section) => {
+  const handleSelect = (section: Section, wasScrolling: boolean) => {
+    // Блокируем выбор, если был скролл
+    if (wasScrolling) {
+      return;
+    }
     onSectionSelect(section);
     onClose();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, section: Section) => {
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      section
+    };
+    isScrollingRef.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+    // Если движение превышает порог, считаем это скроллом
+    if (distance > SCROLL_THRESHOLD) {
+      isScrollingRef.current = true;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, section: Section) => {
+    e.preventDefault();
+    
+    // Проверяем, что касание началось на этом же элементе
+    const wasScrolling = touchStartRef.current?.section === section 
+      ? isScrollingRef.current 
+      : false;
+    
+    handleSelect(section, wasScrolling);
+    
+    // Сбрасываем состояние после небольшой задержки
+    setTimeout(() => {
+      touchStartRef.current = null;
+      isScrollingRef.current = false;
+    }, 100);
   };
 
   return (
@@ -101,11 +151,10 @@ export default function NavigationMenu({
               <div
                 key={section}
                 className={`navigation-menu-item ${isActive ? 'active' : ''}`}
-                onClick={() => handleSelect(section)}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  handleSelect(section);
-                }}
+                onClick={() => handleSelect(section, isScrollingRef.current)}
+                onTouchStart={(e) => handleTouchStart(e, section)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={(e) => handleTouchEnd(e, section)}
                 style={{
                   backgroundColor: isActive ? colors.secondary : 'transparent',
                   borderLeft: isActive ? `4px solid ${colors.primary}` : '4px solid transparent'
