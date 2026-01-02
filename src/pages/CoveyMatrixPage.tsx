@@ -1,20 +1,18 @@
 import { useState, useRef } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, calculateQuadrant, type CoveyTask } from '../utils/storage';
-import CoveyMatrixView from '../components/CoveyMatrix/CoveyMatrixView';
+import QuadrantView from '../components/CoveyMatrix/QuadrantView';
 import CoveyStatisticsView from '../components/CoveyMatrix/CoveyStatisticsView';
 import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Name from '../components/CoveyMatrix/CreateTask/Step1Name';
 import Step2Description from '../components/CoveyMatrix/CreateTask/Step2Description';
-import Step3Importance from '../components/CoveyMatrix/CreateTask/Step3Importance';
-import Step4Urgency from '../components/CoveyMatrix/CreateTask/Step4Urgency';
 import Step5Date from '../components/CoveyMatrix/CreateTask/Step5Date';
 
 interface CoveyMatrixPageProps {
   storage: ReturnType<typeof useCloudStorage>;
 }
 
-const sectionTitles = ['Матрица', 'Статистика'];
+const sectionTitles = ['Q1', 'Q2', 'Q3', 'Q4', 'Статистика'];
 
 export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -24,12 +22,11 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingTask, setEditingTask] = useState<CoveyTask | null>(null);
+  const [creatingQuadrant, setCreatingQuadrant] = useState<'q1' | 'q2' | 'q3' | 'q4' | null>(null);
   const [wizardStep, setWizardStep] = useState(0);
   const [taskData, setTaskData] = useState<{
     title?: string;
     description?: string;
-    important?: boolean;
-    urgent?: boolean;
     date?: number;
   }>({});
 
@@ -57,10 +54,11 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
     }
   };
 
-  const handleStartCreate = () => {
+  const handleCreateTask = (quadrant: 'q1' | 'q2' | 'q3' | 'q4') => {
     setIsCreating(true);
     setIsEditing(false);
     setEditingTask(null);
+    setCreatingQuadrant(quadrant);
     setWizardStep(0);
     setTaskData({});
   };
@@ -69,12 +67,11 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
     setIsEditing(true);
     setIsCreating(false);
     setEditingTask(task);
+    setCreatingQuadrant(task.quadrant);
     setWizardStep(0);
     setTaskData({
       title: task.title,
       description: task.description,
-      important: task.important,
-      urgent: task.urgent,
       date: task.date
     });
   };
@@ -89,27 +86,27 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
     setWizardStep(2);
   };
 
-  const handleStep3Complete = (important: boolean) => {
-    setTaskData({ ...taskData, important });
-    setWizardStep(3);
-  };
+  const handleStep3Complete = (date?: number) => {
+    if (!creatingQuadrant) return;
 
-  const handleStep4Complete = (urgent: boolean) => {
-    setTaskData({ ...taskData, urgent });
-    setWizardStep(4);
-  };
+    // Определяем важность и срочность по квадранту
+    const quadrantValues = {
+      q1: { important: true, urgent: true },
+      q2: { important: true, urgent: false },
+      q3: { important: false, urgent: true },
+      q4: { important: false, urgent: false }
+    };
 
-  const handleStep5Complete = (date?: number) => {
+    const { important, urgent } = quadrantValues[creatingQuadrant];
     const finalData = { ...taskData, date };
-    const quadrant = calculateQuadrant(finalData.important || false, finalData.urgent || false);
-    
+
     if (isEditing && editingTask) {
       storage.updateCoveyTask(editingTask.id, {
         title: finalData.title!,
         description: finalData.description,
-        important: finalData.important!,
-        urgent: finalData.urgent!,
-        quadrant,
+        important,
+        urgent,
+        quadrant: creatingQuadrant,
         date: finalData.date
       });
     } else {
@@ -117,9 +114,9 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
         id: generateId(),
         title: finalData.title!,
         description: finalData.description,
-        important: finalData.important!,
-        urgent: finalData.urgent!,
-        quadrant,
+        important,
+        urgent,
+        quadrant: creatingQuadrant,
         date: finalData.date,
         completed: false,
         createdAt: Date.now(),
@@ -131,6 +128,7 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
     setIsCreating(false);
     setIsEditing(false);
     setEditingTask(null);
+    setCreatingQuadrant(null);
     setWizardStep(0);
     setTaskData({});
   };
@@ -142,19 +140,20 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
       setIsCreating(false);
       setIsEditing(false);
       setEditingTask(null);
+      setCreatingQuadrant(null);
       setTaskData({});
     }
   };
 
   const handleSkip = () => {
-    handleStep5Complete(taskData.date);
+    handleStep3Complete(taskData.date);
   };
 
   if (isCreating || isEditing) {
     return (
       <WizardContainer
         currentStep={wizardStep}
-        totalSteps={5}
+        totalSteps={3}
       >
         <div className={`wizard-slide ${wizardStep === 0 ? 'active' : wizardStep > 0 ? 'prev' : 'next'}`}>
           <Step1Name
@@ -174,26 +173,8 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
         )}
         {taskData.title && (
           <div className={`wizard-slide ${wizardStep === 2 ? 'active' : wizardStep > 2 ? 'prev' : 'next'}`}>
-            <Step3Importance
-              onNext={handleStep3Complete}
-              onBack={handleBack}
-              initialValue={taskData.important}
-            />
-          </div>
-        )}
-        {taskData.title && taskData.important !== undefined && (
-          <div className={`wizard-slide ${wizardStep === 3 ? 'active' : wizardStep > 3 ? 'prev' : 'next'}`}>
-            <Step4Urgency
-              onNext={handleStep4Complete}
-              onBack={handleBack}
-              initialValue={taskData.urgent}
-            />
-          </div>
-        )}
-        {taskData.title && taskData.important !== undefined && taskData.urgent !== undefined && (
-          <div className={`wizard-slide ${wizardStep === 4 ? 'active' : wizardStep > 4 ? 'prev' : 'next'}`}>
             <Step5Date
-              onNext={handleStep5Complete}
+              onNext={handleStep3Complete}
               onBack={handleBack}
               onSkip={handleSkip}
               initialValue={taskData.date}
@@ -204,76 +185,108 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
     );
   }
 
+  const getQuadrantTitle = (index: number) => {
+    const titles = {
+      0: 'Важно и срочно',
+      1: 'Важно, но не срочно',
+      2: 'Не важно, но срочно',
+      3: 'Не важно и не срочно',
+      4: 'Статистика'
+    };
+    return titles[index as keyof typeof titles] || sectionTitles[index];
+  };
+
   return (
-    <>
-      {/* FAB кнопка */}
-      {currentSlide === 0 && (
-        <button
-          onClick={handleStartCreate}
-          className="fab"
-          style={{
-            position: 'fixed',
-            bottom: 'calc(20px + env(safe-area-inset-bottom))',
-            right: '20px',
-            zIndex: 10001
-          }}
-        >
-          +
-        </button>
-      )}
-
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
-        overflow: 'hidden'
+    <div style={{ 
+      flex: 1, 
+      display: 'flex', 
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
+      {/* Заголовки разделов */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-around',
+        padding: '12px 8px',
+        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
+        backgroundColor: 'var(--tg-theme-bg-color)',
+        overflowX: 'auto',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none'
       }}>
-        {/* Заголовки разделов */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-around',
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-          backgroundColor: 'var(--tg-theme-bg-color)'
-        }}>
-          {sectionTitles.map((title, index) => (
-            <div
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              style={{
-                fontSize: '16px',
-                fontWeight: currentSlide === index ? '600' : '400',
-                color: currentSlide === index 
-                  ? 'var(--tg-theme-button-color)' 
-                  : 'var(--tg-theme-hint-color)',
-                cursor: 'pointer',
-                padding: '8px 12px',
-                borderBottom: currentSlide === index 
-                  ? '2px solid var(--tg-theme-button-color)' 
-                  : '2px solid transparent',
-                transition: 'all 0.2s'
-              }}
-            >
-              {title}
-            </div>
-          ))}
-        </div>
+        <style>{`
+          div::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+        {sectionTitles.map((title, index) => (
+          <div
+            key={index}
+            onClick={() => setCurrentSlide(index)}
+            style={{
+              fontSize: '14px',
+              fontWeight: currentSlide === index ? '600' : '400',
+              color: currentSlide === index 
+                ? 'var(--tg-theme-button-color)' 
+                : 'var(--tg-theme-hint-color)',
+              cursor: 'pointer',
+              padding: '8px 8px',
+              borderBottom: currentSlide === index 
+                ? '2px solid var(--tg-theme-button-color)' 
+                : '2px solid transparent',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}
+          >
+            {title}
+          </div>
+        ))}
+      </div>
 
-        {/* Контейнер со слайдами */}
-        <div
-          className="slide-container"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div className={`slide ${currentSlide === 0 ? 'active' : currentSlide > 0 ? 'prev' : 'next'}`}>
-            <CoveyMatrixView storage={storage} onEdit={handleEdit} />
-          </div>
-          <div className={`slide ${currentSlide === 1 ? 'active' : currentSlide > 1 ? 'prev' : 'next'}`}>
-            <CoveyStatisticsView storage={storage} />
-          </div>
+      {/* Контейнер со слайдами */}
+      <div
+        className="slide-container"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className={`slide ${currentSlide === 0 ? 'active' : currentSlide > 0 ? 'prev' : 'next'}`}>
+          <QuadrantView 
+            quadrant="q1" 
+            storage={storage} 
+            onEdit={handleEdit}
+            onCreateTask={handleCreateTask}
+          />
+        </div>
+        <div className={`slide ${currentSlide === 1 ? 'active' : currentSlide > 1 ? 'prev' : 'next'}`}>
+          <QuadrantView 
+            quadrant="q2" 
+            storage={storage} 
+            onEdit={handleEdit}
+            onCreateTask={handleCreateTask}
+          />
+        </div>
+        <div className={`slide ${currentSlide === 2 ? 'active' : currentSlide > 2 ? 'prev' : 'next'}`}>
+          <QuadrantView 
+            quadrant="q3" 
+            storage={storage} 
+            onEdit={handleEdit}
+            onCreateTask={handleCreateTask}
+          />
+        </div>
+        <div className={`slide ${currentSlide === 3 ? 'active' : currentSlide > 3 ? 'prev' : 'next'}`}>
+          <QuadrantView 
+            quadrant="q4" 
+            storage={storage} 
+            onEdit={handleEdit}
+            onCreateTask={handleCreateTask}
+          />
+        </div>
+        <div className={`slide ${currentSlide === 4 ? 'active' : currentSlide > 4 ? 'prev' : 'next'}`}>
+          <CoveyStatisticsView storage={storage} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
