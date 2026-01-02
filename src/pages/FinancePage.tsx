@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, type Transaction, type Category } from '../utils/storage';
 import FinanceOverview from '../components/Finance/FinanceOverview';
@@ -48,13 +48,23 @@ export default function FinancePage({ storage }: FinancePageProps) {
   
   const sectionTitles = ['Обзор', 'Транзакции', 'Статистика'];
   
+  // Отслеживаем изменения transactions для диагностики
+  useEffect(() => {
+    const transactions = storage.finance.transactions || [];
+    console.log('[FinancePage] useEffect - storage.finance.transactions changed:', {
+      count: transactions.length,
+      transactionIds: transactions.map(t => t.id),
+      transactions: transactions
+    });
+  }, [storage.finance.transactions]);
+  
   // Для списка транзакций не применяем фильтрацию по периоду - показываем все транзакции
   // Фильтрация по периоду применяется только для Обзора и Статистики
   // Убеждаемся, что transactions всегда является массивом
   const allTransactions = Array.isArray(storage.finance.transactions) ? storage.finance.transactions : [];
-  console.log('[FinancePage] All transactions count:', allTransactions.length);
+  console.log('[FinancePage] Render - All transactions count:', allTransactions.length, 'transactions:', allTransactions);
   const filteredTransactions = useFinanceFilters(allTransactions, filters);
-  console.log('[FinancePage] Filtered transactions count:', filteredTransactions.length);
+  console.log('[FinancePage] Render - Filtered transactions count:', filteredTransactions.length, 'filters:', filters);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchEndRef.current = null;

@@ -10,7 +10,12 @@ interface TransactionListProps {
 export default function TransactionList({ transactions, onTransactionClick, onOpenMenu }: TransactionListProps) {
   // Убеждаемся, что transactions всегда является массивом
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
-  console.log('[TransactionList] Rendering transactions:', safeTransactions.length);
+  console.log('[TransactionList] Render - transactions prop:', {
+    isArray: Array.isArray(transactions),
+    count: safeTransactions.length,
+    transactionIds: safeTransactions.map(t => t.id),
+    transactions: safeTransactions
+  });
   
   if (safeTransactions.length === 0) {
     return (

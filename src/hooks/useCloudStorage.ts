@@ -132,7 +132,13 @@ export function useCloudStorage() {
       });
       
       setHabits(migratedHabits);
+      console.log('[Finance] loadAllData - Loading finance data:', {
+        transactionsCount: financeData.transactions?.length || 0,
+        categoriesCount: financeData.categories?.length || 0,
+        budgetsCount: financeData.budgets?.length || 0
+      });
       setFinance(financeData);
+      console.log('[Finance] loadAllData - Finance state updated');
       setOnboarding(onboardingData);
       setYearlyReports(reportsData);
       setTasksData(tasksData);
@@ -217,37 +223,54 @@ export function useCloudStorage() {
 
   const addTransaction = useCallback(async (transaction: FinanceData['transactions'][0]) => {
     try {
-      console.log('[Finance] Adding transaction:', transaction);
+      console.log('[Finance] addTransaction - START, transaction:', transaction);
+      
       setFinance(prevFinance => {
+        console.log('[Finance] addTransaction - Inside setFinance callback, prevFinance:', {
+          transactionsCount: prevFinance.transactions?.length || 0
+        });
+        
         // Убеждаемся, что transactions всегда является массивом
         const prevTransactions = prevFinance.transactions || [];
+        console.log('[Finance] addTransaction - Prev transactions:', prevTransactions.length);
+        
         const newFinance = {
           ...prevFinance,
           transactions: [...prevTransactions, transaction]
         };
-        console.log('[Finance] New transactions count:', newFinance.transactions.length);
+        console.log('[Finance] addTransaction - New finance object:', {
+          transactionsCount: newFinance.transactions.length,
+          lastTransactionId: newFinance.transactions[newFinance.transactions.length - 1]?.id
+        });
+        
         // Сохраняем в хранилище асинхронно
+        console.log('[Finance] addTransaction - Calling saveFinanceData...');
         saveFinanceData(newFinance)
           .then(() => {
-            console.log('[Finance] Transaction saved successfully');
+            console.log('[Finance] addTransaction - Transaction saved successfully to storage');
           })
           .catch(err => {
-            console.error('[Finance] Error saving finance:', err);
+            console.error('[Finance] addTransaction - Error saving finance:', err);
           });
+        
+        console.log('[Finance] addTransaction - Returning newFinance from setFinance callback');
         return newFinance;
       });
+      
+      console.log('[Finance] addTransaction - setFinance called, state update scheduled');
     } catch (error) {
-      console.error('[Finance] Error adding transaction:', error);
+      console.error('[Finance] addTransaction - Exception:', error);
       throw error;
     }
   }, []);
 
   const updateTransaction = useCallback(async (id: string, updates: Partial<FinanceData['transactions'][0]>) => {
     try {
+      console.log('[Finance] updateTransaction - START, id:', id, 'updates:', updates);
       setFinance(prevFinance => {
         const transactionIndex = prevFinance.transactions.findIndex(t => t.id === id);
         if (transactionIndex === -1) {
-          console.warn('Transaction not found:', id);
+          console.warn('[Finance] updateTransaction - Transaction not found:', id);
           return prevFinance;
         }
         
@@ -259,11 +282,12 @@ export function useCloudStorage() {
           )
         };
         
-        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        console.log('[Finance] updateTransaction - Saving updated finance data');
+        saveFinanceData(newFinance).catch(err => console.error('[Finance] updateTransaction - Error saving:', err));
         return newFinance;
       });
     } catch (error) {
-      console.error('Error updating transaction:', error);
+      console.error('[Finance] updateTransaction - Exception:', error);
       throw error;
     }
   }, []);

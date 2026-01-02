@@ -745,7 +745,18 @@ export async function getFinanceData(): Promise<FinanceData> {
  * Сохранить финансовые данные
  */
 export async function saveFinanceData(data: FinanceData): Promise<void> {
-  await setStorageData(STORAGE_KEYS.FINANCE, data);
+  console.log('[saveFinanceData] START - Saving finance data:', {
+    transactionsCount: data.transactions?.length || 0,
+    categoriesCount: data.categories?.length || 0,
+    budgetsCount: data.budgets?.length || 0
+  });
+  try {
+    await setStorageData(STORAGE_KEYS.FINANCE, data);
+    console.log('[saveFinanceData] SUCCESS - Finance data saved');
+  } catch (error) {
+    console.error('[saveFinanceData] ERROR - Failed to save finance data:', error);
+    throw error;
+  }
 }
 
 /**
