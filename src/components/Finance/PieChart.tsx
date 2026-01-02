@@ -4,7 +4,7 @@ interface PieChartProps {
   transactions: Transaction[];
   categories: Category[];
   type: 'income' | 'expense';
-  onCategoryClick?: (categoryName: string) => void;
+  onCategoryClick?: (categoryName: string, otherCategoryNames?: string[]) => void;
 }
 
 export default function PieChart({ transactions, categories, type, onCategoryClick }: PieChartProps) {
@@ -36,7 +36,9 @@ export default function PieChart({ transactions, categories, type, onCategoryCli
 
   // Берем топ 6, остальные объединяем в "Прочее"
   const topCategories = sortedCategories.slice(0, 6);
-  const otherTotal = sortedCategories.slice(6).reduce((sum, [, amount]) => sum + amount, 0);
+  const otherCategories = sortedCategories.slice(6);
+  const otherTotal = otherCategories.reduce((sum, [, amount]) => sum + amount, 0);
+  const otherCategoryNames = otherCategories.map(([name]) => name);
   
   const chartData = otherTotal > 0 
     ? [...topCategories, ['Прочее', otherTotal] as [string, number]]
@@ -135,7 +137,7 @@ export default function PieChart({ transactions, categories, type, onCategoryCli
                   transition: 'opacity 0.2s',
                   cursor: onCategoryClick ? 'pointer' : 'default'
                 }}
-                onClick={() => onCategoryClick?.(categoryName)}
+                onClick={() => onCategoryClick?.(categoryName, categoryName === 'Прочее' ? otherCategoryNames : undefined)}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.opacity = onCategoryClick ? '0.8' : '1';
                 }}
@@ -177,7 +179,7 @@ export default function PieChart({ transactions, categories, type, onCategoryCli
           return (
             <div
               key={categoryName}
-              onClick={() => onCategoryClick?.(categoryName)}
+              onClick={() => onCategoryClick?.(categoryName, categoryName === 'Прочее' ? otherCategoryNames : undefined)}
               style={{
                 display: 'flex',
                 alignItems: 'center',

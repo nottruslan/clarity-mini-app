@@ -718,6 +718,10 @@ export async function getFinanceData(): Promise<FinanceData> {
     await saveFinanceData(defaultData);
     return defaultData;
   }
+  // Убеждаемся, что transactions всегда существует (защита от потери данных)
+  if (!data.transactions) {
+    data.transactions = [];
+  }
   // Если категорий нет, добавляем их
   if (!data.categories || data.categories.length === 0) {
     data.categories = getDefaultCategories();

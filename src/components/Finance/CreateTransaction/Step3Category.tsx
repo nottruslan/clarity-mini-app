@@ -225,18 +225,17 @@ export default function Step3Category({
             setShowMenu(false);
             setMenuCategory(null);
           } : undefined}
-          onChangeIcon={onUpdateCategory ? () => {
-            // TODO: открыть emoji picker для изменения иконки
+          onChangeIcon={onUpdateCategory ? (icon: string) => {
+            onUpdateCategory(menuCategory.id, { icon });
             setShowMenu(false);
             setMenuCategory(null);
           } : undefined}
-          onDelete={onDeleteCategory ? () => {
-            // TODO: показать диалог выбора новой категории для транзакций
-            // Пока просто удаляем
-            onDeleteCategory(menuCategory.id);
+          onDelete={onDeleteCategory ? (categoryId: string, newCategoryName?: string) => {
+            onDeleteCategory(categoryId, newCategoryName);
             setShowMenu(false);
             setMenuCategory(null);
           } : undefined}
+          categories={categories}
           canMoveUp={canMoveUpMenu}
           canMoveDown={canMoveDownMenu}
         />

@@ -24,12 +24,19 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
   const incomeTransactions = transactions.filter(t => t.type === 'income');
   const expenseTransactions = transactions.filter(t => t.type === 'expense');
 
-  const handleCategoryClick = (categoryName: string, type: 'income' | 'expense') => {
+  const [otherCategoryNames, setOtherCategoryNames] = useState<string[]>([]);
+
+  const handleCategoryClick = (categoryName: string, type: 'income' | 'expense', otherNames?: string[]) => {
     setSelectedCategory(categoryName);
     setSelectedCategoryType(type);
+    setOtherCategoryNames(otherNames || []);
   };
 
   const getCategoryTransactions = (categoryName: string, type: 'income' | 'expense'): Transaction[] => {
+    if (categoryName === 'Прочее' && otherCategoryNames.length > 0) {
+      // Для категории "Прочее" показываем транзакции из всех объединенных категорий
+      return transactions.filter(t => otherCategoryNames.includes(t.category) && t.type === type);
+    }
     return transactions.filter(t => t.category === categoryName && t.type === type);
   };
 
@@ -198,7 +205,7 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
               transactions={transactions}
               categories={categories}
               type="expense"
-              onCategoryClick={(categoryName) => handleCategoryClick(categoryName, 'expense')}
+              onCategoryClick={(categoryName, otherNames) => handleCategoryClick(categoryName, 'expense', otherNames)}
             />
           </div>
           <div>
@@ -215,7 +222,7 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
               transactions={transactions}
               categories={categories}
               type="income"
-              onCategoryClick={(categoryName) => handleCategoryClick(categoryName, 'income')}
+              onCategoryClick={(categoryName, otherNames) => handleCategoryClick(categoryName, 'income', otherNames)}
             />
           </div>
         </div>
