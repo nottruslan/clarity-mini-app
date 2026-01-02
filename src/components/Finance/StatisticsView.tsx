@@ -12,14 +12,20 @@ interface StatisticsViewProps {
 
 export default function StatisticsView({ finance }: StatisticsViewProps) {
   const [period, setPeriod] = useState<Period>('month');
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'categories' | 'trends' | 'statistics'>('statistics');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCategoryType, setSelectedCategoryType] = useState<'income' | 'expense' | null>(null);
   
   // Убеждаемся, что transactions всегда является массивом
   const allTransactions = Array.isArray(finance.transactions) ? finance.transactions : [];
-  const periodTransactions = filterTransactionsByPeriod(allTransactions, period, selectedDate || undefined);
+  const periodTransactions = filterTransactionsByPeriod(
+    allTransactions, 
+    period, 
+    startDate || undefined, 
+    endDate || undefined
+  );
 
   const transactions = periodTransactions;
   const categories = finance.categories || [];
@@ -72,18 +78,25 @@ export default function StatisticsView({ finance }: StatisticsViewProps) {
           onChange={(p) => {
             setPeriod(p);
             if (p !== 'date') {
-              setSelectedDate('');
-            } else if (p === 'date' && !selectedDate) {
+              setStartDate('');
+              setEndDate('');
+            } else if (p === 'date' && (!startDate || !endDate)) {
               // Инициализируем текущей датой при выборе периода 'date'
               const now = new Date();
               const year = now.getFullYear();
               const month = String(now.getMonth() + 1).padStart(2, '0');
               const day = String(now.getDate()).padStart(2, '0');
-              setSelectedDate(`${year}-${month}-${day}`);
+              const today = `${year}-${month}-${day}`;
+              setStartDate(today);
+              setEndDate(today);
             }
           }}
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
+          startDate={startDate}
+          endDate={endDate}
+          onDateRangeChange={(start, end) => {
+            setStartDate(start);
+            setEndDate(end);
+          }}
         />
       </div>
 
@@ -221,7 +234,8 @@ export default function StatisticsView({ finance }: StatisticsViewProps) {
           <TrendsChart
             transactions={transactions}
             period={period}
-            selectedDate={selectedDate || undefined}
+            startDate={startDate || undefined}
+            endDate={endDate || undefined}
           />
         </div>
       )}

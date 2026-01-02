@@ -4,11 +4,12 @@ import { Period, getPeriodDates } from './PeriodSelector';
 interface TrendsChartProps {
   transactions: Transaction[];
   period: Period;
-  selectedDate?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
-export default function TrendsChart({ transactions, period, selectedDate }: TrendsChartProps) {
-  const { start, end } = getPeriodDates(period, selectedDate);
+export default function TrendsChart({ transactions, period, startDate, endDate }: TrendsChartProps) {
+  const { start, end } = getPeriodDates(period, startDate, endDate);
   
   // Фильтруем транзакции по периоду
   const periodTransactions = transactions.filter(t => t.date >= start && t.date <= end);

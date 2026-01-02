@@ -3,8 +3,9 @@ export type Period = 'day' | 'week' | 'month' | 'year' | 'date';
 interface PeriodSelectorProps {
   value: Period;
   onChange: (period: Period) => void;
-  selectedDate?: string; // YYYY-MM-DD format
-  onDateChange?: (date: string) => void;
+  startDate?: string; // YYYY-MM-DD format
+  endDate?: string; // YYYY-MM-DD format
+  onDateRangeChange?: (startDate: string, endDate: string) => void;
 }
 
 const periods: { value: Period; label: string; icon: string }[] = [
@@ -12,7 +13,7 @@ const periods: { value: Period; label: string; icon: string }[] = [
   { value: 'week', label: 'Неделя', icon: '📆' },
   { value: 'month', label: 'Месяц', icon: '🗓️' },
   { value: 'year', label: 'Год', icon: '📊' },
-  { value: 'date', label: 'Дата', icon: '📌' }
+  { value: 'date', label: 'Выбрать...', icon: '📌' }
 ];
 
 // Функция для форматирования даты в YYYY-MM-DD в локальном времени
@@ -24,63 +25,104 @@ const formatDateToInput = (timestamp: number): string => {
   return `${year}-${month}-${day}`;
 };
 
-export default function PeriodSelector({ value, onChange, selectedDate, onDateChange }: PeriodSelectorProps) {
-  // Если выбран период 'date', используем selectedDate или текущую дату
-  const dateValue = value === 'date' 
-    ? (selectedDate || formatDateToInput(Date.now()))
-    : formatDateToInput(Date.now());
+export default function PeriodSelector({ value, onChange, startDate, endDate, onDateRangeChange }: PeriodSelectorProps) {
+  // Если выбран период 'date', используем startDate/endDate или текущую дату
+  const currentDate = formatDateToInput(Date.now());
+  const startDateValue = value === 'date' 
+    ? (startDate || currentDate)
+    : currentDate;
+  const endDateValue = value === 'date' 
+    ? (endDate || currentDate)
+    : currentDate;
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (onDateChange) {
-      onDateChange(e.target.value);
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onDateRangeChange) {
+      onDateRangeChange(e.target.value, endDateValue);
+    }
+  };
+
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onDateRangeChange) {
+      onDateRangeChange(startDateValue, e.target.value);
     }
   };
 
   const handlePeriodChange = (period: Period) => {
     onChange(period);
-    // При выборе периода 'date', инициализируем дату текущей датой, если она еще не задана
-    if (period === 'date' && onDateChange && !selectedDate) {
-      onDateChange(formatDateToInput(Date.now()));
+    // При выборе периода 'date', инициализируем обе даты текущей датой, если они еще не заданы
+    if (period === 'date' && onDateRangeChange && (!startDate || !endDate)) {
+      const today = formatDateToInput(Date.now());
+      onDateRangeChange(today, today);
     }
   };
 
   return (
     <div style={{
       display: 'flex',
-      gap: '8px',
-      padding: '8px',
+      gap: '4px',
+      padding: '6px',
       backgroundColor: 'var(--tg-theme-secondary-bg-color)',
       borderRadius: '12px',
-      overflowX: 'auto' as const,
-      WebkitOverflowScrolling: 'touch' as any,
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none',
-      alignItems: 'center'
+      alignItems: 'center',
+      flexWrap: 'nowrap'
     }}>
       {periods.map((period) => {
-        // Если это период 'date' и он выбран, показываем input вместо кнопки
+        // Если это период 'date' и он выбран, показываем два input вместо кнопки
         if (period.value === 'date' && value === 'date') {
           return (
-            <input
+            <div
               key={period.value}
-              type="date"
-              value={dateValue}
-              onChange={handleDateChange}
               style={{
-                minWidth: '140px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                border: '2px solid var(--tg-theme-button-color)',
-                backgroundColor: 'var(--tg-theme-button-color)',
-                color: 'var(--tg-theme-button-text-color)',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                flex: '0 0 auto',
-                touchAction: 'manipulation',
-                WebkitTapHighlightColor: 'transparent'
+                display: 'flex',
+                gap: '4px',
+                alignItems: 'center',
+                flex: '0 0 auto'
               }}
-            />
+            >
+              <input
+                type="date"
+                value={startDateValue}
+                onChange={handleStartDateChange}
+                style={{
+                  minWidth: '110px',
+                  padding: '6px 8px',
+                  borderRadius: '8px',
+                  border: '2px solid var(--tg-theme-button-color)',
+                  backgroundColor: 'var(--tg-theme-button-color)',
+                  color: 'var(--tg-theme-button-text-color)',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+              />
+              <span style={{ 
+                fontSize: '12px', 
+                color: 'var(--tg-theme-hint-color)',
+                whiteSpace: 'nowrap'
+              }}>
+                —
+              </span>
+              <input
+                type="date"
+                value={endDateValue}
+                onChange={handleEndDateChange}
+                style={{
+                  minWidth: '110px',
+                  padding: '6px 8px',
+                  borderRadius: '8px',
+                  border: '2px solid var(--tg-theme-button-color)',
+                  backgroundColor: 'var(--tg-theme-button-color)',
+                  color: 'var(--tg-theme-button-text-color)',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+              />
+            </div>
           );
         }
         
@@ -94,8 +136,8 @@ export default function PeriodSelector({ value, onChange, selectedDate, onDateCh
             }}
             style={{
               flex: '1 1 0',
-              minWidth: '70px',
-              padding: '10px 16px',
+              minWidth: '55px',
+              padding: '6px 10px',
               borderRadius: '8px',
               border: 'none',
               backgroundColor: value === period.value
@@ -104,21 +146,21 @@ export default function PeriodSelector({ value, onChange, selectedDate, onDateCh
               color: value === period.value
                 ? 'var(--tg-theme-button-text-color)'
                 : 'var(--tg-theme-text-color)',
-              fontSize: '14px',
+              fontSize: '12px',
               fontWeight: value === period.value ? '600' : '500',
               cursor: 'pointer',
               transition: 'all 0.2s',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '4px',
+              gap: '2px',
               touchAction: 'manipulation',
               WebkitTapHighlightColor: 'transparent',
               whiteSpace: 'nowrap',
               flexShrink: 0
             }}
           >
-            <span style={{ fontSize: '18px' }}>{period.icon}</span>
+            <span style={{ fontSize: '16px' }}>{period.icon}</span>
             <span>{period.label}</span>
           </button>
         );
@@ -131,7 +173,7 @@ export default function PeriodSelector({ value, onChange, selectedDate, onDateCh
  * Получить даты начала и конца для периода
  * Использует локальное время для корректной работы с датами транзакций
  */
-export function getPeriodDates(period: Period, selectedDate?: string): { start: number; end: number } {
+export function getPeriodDates(period: Period, startDate?: string, endDate?: string): { start: number; end: number } {
   const now = new Date();
   
   // Получаем компоненты локальной даты для корректной работы с часовым поясом
@@ -165,23 +207,30 @@ export function getPeriodDates(period: Period, selectedDate?: string): { start: 
     case 'year':
       // Период "Год" означает последние 12 месяцев от текущей даты
       // Это более практично для финансового анализа, чем календарный год
-      const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      const startDate = new Date(endDate);
-      startDate.setMonth(startDate.getMonth() - 11); // 11 месяцев назад + текущий месяц = 12 месяцев
-      startDate.setDate(1); // Первый день начального месяца
-      startDate.setHours(0, 0, 0, 0);
-      start = startDate.getTime();
-      end = endDate.getTime();
+      const endDateYear = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const startDateYear = new Date(endDateYear);
+      startDateYear.setMonth(startDateYear.getMonth() - 11); // 11 месяцев назад + текущий месяц = 12 месяцев
+      startDateYear.setDate(1); // Первый день начального месяца
+      startDateYear.setHours(0, 0, 0, 0);
+      start = startDateYear.getTime();
+      end = endDateYear.getTime();
       break;
     case 'date':
-      // Период "Дата" - выбор конкретной даты
-      if (selectedDate) {
-        const [year, month, day] = selectedDate.split('-').map(Number);
-        const selectedDateObj = new Date(year, month - 1, day);
+      // Период "Выбрать..." - выбор диапазона дат (от и до)
+      if (startDate && endDate) {
+        const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+        const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+        
+        // Используем диапазон от startDate (00:00:00) до endDate (23:59:59)
+        start = getLocalDate(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
+        end = getLocalDate(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
+      } else if (startDate) {
+        // Если указана только начальная дата, используем один день
+        const [year, month, day] = startDate.split('-').map(Number);
         start = getLocalDate(year, month - 1, day, 0, 0, 0, 0);
         end = getLocalDate(year, month - 1, day, 23, 59, 59, 999);
       } else {
-        // Если дата не выбрана, используем текущую дату
+        // Если даты не выбраны, используем текущую дату
         start = getLocalDate(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
         end = getLocalDate(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       }
@@ -202,14 +251,16 @@ export function getPeriodDates(period: Period, selectedDate?: string): { start: 
 export function filterTransactionsByPeriod<T extends { date: number }>(
   transactions: T[],
   period: Period,
-  selectedDate?: string
+  startDate?: string,
+  endDate?: string
 ): T[] {
-  const { start, end } = getPeriodDates(period, selectedDate);
+  const { start, end } = getPeriodDates(period, startDate, endDate);
   console.log('[filterTransactionsByPeriod] Filtering transactions:', {
     period,
-    selectedDate,
-    startDate: new Date(start).toISOString(),
-    endDate: new Date(end).toISOString(),
+    startDate,
+    endDate,
+    computedStartDate: new Date(start).toISOString(),
+    computedEndDate: new Date(end).toISOString(),
     inputCount: transactions.length,
     transactions: transactions.map((t, index) => ({
       index,
