@@ -26,8 +26,8 @@ interface FinancePageProps {
 
 export default function FinancePage({ storage }: FinancePageProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const touchStartRef = useRef<number | null>(null);
-  const touchEndRef = useRef<number | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchEndRef = useRef<{ x: number; y: number } | null>(null);
   const minSwipeDistance = 50;
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -77,19 +77,32 @@ export default function FinancePage({ storage }: FinancePageProps) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchEndRef.current = null;
-    touchStartRef.current = e.targetTouches[0].clientX;
+    touchStartRef.current = {
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    };
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndRef.current = e.targetTouches[0].clientX;
+    touchEndRef.current = {
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    };
   };
 
   const handleTouchEnd = () => {
     if (!touchStartRef.current || !touchEndRef.current) return;
     
-    const distance = touchStartRef.current - touchEndRef.current;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const deltaX = touchStartRef.current.x - touchEndRef.current.x;
+    const deltaY = touchStartRef.current.y - touchEndRef.current.y;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+
+    // Игнорируем горизонтальный свайп, если вертикальное движение больше
+    if (absDeltaY > absDeltaX) return;
+
+    const isLeftSwipe = deltaX > minSwipeDistance;
+    const isRightSwipe = deltaX < -minSwipeDistance;
 
     if (isLeftSwipe && currentSlide < sectionTitles.length - 1) {
       setCurrentSlide(currentSlide + 1);
