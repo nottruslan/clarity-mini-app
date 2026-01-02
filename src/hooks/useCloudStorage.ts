@@ -1,4 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+
+// #region agent log
+const log = (location: string, message: string, data: any, hypothesisId?: string) => {
+  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: hypothesisId || 'A'
+    })
+  }).catch(() => {});
+};
+// #endregion
 import {
   getHabits,
   saveHabits,
@@ -1304,11 +1322,54 @@ export function useCloudStorage() {
 
   // Diary
   const addDiaryEntry = useCallback(async (entry: DiaryEntry) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'useCloudStorage.ts:addDiaryEntry',
+        message: 'addDiaryEntry called',
+        data: {
+          entryId: entry.id,
+          entryTitle: entry.title,
+          entryContent: entry.content?.substring(0, 50),
+          entryDate: entry.date,
+          diaryCountBefore: diary.length
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'E'
+      })
+    }).catch(() => {});
+    // #endregion
+    
     try {
       setDiary(prevDiary => {
         const newDiary = [...prevDiary, entry];
         const newData: DiaryData = { entries: newDiary };
         saveDiaryData(newData).catch(err => console.error('Error saving diary:', err));
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'useCloudStorage.ts:addDiaryEntry',
+            message: 'diary state updated',
+            data: {
+              entryId: entry.id,
+              diaryCountAfter: newDiary.length,
+              allEntryIds: newDiary.map(e => e.id)
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'E'
+          })
+        }).catch(() => {});
+        // #endregion
+        
         return newDiary;
       });
     } catch (error) {

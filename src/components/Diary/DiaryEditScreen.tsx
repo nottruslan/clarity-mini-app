@@ -1,6 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import { generateId, type DiaryEntry } from '../../utils/storage';
 
+// #region agent log
+const log = (location: string, message: string, data: any, hypothesisId?: string) => {
+  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: hypothesisId || 'A'
+    })
+  }).catch(() => {});
+};
+// #endregion
+
 interface DiaryEditScreenProps {
   entry?: DiaryEntry | null;
   onSave: (entry: DiaryEntry) => void;
@@ -16,17 +34,60 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // #region agent log
+  log('DiaryEditScreen.tsx:component', 'DiaryEditScreen mounted', {
+    entryId: entry?.id || null,
+    entryTitle: entry?.title || null,
+    entryContent: entry?.content?.substring(0, 50) || null,
+    readOnly,
+    initialTitle: title,
+    initialContent: content
+  }, 'A');
+  // #endregion
 
   // Инициализация значений при монтировании или изменении entry
   useEffect(() => {
+    // #region agent log
+    log('DiaryEditScreen.tsx:useEffect', 'useEffect triggered', {
+      entryId: entry?.id || null,
+      entryTitle: entry?.title || null,
+      entryContent: entry?.content?.substring(0, 50) || null,
+      readOnly,
+      currentTitle: title,
+      currentContent: content?.substring(0, 50) || '',
+      willSetTitle: entry ? (entry.title || '') : '',
+      willSetContent: entry ? (entry.content?.substring(0, 50) || '') : ''
+    }, 'B');
+    // #endregion
+    
     // Всегда сбрасываем состояние сначала - это гарантирует чистый сброс
     if (entry) {
-      setTitle(entry.title || '');
-      setContent(entry.content || '');
+      const newTitle = entry.title || '';
+      const newContent = entry.content || '';
+      setTitle(newTitle);
+      setContent(newContent);
+      // #region agent log
+      log('DiaryEditScreen.tsx:useEffect', 'state set from entry', {
+        entryId: entry.id,
+        newTitle,
+        newContent: newContent.substring(0, 50),
+        previousTitle: title,
+        previousContent: content.substring(0, 50)
+      }, 'B');
+      // #endregion
     } else {
       // Явно сбрасываем для новой записи
       setTitle('');
       setContent('');
+      // #region agent log
+      log('DiaryEditScreen.tsx:useEffect', 'state reset for new entry', {
+        previousTitle: title,
+        previousContent: content.substring(0, 50),
+        newTitle: '',
+        newContent: ''
+      }, 'B');
+      // #endregion
     }
     setHasUnsavedChanges(false);
     // Фокус на поле заголовка при открытии (только в режиме редактирования)
@@ -91,6 +152,16 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
   };
 
   const handleSave = () => {
+    // #region agent log
+    log('DiaryEditScreen.tsx:handleSave', 'handleSave called', {
+      entryId: entry?.id || null,
+      currentTitle: title,
+      currentContent: content.substring(0, 50),
+      isUpdate: entry !== null,
+      isNewEntry: entry === null
+    }, 'B');
+    // #endregion
+    
     if (!content.trim()) return;
 
     const now = Date.now();
@@ -108,16 +179,32 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
         content: content.trim(),
         updatedAt: now
       };
+      // #region agent log
+      log('DiaryEditScreen.tsx:handleSave', 'updating existing entry', {
+        entryId: entry.id,
+        savedTitle: savedEntry.title,
+        savedContent: savedEntry.content.substring(0, 50)
+      }, 'B');
+      // #endregion
     } else {
       // Создание новой записи
+      const newId = generateId();
       savedEntry = {
-        id: generateId(),
+        id: newId,
         title: title.trim() || '',
         content: content.trim(),
         date: todayTimestamp,
         createdAt: now,
         updatedAt: now
       };
+      // #region agent log
+      log('DiaryEditScreen.tsx:handleSave', 'creating new entry', {
+        newId,
+        savedTitle: savedEntry.title,
+        savedContent: savedEntry.content.substring(0, 50),
+        date: todayTimestamp
+      }, 'B');
+      // #endregion
     }
 
     onSave(savedEntry);
