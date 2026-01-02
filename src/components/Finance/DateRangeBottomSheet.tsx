@@ -158,13 +158,25 @@ export default function DateRangeBottomSheet({
               type="date"
               value={localStartDate}
               onChange={(e) => setLocalStartDate(e.target.value)}
-              className="wizard-input"
               style={{ 
-                marginTop: 0, 
-                fontFamily: 'inherit',
                 width: '100%',
                 maxWidth: '100%',
-                boxSizing: 'border-box'
+                padding: '12px 16px',
+                border: '2px solid var(--tg-theme-secondary-bg-color)',
+                borderRadius: '12px',
+                fontSize: '16px',
+                backgroundColor: 'var(--tg-theme-bg-color)',
+                color: 'var(--tg-theme-text-color)',
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+                minHeight: '48px',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--tg-theme-button-color)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--tg-theme-secondary-bg-color)';
               }}
             />
           </div>
@@ -186,13 +198,25 @@ export default function DateRangeBottomSheet({
               type="date"
               value={localEndDate}
               onChange={(e) => setLocalEndDate(e.target.value)}
-              className="wizard-input"
               style={{ 
-                marginTop: 0, 
-                fontFamily: 'inherit',
                 width: '100%',
                 maxWidth: '100%',
-                boxSizing: 'border-box'
+                padding: '12px 16px',
+                border: '2px solid var(--tg-theme-secondary-bg-color)',
+                borderRadius: '12px',
+                fontSize: '16px',
+                backgroundColor: 'var(--tg-theme-bg-color)',
+                color: 'var(--tg-theme-text-color)',
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+                minHeight: '48px',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--tg-theme-button-color)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--tg-theme-secondary-bg-color)';
               }}
             />
           </div>
