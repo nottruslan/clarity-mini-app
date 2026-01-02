@@ -425,7 +425,9 @@ function wrapDataWithMetadata<T>(data: T): DataWithMetadata<T> {
   };
   
   // Логируем размер данных для диагностики
-  const dataSize = JSON.stringify(data).length;
+  // Безопасно вычисляем размер данных (JSON.stringify(undefined) возвращает undefined)
+  const dataJson = JSON.stringify(data);
+  const dataSize = dataJson !== undefined ? dataJson.length : 0;
   const wrappedSize = JSON.stringify(wrapped).length;
   
   console.log('[SYNC] wrapDataWithMetadata:', {
@@ -523,8 +525,15 @@ function resolveConflict<T>(localData: T | null, cloudData: T | null): T | null 
     const localTimestamp = localWrapped._syncTimestamp || 0;
     const cloudTimestamp = cloudWrapped._syncTimestamp || 0;
     
-    // CloudStorage имеет приоритет при одинаковом timestamp
-    return cloudTimestamp >= localTimestamp ? cloudData : localData;
+    // Выбираем более новые данные
+    if (cloudTimestamp > localTimestamp) {
+      return cloudData; // CloudStorage новее
+    } else if (localTimestamp > cloudTimestamp) {
+      return localData; // localStorage новее
+    } else {
+      // При одинаковом timestamp сохраняем локальные данные (они уже в состоянии)
+      return localData;
+    }
   }
   
   // Если метаданных нет, приоритет у CloudStorage (синхронизированные данные)
@@ -537,6 +546,7 @@ function resolveConflict<T>(localData: T | null, cloudData: T | null): T | null 
 interface CloudStorageLoadResult<T> {
   data: T | null;
   hasError: boolean; // true если была ошибка, false если данных просто нет
+  originalWrapped?: any; // Оригинальный объект с метаданными из CloudStorage
 }
 
 // Очередь для отложенного сохранения в CloudStorage
@@ -555,6 +565,7 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
   
   // Сначала загружаем из localStorage для быстрого старта (кэш)
   let localData: T | null = null;
+  let localWrapped: any = null; // Сохраняем оригинальный wrapped объект для сравнения timestamp
   try {
     const data = localStorage.getItem(key);
     if (data) {
@@ -565,6 +576,7 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
       });
       
       const parsed = JSON.parse(data);
+      localWrapped = parsed; // Сохраняем для сравнения timestamp
       console.log(`[SYNC] getStorageData - Parsed localStorage data for key "${key}":`, {
         hasSyncTimestamp: '_syncTimestamp' in parsed,
         hasData: 'data' in parsed,
@@ -573,6 +585,9 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
       });
       
       localData = unwrapData<T>(parsed);
+      
+      // Если unwrapData вернул null, но parsed существует, это может быть валидный null в данных
+      // В этом случае localData остается null, но localWrapped сохраняется для проверки метаданных
       
       const localDataSize = localData ? JSON.stringify(localData).length : 0;
       console.log(`[SYNC] getStorageData - Unwrapped localStorage data for key "${key}":`, {
@@ -673,7 +688,8 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
             dataType: Array.isArray(unwrapped) ? 'array' : typeof unwrapped
           });
           
-          resolve({ data: unwrapped, hasError: false });
+          // Сохраняем оригинальный wrapped объект для сохранения timestamp
+          resolve({ data: unwrapped, hasError: false, originalWrapped: parsed });
         } catch (parseError) {
           console.error(`[SYNC] getStorageData - Error parsing Cloud Storage data for key "${key}":`, parseError);
           resolve({ data: null, hasError: true }); // Ошибка парсинга
@@ -702,39 +718,107 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
       hasError: result.hasError
     });
 
-    // Если Cloud Storage вернул данные - они приоритетнее для синхронизации
-    if (result.data !== null) {
-      const cloudDataSize = JSON.stringify(result.data).length;
+    // Если Cloud Storage вернул данные - сравниваем с локальными данными
+    // Проверяем originalWrapped, так как result.data может быть null (валидное значение)
+    // но originalWrapped будет установлен, если данные были успешно загружены
+    if (result.originalWrapped !== null && result.originalWrapped !== undefined) {
+      // Безопасно вычисляем размер данных для логирования
+      const cloudDataSize = result.data !== null && result.data !== undefined 
+        ? JSON.stringify(result.data).length 
+        : 0;
       console.log(`[SYNC] getStorageData - CloudStorage data found for key "${key}":`, {
         dataSize: cloudDataSize,
-        dataType: Array.isArray(result.data) ? 'array' : typeof result.data
+        dataType: Array.isArray(result.data) ? 'array' : typeof result.data,
+        isNull: result.data === null,
+        isUndefined: result.data === undefined
       });
       
-      // Обновляем localStorage для кэширования
-      // Всегда оборачиваем данные метаданными с новым timestamp при сохранении в localStorage
-      // Это обеспечивает актуальность метаданных для разрешения конфликтов
-      try {
-        const wrapped = wrapDataWithMetadata(result.data);
-        const wrappedJson = JSON.stringify(wrapped);
-        localStorage.setItem(key, wrappedJson);
-        console.log(`[SYNC] getStorageData - CloudStorage data synced to localStorage for key "${key}":`, {
-          wrappedSize: wrappedJson.length
-        });
-      } catch (error) {
-        console.error(`[SYNC] getStorageData - Error syncing CloudStorage data to localStorage for key "${key}":`, error);
+      // Сравниваем с локальными данными для выбора более новых
+      let finalData: T | null;
+      let finalWrapped: any;
+      
+      // Проверяем, есть ли метаданные для сравнения
+      const localHasMetadata = localWrapped !== null && 
+        typeof localWrapped === 'object' && 
+        '_syncTimestamp' in localWrapped;
+      const cloudHasMetadata = result.originalWrapped !== null && 
+        result.originalWrapped !== undefined &&
+        typeof result.originalWrapped === 'object' && 
+        '_syncTimestamp' in result.originalWrapped;
+      
+      // Проверяем наличие локальных данных (не null и не undefined)
+      const hasLocalData = localData !== null && localData !== undefined;
+      
+      if (hasLocalData && localHasMetadata && cloudHasMetadata) {
+        // Оба источника имеют данные с метаданными - разрешаем конфликт
+        const resolved = resolveConflict(localWrapped, result.originalWrapped);
+        if (resolved === localWrapped) {
+          // Локальные данные новее - используем их
+          console.log(`[SYNC] getStorageData - Local data is newer, keeping local data for key "${key}"`);
+          finalData = localData;
+          finalWrapped = localWrapped;
+        } else {
+          // CloudStorage данные новее - используем их
+          console.log(`[SYNC] getStorageData - CloudStorage data is newer, using cloud data for key "${key}"`);
+          finalData = result.data;
+          finalWrapped = result.originalWrapped;
+        }
+      } else if (hasLocalData && localHasMetadata && !cloudHasMetadata) {
+        // Локальные данные с метаданными, CloudStorage без метаданных - используем локальные
+        console.log(`[SYNC] getStorageData - Local data has metadata, CloudStorage doesn't, using local data for key "${key}"`);
+        finalData = localData;
+        finalWrapped = localWrapped;
+      } else if (hasLocalData && !localHasMetadata && cloudHasMetadata) {
+        // Локальные данные без метаданных, CloudStorage с метаданными - используем CloudStorage
+        console.log(`[SYNC] getStorageData - CloudStorage has metadata, local doesn't, using cloud data for key "${key}"`);
+        finalData = result.data;
+        finalWrapped = result.originalWrapped;
+      } else if (hasLocalData && !localHasMetadata && !cloudHasMetadata) {
+        // Оба без метаданных - используем локальные (они уже в состоянии приложения)
+        console.log(`[SYNC] getStorageData - Both sources have no metadata, using local data for key "${key}"`);
+        finalData = localData;
+        finalWrapped = localWrapped;
+      } else {
+        // Нет локальных данных (null или undefined) - используем CloudStorage
+        console.log(`[SYNC] getStorageData - No local data, using cloud data for key "${key}"`);
+        finalData = result.data;
+        // Используем originalWrapped если доступен, иначе создаем новые метаданные
+        finalWrapped = result.originalWrapped || null;
       }
       
-      // Возвращаем данные без метаданных (unwrapData уже был вызван при загрузке)
+      // Обновляем localStorage для кэширования
+      // Сохраняем выбранные данные с их оригинальными метаданными
+      try {
+        if (finalWrapped) {
+          const wrappedJson = JSON.stringify(finalWrapped);
+          localStorage.setItem(key, wrappedJson);
+          console.log(`[SYNC] getStorageData - Final data synced to localStorage for key "${key}":`, {
+            wrappedSize: wrappedJson.length,
+            timestamp: finalWrapped._syncTimestamp,
+            source: finalWrapped === localWrapped ? 'local' : 'cloud'
+          });
+        } else {
+          // Fallback: если метаданные недоступны, создаем новые
+          const wrapped = wrapDataWithMetadata(finalData);
+          const wrappedJson = JSON.stringify(wrapped);
+          localStorage.setItem(key, wrappedJson);
+          console.log(`[SYNC] getStorageData - Final data synced to localStorage for key "${key}" with new timestamp (fallback):`, {
+            wrappedSize: wrappedJson.length
+          });
+        }
+      } catch (error) {
+        console.error(`[SYNC] getStorageData - Error syncing final data to localStorage for key "${key}":`, error);
+      }
+      
+      // Возвращаем данные без метаданных
       const elapsed = Date.now() - startTime;
-      console.log(`[SYNC] getStorageData - END for key "${key}" (CloudStorage, ${elapsed}ms)`);
-      return result.data;
+      console.log(`[SYNC] getStorageData - END for key "${key}" (resolved, ${elapsed}ms)`);
+      return finalData;
     }
 
     // Если данных нет в CloudStorage, но есть в localStorage
-    // Разрешаем конфликт: если localStorage содержит данные, используем их
-    // но если это была ошибка загрузки, также используем localStorage как fallback
-    if (localData !== null) {
-      const resolvedData = resolveConflict(localData, null);
+    // Используем локальные данные как fallback
+    if (localData !== null && localData !== undefined) {
       const elapsed = Date.now() - startTime;
       
       if (result.hasError) {
@@ -744,7 +828,7 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
       }
       
       console.log(`[SYNC] getStorageData - END for key "${key}" (localStorage fallback, ${elapsed}ms)`);
-      return resolvedData;
+      return localData;
     }
 
     // Нет данных ни в CloudStorage, ни в localStorage
@@ -987,10 +1071,14 @@ export async function setStorageData<T>(key: string, data: T): Promise<void> {
   console.log(`[SYNC] setStorageData - START for key "${key}"`);
   
   // Логируем исходные данные
-  const dataSize = JSON.stringify(data).length;
+  // Безопасно вычисляем размер данных (JSON.stringify(undefined) возвращает undefined)
+  const dataJson = JSON.stringify(data);
+  const dataSize = dataJson !== undefined ? dataJson.length : 0;
   console.log(`[SYNC] setStorageData - Input data for key "${key}":`, {
     dataSize,
     dataType: Array.isArray(data) ? 'array' : typeof data,
+    isNull: data === null,
+    isUndefined: data === undefined,
     dataPreview: Array.isArray(data) 
       ? `array[${(data as any[]).length}]` 
       : typeof data === 'object' && data !== null

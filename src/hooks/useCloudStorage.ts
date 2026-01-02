@@ -57,6 +57,20 @@ export function useCloudStorage() {
     loadAllData();
     // Инициализируем обработку очереди отложенных сохранений
     initializePendingSavesProcessor();
+    
+    // Периодическая синхронизация с CloudStorage
+    const syncInterval = setInterval(() => {
+      if (!isLoadingRef.current) {
+        console.log('[SYNC] Periodic sync: reloading data from CloudStorage');
+        loadAllData(); // Перезагружаем данные для синхронизации
+      } else {
+        console.log('[SYNC] Periodic sync: skipping (already loading)');
+      }
+    }, 30000); // Каждые 30 секунд
+    
+    return () => {
+      clearInterval(syncInterval);
+    };
   }, []);
 
   const loadAllData = async () => {
@@ -66,12 +80,8 @@ export function useCloudStorage() {
       return;
     }
     
-    // Если данные уже загружены, не загружаем снова
-    // (защита от повторных вызовов при перемонтировании)
-    if (hasLoadedRef.current) {
-      console.log('[DIAG] loadAllData - data already loaded, skipping');
-      return;
-    }
+    // УБРАНА проверка hasLoadedRef - разрешаем повторную загрузку для синхронизации
+    // Это позволяет периодически обновлять данные из CloudStorage
     
     isLoadingRef.current = true;
     try {
