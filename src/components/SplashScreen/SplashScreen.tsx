@@ -8,33 +8,20 @@ interface SplashScreenProps {
 
 export default function SplashScreen({ isLoading, onComplete }: SplashScreenProps) {
   const [show, setShow] = useState(true);
-  const [minTimePassed, setMinTimePassed] = useState(false);
   const [startTime] = useState(Date.now());
 
   useEffect(() => {
-    // Минимум 2 секунды
-    const minTimer = setTimeout(() => {
-      setMinTimePassed(true);
-    }, 2000);
+    // Показываем ровно 3 секунды
+    const timer = setTimeout(() => {
+      setShow(false);
+      // Даем время на crossfade анимацию
+      setTimeout(() => {
+        onComplete();
+      }, 300);
+    }, 3000);
 
-    return () => clearTimeout(minTimer);
-  }, []);
-
-  useEffect(() => {
-    // Проверяем, прошло ли минимум 2 секунды И данные загрузились
-    if (minTimePassed && !isLoading) {
-      // Небольшая задержка для плавного перехода
-      const fadeTimer = setTimeout(() => {
-        setShow(false);
-        // Даем время на crossfade анимацию
-        setTimeout(() => {
-          onComplete();
-        }, 300);
-      }, 100);
-
-      return () => clearTimeout(fadeTimer);
-    }
-  }, [minTimePassed, isLoading, onComplete]);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
 
   if (!show) {
     return null;
