@@ -443,42 +443,62 @@ function saveToCloudStorage(key: string, jsonData: string): Promise<boolean> {
 // ============================================================================
 
 export async function getStorageData<T>(key: string): Promise<T | null> {
+  // #region agent log
+  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:445',message:'getStorageData called',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
   // Загружаем из localStorage (основной источник)
   let localData: T | null = null;
   let localTimestamp = 0;
   
   try {
     const stored = localStorage.getItem(key);
-    console.log(`[STORAGE] Getting ${key} from localStorage:`, stored ? 'exists' : 'not found');
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:451',message:'localStorage.getItem result',data:{key,found:!!stored,length:stored?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        // #region agent log
+        fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:455',message:'parsed data structure check',data:{key,isObject:typeof parsed==='object',isArray:Array.isArray(parsed),hasData:'data' in parsed,hasTimestamp:'timestamp' in parsed,keys:Object.keys(parsed)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         // Простая проверка: если это объект с полями data и timestamp - это обертка
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'data' in parsed && 'timestamp' in parsed) {
           const wrapped = parsed as { data: T; timestamp: number };
           localTimestamp = wrapped.timestamp || 0;
           localData = wrapped.data;
-          console.log(`[STORAGE] Found wrapped data for ${key}, timestamp:`, localTimestamp);
+          // #region agent log
+          fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:460',message:'unwrapped data successfully',data:{key,timestamp:localTimestamp,dataExists:!!localData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
         } else {
           // Старый формат или данные напрямую
           localData = parsed as T;
-          console.log(`[STORAGE] Found unwrapped data for ${key}`);
+          // #region agent log
+          fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:464',message:'using unwrapped format',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
         }
       } catch (parseError) {
-        console.error(`[STORAGE] Error parsing localStorage data for ${key}:`, parseError);
+        // #region agent log
+        fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:467',message:'parse error',data:{key,error:String(parseError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
       }
     }
   } catch (error) {
-    console.error(`[STORAGE] Error loading from localStorage (${key}):`, error);
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:471',message:'localStorage getItem error',data:{key,error:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
   }
 
   // Загружаем из Cloud Storage (для синхронизации в фоне, не блокируем)
   loadFromCloudStorage<T>(key).then((cloudResult) => {
-    console.log(`[STORAGE] Cloud result for ${key}:`, cloudResult ? 'exists' : 'not found');
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:476',message:'cloud storage result',data:{key,hasResult:!!cloudResult},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     if (cloudResult) {
       // Если локальных данных нет или Cloud Storage новее - обновляем localStorage
       if (!localData || cloudResult.timestamp > localTimestamp) {
-        console.log(`[STORAGE] Syncing cloud data to localStorage for ${key}`);
+        // #region agent log
+        fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:480',message:'syncing cloud to local',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         try {
           const wrapped = wrapData(cloudResult.data);
           localStorage.setItem(key, JSON.stringify(wrapped));
@@ -490,34 +510,49 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
   });
 
   // Возвращаем локальные данные сразу (не ждем Cloud Storage)
-  console.log(`[STORAGE] Returning local data for ${key}:`, localData ? 'exists' : 'null');
+  // #region agent log
+  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:492',message:'returning result',data:{key,hasData:!!localData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
   return localData;
 }
 
 export async function setStorageData<T>(key: string, data: T): Promise<void> {
-  console.log(`[STORAGE] Setting ${key}, data type:`, typeof data, Array.isArray(data));
+  // #region agent log
+  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:497',message:'setStorageData called',data:{key,dataType:typeof data,isArray:Array.isArray(data)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   const wrapped = wrapData(data);
   const jsonData = JSON.stringify(wrapped);
-  console.log(`[STORAGE] Wrapped data for ${key}, length:`, jsonData.length);
+  // #region agent log
+  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:500',message:'wrapped data structure',data:{key,jsonLength:jsonData.length,hasData:jsonData.includes('"data"'),hasTimestamp:jsonData.includes('"timestamp"')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
 
   // Сохраняем в localStorage (быстро)
   try {
     localStorage.setItem(key, jsonData);
-    console.log(`[STORAGE] Successfully saved ${key} to localStorage`);
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:505',message:'localStorage.setItem success',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     // Проверяем, что данные действительно сохранились
     const verify = localStorage.getItem(key);
-    console.log(`[STORAGE] Verification: ${key} ${verify ? 'exists' : 'NOT FOUND'} in localStorage`);
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:508',message:'verification after save',data:{key,verified:!!verify,verifyLength:verify?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
   } catch (error) {
-    console.error(`[STORAGE] Error saving to localStorage (${key}):`, error);
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:510',message:'localStorage.setItem error',data:{key,error:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     throw error;
   }
 
   // Сохраняем в Cloud Storage (асинхронно, не блокируем)
   saveToCloudStorage(key, jsonData).then((success) => {
-    console.log(`[STORAGE] Cloud Storage save for ${key}:`, success ? 'success' : 'failed');
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:516',message:'cloud storage save result',data:{key,success},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
   }).catch((err) => {
-    console.log(`[STORAGE] Cloud Storage error for ${key}:`, err);
-    // Игнорируем ошибки Cloud Storage, данные уже в localStorage
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:519',message:'cloud storage error',data:{key,error:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
   });
 }
 
