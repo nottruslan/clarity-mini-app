@@ -44,9 +44,42 @@ export default function HabitList({
 
   if (habits.length === 0) {
     return (
-      <EmptyState 
-        message="У вас пока нет привычек. Создайте первую привычку!"
-      />
+      <div style={{ 
+        flex: 1, 
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* Информационный блок */}
+        <div style={{
+          padding: '16px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          margin: '16px',
+          borderRadius: '12px',
+          border: '1px solid var(--tg-theme-secondary-bg-color)'
+        }}>
+          <div style={{
+            fontSize: '14px',
+            color: 'var(--tg-theme-text-color)',
+            lineHeight: '1.5'
+          }}>
+            <div style={{ marginBottom: '8px', fontWeight: '500' }}>
+              💡 Как работать с привычками:
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+              <div style={{ marginBottom: '4px' }}>
+                • Создайте привычку и отмечайте в календаре
+              </div>
+              <div>
+                • Чтобы открыть календарь, нужно нажать на привычку и там отмечать в календаре
+              </div>
+            </div>
+          </div>
+        </div>
+        <EmptyState 
+          message="У вас пока нет привычек. Создайте первую привычку!"
+        />
+      </div>
     );
   }
 
@@ -63,6 +96,33 @@ export default function HabitList({
         paddingTop: '0px',
         WebkitOverflowScrolling: 'touch' as any
       }}>
+        {/* Информационный блок */}
+        <div style={{
+          padding: '16px',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          margin: '16px',
+          marginBottom: '8px',
+          borderRadius: '12px',
+          border: '1px solid var(--tg-theme-secondary-bg-color)'
+        }}>
+          <div style={{
+            fontSize: '14px',
+            color: 'var(--tg-theme-text-color)',
+            lineHeight: '1.5'
+          }}>
+            <div style={{ marginBottom: '8px', fontWeight: '500' }}>
+              💡 Как работать с привычками:
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+              <div style={{ marginBottom: '4px' }}>
+                • Создайте привычку и отмечайте в календаре
+              </div>
+              <div>
+                • Чтобы открыть календарь, нужно нажать на привычку и там отмечать в календаре
+              </div>
+            </div>
+          </div>
+        </div>
         {sortedHabits.length === 0 ? (
           <EmptyState 
             message="У вас пока нет привычек. Создайте первую привычку!"

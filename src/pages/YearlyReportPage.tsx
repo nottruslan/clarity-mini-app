@@ -783,13 +783,35 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
             alignItems: 'center',
             justifyContent: 'center',
             padding: '32px',
-            textAlign: 'center',
-            color: 'var(--tg-theme-hint-color)'
+            textAlign: 'center'
           }}>
-            <p style={{ fontSize: '16px', marginBottom: '8px' }}>
+            {/* Информационный блок */}
+            <div style={{
+              padding: '16px',
+              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+              borderRadius: '12px',
+              border: '1px solid var(--tg-theme-secondary-bg-color)',
+              marginBottom: '24px',
+              maxWidth: '100%',
+              textAlign: 'left'
+            }}>
+              <div style={{
+                fontSize: '14px',
+                color: 'var(--tg-theme-text-color)',
+                lineHeight: '1.5'
+              }}>
+                <div style={{ marginBottom: '8px', fontWeight: '500' }}>
+                  💡 О годовом отчете:
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                  Это методика подведения итогов и планов на следующий год
+                </div>
+              </div>
+            </div>
+            <p style={{ fontSize: '16px', marginBottom: '8px', color: 'var(--tg-theme-hint-color)' }}>
               У вас пока нет годовых отчетов
             </p>
-            <p style={{ fontSize: '14px' }}>
+            <p style={{ fontSize: '14px', color: 'var(--tg-theme-hint-color)' }}>
               Создайте первый отчет, чтобы начать
             </p>
           </div>

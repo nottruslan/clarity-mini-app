@@ -47,6 +47,34 @@ export default function TasksPage({ storage }: TasksPageProps) {
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
+      {/* Информационный блок */}
+      <div style={{
+        padding: '16px',
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
+      }}>
+        <div style={{
+          fontSize: '14px',
+          color: 'var(--tg-theme-text-color)',
+          lineHeight: '1.5'
+        }}>
+          <div style={{ marginBottom: '8px', fontWeight: '500' }}>
+            💡 Как работать с задачами:
+          </div>
+          <div style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+            <div style={{ marginBottom: '4px' }}>
+              • В <strong>InBox</strong> вносите быстрые задачи, когда что-то вспомнили, но нет времени отсортировать
+            </div>
+            <div style={{ marginBottom: '4px' }}>
+              • Из InBox можно перенести в <strong>Задачи</strong> и сделать более детальное описание
+            </div>
+            <div>
+              • Дальше укажите время и разместите в <strong>План</strong> на день
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Заголовки разделов */}
       <div style={{
         display: 'flex',
