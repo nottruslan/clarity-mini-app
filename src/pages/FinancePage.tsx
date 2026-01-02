@@ -57,7 +57,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
       transactions: transactions
     });
   }, [storage.finance.transactions]);
-  
+
   // Для списка транзакций не применяем фильтрацию по периоду - показываем все транзакции
   // Фильтрация по периоду применяется только для Обзора и Статистики
   // Убеждаемся, что transactions всегда является массивом
@@ -65,6 +65,15 @@ export default function FinancePage({ storage }: FinancePageProps) {
   console.log('[FinancePage] Render - All transactions count:', allTransactions.length, 'transactions:', allTransactions);
   const filteredTransactions = useFinanceFilters(allTransactions, filters);
   console.log('[FinancePage] Render - Filtered transactions count:', filteredTransactions.length, 'filters:', filters);
+
+  // Логирование текущего слайда и информации о слайде с транзакциями
+  useEffect(() => {
+    console.log('[FinancePage] useEffect - currentSlide changed:', {
+      currentSlide,
+      slideClass: currentSlide === 1 ? 'active' : currentSlide > 1 ? 'prev' : 'next',
+      filteredTransactionsCount: filteredTransactions.length
+    });
+  }, [currentSlide, filteredTransactions.length]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchEndRef.current = null;

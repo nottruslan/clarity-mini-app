@@ -111,6 +111,15 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
     willRenderGroups: sortedDates.length
   });
 
+  console.log('[TransactionList] Rendering container:', {
+    sortedDatesCount: sortedDates.length,
+    containerStyles: {
+      flex: 1,
+      overflowY: 'auto',
+      backgroundColor: 'transparent'
+    }
+  });
+
   return (
     <div style={{ 
       flex: 1, 
@@ -118,7 +127,8 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
       paddingTop: '0px',
       paddingBottom: '0px',
       backgroundColor: 'transparent',
-      WebkitOverflowScrolling: 'touch' as any
+      WebkitOverflowScrolling: 'touch' as any,
+      minHeight: '200px' // Временный индикатор для отладки
     }}>
       {sortedDates.map((dateKey) => {
         // Преобразуем ISO-дату обратно в timestamp для formatDate в локальном времени
