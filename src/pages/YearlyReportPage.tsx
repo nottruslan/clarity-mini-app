@@ -79,7 +79,12 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
 
   // Безопасный доступ к данным - объявляем ДО использования в функциях
   const yearlyReports = useMemo(() => {
-    const reports = storage.yearlyReports ?? [];
+    const reports = storage.yearlyReports;
+    // Гарантируем, что это массив
+    if (!Array.isArray(reports)) {
+      console.warn('[YearlyReportPage] yearlyReports is not an array:', reports);
+      return [];
+    }
     console.log('[YearlyReportPage] yearlyReports memoized', { count: reports.length });
     return reports;
   }, [storage.yearlyReports]);
@@ -794,7 +799,8 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
             flexDirection: 'column',
             gap: '12px'
           }}>
-            {yearlyReports
+            {(Array.isArray(yearlyReports) ? yearlyReports : [])
+              .slice() // Создаем копию, чтобы не мутировать оригинальный массив
               .sort((a, b) => b.year - a.year)
               .map((report) => {
                 const progress = calculateProgress(report);
