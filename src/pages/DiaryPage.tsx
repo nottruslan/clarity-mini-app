@@ -47,12 +47,6 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
     return today.getTime();
   };
 
-  // Проверяем, есть ли запись за сегодня
-  const todayEntry = useMemo(() => {
-    const todayTimestamp = getTodayTimestamp();
-    return storage.diary.find(entry => entry.date === todayTimestamp);
-  }, [storage.diary]);
-
   // Фильтруем записи по выбранному месяцу
   const filteredEntries = useMemo(() => {
     let entries = storage.diary;
@@ -81,58 +75,21 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
     }, 'A');
     // #endregion
     
-    // Всегда сначала сбрасываем editingEntry, чтобы избежать использования старого значения
+    // Всегда создаем новую запись - убираем ограничение на одну запись в день
     setEditingEntry(null);
     
-    // #region agent log
-    log('DiaryPage.tsx:handleCreateClick', 'editingEntry set to null', {
-      before: editingEntry?.id || null,
-      after: null
-    }, 'D');
-    // #endregion
-    
-    // Затем проверяем актуальное состояние - есть ли запись за сегодня
-    const todayTimestamp = getTodayTimestamp();
-    const currentTodayEntry = storage.diary.find(entry => entry.date === todayTimestamp);
+    // Для новой записи используем уникальный ключ на основе timestamp
+    const newKey = `new-${Date.now()}`;
+    setEditKey(newKey);
     
     // #region agent log
-    log('DiaryPage.tsx:handleCreateClick', 'todayEntry check', {
-      todayTimestamp,
-      foundTodayEntry: currentTodayEntry ? {
-        id: currentTodayEntry.id,
-        title: currentTodayEntry.title,
-        content: currentTodayEntry.content?.substring(0, 50)
-      } : null,
-      allEntriesDates: storage.diary.map(e => ({ id: e.id, date: e.date, dateStr: new Date(e.date).toISOString() }))
-    }, 'E');
+    log('DiaryPage.tsx:handleCreateClick', 'creating new entry', {
+      editKey: newKey,
+      editingEntry: null,
+      note: 'Always creating new entry, no limit per day'
+    }, 'A');
     // #endregion
     
-    if (currentTodayEntry) {
-      // Если запись за сегодня уже существует, открываем её для редактирования
-      setEditingEntry(currentTodayEntry);
-      setEditKey(currentTodayEntry.id);
-      // #region agent log
-      log('DiaryPage.tsx:handleCreateClick', 'opening existing entry', {
-        entryId: currentTodayEntry.id,
-        editKey: currentTodayEntry.id,
-        entryTitle: currentTodayEntry.title,
-        entryContent: currentTodayEntry.content?.substring(0, 50)
-      }, 'A');
-      // #endregion
-    } else {
-      // Для новой записи используем уникальный ключ на основе timestamp
-      const newKey = `new-${Date.now()}`;
-      setEditKey(newKey);
-      // Явно устанавливаем editingEntry в null для новой записи
-      setEditingEntry(null);
-      // #region agent log
-      log('DiaryPage.tsx:handleCreateClick', 'creating new entry', {
-        editKey: newKey,
-        editingEntry: null,
-        explicitlySetToNull: true
-      }, 'A');
-      // #endregion
-    }
     setIsEditing(true);
     // #region agent log
     // Логируем после небольшой задержки, чтобы увидеть актуальное состояние
@@ -400,7 +357,7 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
       {/* FAB кнопка */}
       <button
         onClick={handleCreateClick}
-        aria-label={todayEntry ? 'Редактировать запись за сегодня' : 'Создать новую запись'}
+        aria-label="Создать новую запись"
         style={{
           position: 'fixed',
           bottom: 'calc(20px + env(safe-area-inset-bottom))',
