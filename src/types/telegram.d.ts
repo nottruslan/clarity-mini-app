@@ -21,6 +21,7 @@ declare global {
           setItem: (key: string, value: string, callback: (error: Error | null) => void) => void;
         };
         openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
+        openTelegramLink?: (url: string) => void; // Метод для открытия Telegram-ссылок напрямую в приложении (API 6.0+)
         showAlert: (message: string) => void;
         showConfirm: (message: string, callback?: (confirmed: boolean) => void) => void;
         disableVerticalSwipes?: () => void;

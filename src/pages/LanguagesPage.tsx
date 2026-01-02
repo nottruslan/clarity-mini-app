@@ -6,17 +6,23 @@ export default function LanguagesPage() {
   const handleOpenWord = () => {
     if (tg) {
       try {
-        // Используем формат ссылки https://t.me/word для открытия бота напрямую в Telegram
-        // Без try_instant_view, чтобы избежать открытия через браузер
-        tg.openLink('https://t.me/word');
+        // Проверяем наличие метода openTelegramLink (доступен в API версии 6.0+)
+        // Этот метод открывает ссылки напрямую в Telegram, без браузера
+        if (tg.openTelegramLink) {
+          tg.openTelegramLink('https://t.me/word');
+        } else {
+          // Если openTelegramLink недоступен, используем window.location.href
+          // для ссылок https://t.me/... Telegram обрабатывает их внутри приложения
+          window.location.href = 'https://t.me/word';
+        }
       } catch (error) {
         console.error('Ошибка при открытии ссылки:', error);
-        // Fallback на window.open, если openLink не работает
-        window.open('https://t.me/word', '_blank');
+        // Fallback: используем window.location.href для открытия внутри Telegram
+        window.location.href = 'https://t.me/word';
       }
     } else {
       // Fallback для случая, когда Telegram WebApp недоступен
-      window.open('https://t.me/word', '_blank');
+      window.location.href = 'https://t.me/word';
     }
   };
 
