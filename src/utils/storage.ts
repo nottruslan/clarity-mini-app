@@ -362,7 +362,7 @@ function loadFromCloudStorage<T>(key: string): Promise<{ data: T; timestamp: num
     }, CLOUD_STORAGE_TIMEOUT);
 
     try {
-      cloudStorage.getItem(key, (error, value) => {
+      cloudStorage.getItem(key, (error: Error | null, value: string | null) => {
         clearTimeout(timeout);
         if (error || !value) {
           resolve(null);
@@ -405,7 +405,7 @@ function saveToCloudStorage(key: string, jsonData: string): Promise<boolean> {
     const trySave = () => {
       attempts++;
       try {
-        cloudStorage.setItem(key, jsonData, (error) => {
+        cloudStorage.setItem(key, jsonData, (error: Error | null) => {
           if (error && attempts < MAX_RETRIES) {
             setTimeout(trySave, RETRY_DELAY);
           } else {

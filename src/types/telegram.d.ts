@@ -27,6 +27,10 @@ declare global {
           notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
           selectionChanged: () => void;
         };
+        CloudStorage?: {
+          getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => void;
+          setItem: (key: string, value: string, callback: (error: Error | null) => void) => void;
+        };
         initDataUnsafe?: {
           user?: {
             id: number;
