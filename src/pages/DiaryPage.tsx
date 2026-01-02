@@ -2,14 +2,14 @@ import { useState, useMemo } from 'react';
 import { useCloudStorage } from '../hooks/useCloudStorage';
 import { type DiaryEntry } from '../utils/storage';
 import DiaryEntryList from '../components/Diary/DiaryEntryList';
-import CreateDiaryEntryModal from '../components/Diary/CreateDiaryEntryModal';
+import DiaryEditScreen from '../components/Diary/DiaryEditScreen';
 
 interface DiaryPageProps {
   storage: ReturnType<typeof useCloudStorage>;
 }
 
 export default function DiaryPage({ storage }: DiaryPageProps) {
-  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
@@ -52,7 +52,7 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
       // Иначе создаём новую запись
       setEditingEntry(null);
     }
-    setShowModal(true);
+    setIsEditing(true);
   };
 
   const handleSave = async (entry: DiaryEntry) => {
@@ -63,13 +63,12 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
       // Создаём новую запись
       await storage.addDiaryEntry(entry);
     }
-    setShowModal(false);
-    setEditingEntry(null);
+    // Закрытие произойдет в DiaryEditScreen после показа уведомления
   };
 
   const handleEdit = (entry: DiaryEntry) => {
     setEditingEntry(entry);
-    setShowModal(true);
+    setIsEditing(true);
   };
 
   const handleDelete = async (entry: DiaryEntry) => {
@@ -78,10 +77,11 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
     }
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
+  const handleClose = () => {
+    setIsEditing(false);
     setEditingEntry(null);
   };
+
 
   // Получаем список доступных месяцев для фильтрации
   const availableMonths = useMemo(() => {
@@ -103,6 +103,18 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
 
+  // Если открыт экран редактирования, показываем его
+  if (isEditing) {
+    return (
+      <DiaryEditScreen
+        entry={editingEntry}
+        onSave={handleSave}
+        onClose={handleClose}
+      />
+    );
+  }
+
+  // Иначе показываем список записей
   return (
     <div
       style={{
@@ -199,15 +211,6 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
       >
         +
       </button>
-
-      {/* Модальное окно */}
-      {showModal && (
-        <CreateDiaryEntryModal
-          entry={editingEntry}
-          onSave={handleSave}
-          onClose={handleCloseModal}
-        />
-      )}
     </div>
   );
 }
