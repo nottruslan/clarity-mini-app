@@ -1,5 +1,5 @@
 import { type Section } from '../types/navigation';
-import SectionCarousel from '../components/Home/SectionCarousel';
+import LottieAnimation from '../components/LottieAnimation';
 
 interface HomePageProps {
   onSectionChange: (section: Section) => void;
@@ -50,48 +50,81 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
       flex: 1, 
       display: 'flex', 
       flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      padding: '16px 16px',
       overflow: 'hidden',
       height: '100%'
     }}>
-      {/* Header */}
-      <div style={{
-        padding: '24px 20px 20px',
-        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-        backgroundColor: 'var(--tg-theme-bg-color)'
+      <div style={{ 
+        width: '100%', 
+        maxWidth: '150px', 
+        marginBottom: '12px' 
       }}>
-        <h1 style={{ 
-          fontSize: '32px', 
-          fontWeight: '700', 
-          marginBottom: '8px',
-          color: 'var(--tg-theme-text-color)',
-          lineHeight: '1.2'
-        }}>
-          Clarity
-        </h1>
-        
-        <p style={{ 
-          fontSize: '16px', 
-          color: 'var(--tg-theme-hint-color)',
-          margin: 0,
-          lineHeight: '1.5'
-        }}>
-          Инструменты для личной эффективности
-        </p>
+        <LottieAnimation loop={true} autoplay={true} />
       </div>
+      
+      <h1 style={{ 
+        fontSize: '28px', 
+        fontWeight: '600', 
+        marginBottom: '8px',
+        textAlign: 'center'
+      }}>
+        Clarity
+      </h1>
+      
+      <p style={{ 
+        fontSize: '16px', 
+        color: 'var(--tg-theme-hint-color)',
+        marginBottom: '32px',
+        textAlign: 'center'
+      }}>
+        Инструменты для личной эффективности
+      </p>
 
-      {/* Карусель разделов */}
-      <div style={{
-        flex: 1,
+      <div style={{ 
+        width: '100%', 
+        maxWidth: '400px',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '20px 0',
-        overflow: 'hidden'
+        gap: '8px'
       }}>
-        <SectionCarousel
-          sections={sections}
-          onSectionClick={onSectionChange}
-        />
+        {sections.map((section) => (
+          <button
+            key={section.id}
+            className="tg-button"
+            onClick={() => onSectionChange(section.id)}
+            style={{
+              width: '100%',
+              justifyContent: 'flex-start',
+              padding: '16px 20px',
+              textAlign: 'left',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '4px'
+            }}
+          >
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px',
+              width: '100%'
+            }}>
+              <span style={{ fontSize: '24px' }}>{section.icon}</span>
+              <span style={{ fontSize: '18px', fontWeight: '500' }}>
+                {section.label}
+              </span>
+            </div>
+            <span style={{ 
+              fontSize: '14px', 
+              opacity: 0.8,
+              marginLeft: '36px'
+            }}>
+              {section.description}
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   );
