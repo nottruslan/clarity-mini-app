@@ -16,6 +16,7 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
   const [menuEntry, setMenuEntry] = useState<DiaryEntry | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [editKey, setEditKey] = useState<string | number>(0);
 
   // Получаем сегодняшнюю дату (начало дня)
   const getTodayTimestamp = () => {
@@ -59,8 +60,11 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
     if (currentTodayEntry) {
       // Если запись за сегодня уже существует, открываем её для редактирования
       setEditingEntry(currentTodayEntry);
+      setEditKey(currentTodayEntry.id);
+    } else {
+      // Для новой записи используем уникальный ключ на основе timestamp
+      setEditKey(`new-${Date.now()}`);
     }
-    // Иначе editingEntry остается null для создания новой записи
     setIsEditing(true);
   };
 
@@ -123,6 +127,7 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
     setIsEditing(false);
     setEditingEntry(null);
     setViewingEntry(null);
+    setEditKey('');
   };
 
 
@@ -163,6 +168,7 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
   if (isEditing) {
     return (
       <DiaryEditScreen
+        key={editKey}
         entry={editingEntry}
         onSave={handleSave}
         onClose={handleClose}

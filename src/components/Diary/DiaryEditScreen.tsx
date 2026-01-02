@@ -18,10 +18,12 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
 
   // Инициализация значений при монтировании или изменении entry
   useEffect(() => {
+    // Всегда сбрасываем состояние сначала
     if (entry) {
       setTitle(entry.title || '');
       setContent(entry.content || '');
     } else {
+      // Явно сбрасываем для новой записи
       setTitle('');
       setContent('');
     }
@@ -32,7 +34,7 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
         titleInputRef.current?.focus();
       }, 100);
     }
-  }, [entry]);
+  }, [entry, readOnly]);
 
   // Отслеживание изменений
   useEffect(() => {
