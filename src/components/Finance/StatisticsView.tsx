@@ -12,13 +12,14 @@ interface StatisticsViewProps {
 
 export default function StatisticsView({ finance }: StatisticsViewProps) {
   const [period, setPeriod] = useState<Period>('month');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'categories' | 'trends' | 'statistics'>('statistics');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCategoryType, setSelectedCategoryType] = useState<'income' | 'expense' | null>(null);
   
   // Убеждаемся, что transactions всегда является массивом
   const allTransactions = Array.isArray(finance.transactions) ? finance.transactions : [];
-  const periodTransactions = filterTransactionsByPeriod(allTransactions, period);
+  const periodTransactions = filterTransactionsByPeriod(allTransactions, period, selectedDate || undefined);
 
   const transactions = periodTransactions;
   const categories = finance.categories || [];
@@ -66,7 +67,24 @@ export default function StatisticsView({ finance }: StatisticsViewProps) {
       </div>
 
       <div style={{ marginBottom: '16px' }}>
-        <PeriodSelector value={period} onChange={setPeriod} />
+        <PeriodSelector 
+          value={period} 
+          onChange={(p) => {
+            setPeriod(p);
+            if (p !== 'date') {
+              setSelectedDate('');
+            } else if (p === 'date' && !selectedDate) {
+              // Инициализируем текущей датой при выборе периода 'date'
+              const now = new Date();
+              const year = now.getFullYear();
+              const month = String(now.getMonth() + 1).padStart(2, '0');
+              const day = String(now.getDate()).padStart(2, '0');
+              setSelectedDate(`${year}-${month}-${day}`);
+            }
+          }}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+        />
       </div>
 
       <div style={{
@@ -203,6 +221,7 @@ export default function StatisticsView({ finance }: StatisticsViewProps) {
           <TrendsChart
             transactions={transactions}
             period={period}
+            selectedDate={selectedDate || undefined}
           />
         </div>
       )}

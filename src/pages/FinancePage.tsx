@@ -420,34 +420,43 @@ export default function FinancePage({ storage }: FinancePageProps) {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: '12px 16px',
+          padding: '12px 8px',
           borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
           backgroundColor: 'var(--tg-theme-bg-color)',
-          flexWrap: 'wrap',
-          gap: '4px'
+          overflowX: 'auto' as const,
+          WebkitOverflowScrolling: 'touch' as any,
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
         }}>
-          {sectionTitles.map((title, index) => (
-            <div
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              style={{
-                fontSize: '16px',
-                fontWeight: currentSlide === index ? '600' : '400',
-                color: currentSlide === index 
-                  ? 'var(--tg-theme-button-color)' 
-                  : 'var(--tg-theme-hint-color)',
-                cursor: 'pointer',
-                padding: '8px 12px',
-                borderBottom: currentSlide === index 
-                  ? '2px solid var(--tg-theme-button-color)' 
-                  : '2px solid transparent',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {title}
-            </div>
-          ))}
+          <div style={{
+            display: 'flex',
+            gap: '4px',
+            minWidth: 'max-content'
+          }}>
+            {sectionTitles.map((title, index) => (
+              <div
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                style={{
+                  fontSize: '15px',
+                  fontWeight: currentSlide === index ? '600' : '400',
+                  color: currentSlide === index 
+                    ? 'var(--tg-theme-button-color)' 
+                    : 'var(--tg-theme-hint-color)',
+                  cursor: 'pointer',
+                  padding: '8px 10px',
+                  borderBottom: currentSlide === index 
+                    ? '2px solid var(--tg-theme-button-color)' 
+                    : '2px solid transparent',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
+                }}
+              >
+                {title}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Контейнер со слайдами */}

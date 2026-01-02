@@ -8,9 +8,10 @@ interface FinanceOverviewProps {
 
 export default function FinanceOverview({ finance }: FinanceOverviewProps) {
   const [period, setPeriod] = useState<Period>('month');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   // Убеждаемся, что transactions всегда является массивом
   const allTransactions = Array.isArray(finance.transactions) ? finance.transactions : [];
-  const transactions = filterTransactionsByPeriod(allTransactions, period);
+  const transactions = filterTransactionsByPeriod(allTransactions, period, selectedDate || undefined);
   
   const totalIncome = transactions
     .filter(t => t.type === 'income')
@@ -53,7 +54,24 @@ export default function FinanceOverview({ finance }: FinanceOverviewProps) {
       </div>
       
       <div style={{ marginBottom: '16px' }}>
-        <PeriodSelector value={period} onChange={setPeriod} />
+        <PeriodSelector 
+          value={period} 
+          onChange={(p) => {
+            setPeriod(p);
+            if (p !== 'date') {
+              setSelectedDate('');
+            } else if (p === 'date' && !selectedDate) {
+              // Инициализируем текущей датой при выборе периода 'date'
+              const now = new Date();
+              const year = now.getFullYear();
+              const month = String(now.getMonth() + 1).padStart(2, '0');
+              const day = String(now.getDate()).padStart(2, '0');
+              setSelectedDate(`${year}-${month}-${day}`);
+            }
+          }}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+        />
       </div>
 
       <div style={{
