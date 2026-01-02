@@ -74,9 +74,10 @@ export default function PeriodSelector({ value, onChange, startDate, endDate, on
               key={period.value}
               style={{
                 display: 'flex',
-                gap: '4px',
+                gap: '3px',
                 alignItems: 'center',
-                flex: '0 0 auto'
+                flex: '1 1 0',
+                minWidth: 0
               }}
             >
               <input
@@ -84,23 +85,27 @@ export default function PeriodSelector({ value, onChange, startDate, endDate, on
                 value={startDateValue}
                 onChange={handleStartDateChange}
                 style={{
-                  minWidth: '110px',
-                  padding: '6px 8px',
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  width: 0,
+                  padding: '4px 6px',
                   borderRadius: '8px',
                   border: '2px solid var(--tg-theme-button-color)',
                   backgroundColor: 'var(--tg-theme-button-color)',
                   color: 'var(--tg-theme-button-text-color)',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent'
+                  WebkitTapHighlightColor: 'transparent',
+                  boxSizing: 'border-box'
                 }}
               />
               <span style={{ 
-                fontSize: '12px', 
+                fontSize: '10px', 
                 color: 'var(--tg-theme-hint-color)',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}>
                 —
               </span>
@@ -109,17 +114,20 @@ export default function PeriodSelector({ value, onChange, startDate, endDate, on
                 value={endDateValue}
                 onChange={handleEndDateChange}
                 style={{
-                  minWidth: '110px',
-                  padding: '6px 8px',
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  width: 0,
+                  padding: '4px 6px',
                   borderRadius: '8px',
                   border: '2px solid var(--tg-theme-button-color)',
                   backgroundColor: 'var(--tg-theme-button-color)',
                   color: 'var(--tg-theme-button-text-color)',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent'
+                  WebkitTapHighlightColor: 'transparent',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
