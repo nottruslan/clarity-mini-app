@@ -102,8 +102,15 @@ export function getPeriodDates(period: Period): { start: number; end: number } {
       end = getLocalDate(now.getFullYear(), now.getMonth(), lastDay, 23, 59, 59, 999);
       break;
     case 'year':
-      start = getLocalDate(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-      end = getLocalDate(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      // Период "Год" означает последние 12 месяцев от текущей даты
+      // Это более практично для финансового анализа, чем календарный год
+      const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const startDate = new Date(endDate);
+      startDate.setMonth(startDate.getMonth() - 11); // 11 месяцев назад + текущий месяц = 12 месяцев
+      startDate.setDate(1); // Первый день начального месяца
+      startDate.setHours(0, 0, 0, 0);
+      start = startDate.getTime();
+      end = endDate.getTime();
       break;
   }
 
