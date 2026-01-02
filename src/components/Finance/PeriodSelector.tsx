@@ -68,43 +68,46 @@ export default function PeriodSelector({ value, onChange }: PeriodSelectorProps)
 
 /**
  * Получить даты начала и конца для периода
+ * Использует локальное время для корректной работы с датами транзакций
  */
 export function getPeriodDates(period: Period): { start: number; end: number } {
   const now = new Date();
-  const start = new Date();
-  const end = new Date();
+  
+  // Получаем компоненты локальной даты для корректной работы с часовым поясом
+  const getLocalDate = (year: number, month: number, day: number, hour = 0, minute = 0, second = 0, ms = 0) => {
+    const date = new Date(year, month, day, hour, minute, second, ms);
+    return date.getTime();
+  };
+
+  let start: number;
+  let end: number;
 
   switch (period) {
     case 'day':
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
+      start = getLocalDate(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      end = getLocalDate(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       break;
     case 'week':
       const dayOfWeek = now.getDay();
       const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Понедельник
-      start.setDate(diff);
-      start.setHours(0, 0, 0, 0);
-      end.setDate(diff + 6);
-      end.setHours(23, 59, 59, 999);
+      const weekStart = new Date(now.getFullYear(), now.getMonth(), diff);
+      const weekEnd = new Date(now.getFullYear(), now.getMonth(), diff + 6);
+      start = getLocalDate(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate(), 0, 0, 0, 0);
+      end = getLocalDate(weekEnd.getFullYear(), weekEnd.getMonth(), weekEnd.getDate(), 23, 59, 59, 999);
       break;
     case 'month':
-      start.setDate(1);
-      start.setHours(0, 0, 0, 0);
-      end.setMonth(now.getMonth() + 1, 0);
-      end.setHours(23, 59, 59, 999);
+      start = getLocalDate(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      // Последний день месяца
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      end = getLocalDate(now.getFullYear(), now.getMonth(), lastDay, 23, 59, 59, 999);
       break;
     case 'year':
-      start.setMonth(0, 1);
-      start.setHours(0, 0, 0, 0);
-      end.setMonth(11, 31);
-      end.setHours(23, 59, 59, 999);
+      start = getLocalDate(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      end = getLocalDate(now.getFullYear(), 11, 31, 23, 59, 59, 999);
       break;
   }
 
-  return {
-    start: start.getTime(),
-    end: end.getTime()
-  };
+  return { start, end };
 }
 
 /**
