@@ -135,7 +135,12 @@ export function useCloudStorage() {
       setFinance(financeData);
       console.log('[Finance] loadAllData - Finance state updated');
       setOnboarding(onboardingData);
-      setYearlyReports(reportsData);
+      // Гарантируем, что reportsData является массивом
+      const safeReportsData = Array.isArray(reportsData) ? reportsData : [];
+      if (!Array.isArray(reportsData)) {
+        console.warn('[useCloudStorage] reportsData is not an array:', reportsData);
+      }
+      setYearlyReports(safeReportsData);
       setTasksData(tasksData);
       setCoveyMatrixData(coveyMatrixData);
       setBooks(booksData);
@@ -606,14 +611,21 @@ export function useCloudStorage() {
 
   // Yearly Reports
   const updateYearlyReports = useCallback(async (newReports: YearlyReport[]) => {
-    setYearlyReports(newReports);
-    await saveYearlyReports(newReports);
+    // Гарантируем, что newReports является массивом
+    const safeReports = Array.isArray(newReports) ? newReports : [];
+    if (!Array.isArray(newReports)) {
+      console.warn('[useCloudStorage] updateYearlyReports received non-array:', newReports);
+    }
+    setYearlyReports(safeReports);
+    await saveYearlyReports(safeReports);
   }, []);
 
   const addYearlyReport = useCallback(async (report: YearlyReport) => {
     try {
       setYearlyReports(prevReports => {
-        const newReports = [...prevReports, report];
+        // Гарантируем, что prevReports является массивом
+        const safePrevReports = Array.isArray(prevReports) ? prevReports : [];
+        const newReports = [...safePrevReports, report];
         saveYearlyReports(newReports).catch(err => console.error('Error saving reports:', err));
         return newReports;
       });
@@ -626,14 +638,16 @@ export function useCloudStorage() {
   const updateYearlyReport = useCallback(async (id: string, updates: Partial<YearlyReport>) => {
     try {
       setYearlyReports(prevReports => {
-        const reportIndex = prevReports.findIndex(r => r.id === id);
+        // Гарантируем, что prevReports является массивом
+        const safePrevReports = Array.isArray(prevReports) ? prevReports : [];
+        const reportIndex = safePrevReports.findIndex(r => r.id === id);
         if (reportIndex === -1) {
           console.warn('Yearly report not found:', id);
-          return prevReports;
+          return safePrevReports;
         }
         
-        const updatedReport = { ...prevReports[reportIndex], ...updates };
-        const newReports = prevReports.map(r => 
+        const updatedReport = { ...safePrevReports[reportIndex], ...updates };
+        const newReports = safePrevReports.map(r => 
           r.id === id ? updatedReport : r
         );
         
@@ -649,7 +663,9 @@ export function useCloudStorage() {
   const deleteYearlyReport = useCallback(async (id: string) => {
     try {
       setYearlyReports(prevReports => {
-        const newReports = prevReports.filter(r => r.id !== id);
+        // Гарантируем, что prevReports является массивом
+        const safePrevReports = Array.isArray(prevReports) ? prevReports : [];
+        const newReports = safePrevReports.filter(r => r.id !== id);
         saveYearlyReports(newReports).catch(err => console.error('Error saving reports:', err));
         return newReports;
       });
