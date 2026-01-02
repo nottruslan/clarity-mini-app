@@ -80,15 +80,6 @@ export default function StatisticsView({ finance }: StatisticsViewProps) {
             if (p !== 'date') {
               setStartDate('');
               setEndDate('');
-            } else if (p === 'date' && (!startDate || !endDate)) {
-              // Инициализируем текущей датой при выборе периода 'date'
-              const now = new Date();
-              const year = now.getFullYear();
-              const month = String(now.getMonth() + 1).padStart(2, '0');
-              const day = String(now.getDate()).padStart(2, '0');
-              const today = `${year}-${month}-${day}`;
-              setStartDate(today);
-              setEndDate(today);
             }
           }}
           startDate={startDate}

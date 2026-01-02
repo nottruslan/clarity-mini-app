@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import DateRangeBottomSheet from './DateRangeBottomSheet';
+
 export type Period = 'day' | 'week' | 'month' | 'year' | 'date';
 
 interface PeriodSelectorProps {
@@ -25,155 +28,133 @@ const formatDateToInput = (timestamp: number): string => {
   return `${year}-${month}-${day}`;
 };
 
+// Функция для форматирования диапазона дат для отображения (DD.MM - DD.MM)
+const formatDateRangeForDisplay = (startDate?: string, endDate?: string): string => {
+  if (!startDate || !endDate) {
+    return 'Выбрать...';
+  }
+
+  try {
+    const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+    const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+    
+    const startFormatted = `${String(startDay).padStart(2, '0')}.${String(startMonth).padStart(2, '0')}`;
+    const endFormatted = `${String(endDay).padStart(2, '0')}.${String(endMonth).padStart(2, '0')}`;
+    
+    return `${startFormatted} - ${endFormatted}`;
+  } catch (e) {
+    return 'Выбрать...';
+  }
+};
+
 export default function PeriodSelector({ value, onChange, startDate, endDate, onDateRangeChange }: PeriodSelectorProps) {
-  // Если выбран период 'date', используем startDate/endDate или текущую дату
-  const currentDate = formatDateToInput(Date.now());
-  const startDateValue = value === 'date' 
-    ? (startDate || currentDate)
-    : currentDate;
-  const endDateValue = value === 'date' 
-    ? (endDate || currentDate)
-    : currentDate;
-
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (onDateRangeChange) {
-      onDateRangeChange(e.target.value, endDateValue);
-    }
-  };
-
-  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (onDateRangeChange) {
-      onDateRangeChange(startDateValue, e.target.value);
-    }
-  };
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handlePeriodChange = (period: Period) => {
-    onChange(period);
-    // При выборе периода 'date', инициализируем обе даты текущей датой, если они еще не заданы
-    if (period === 'date' && onDateRangeChange && (!startDate || !endDate)) {
-      const today = formatDateToInput(Date.now());
-      onDateRangeChange(today, today);
+    if (period === 'date') {
+      // При выборе периода 'date', открываем bottom sheet
+      setShowDatePicker(true);
+      // Устанавливаем период в 'date', если он еще не установлен
+      if (value !== 'date') {
+        onChange(period);
+      }
+    } else {
+      onChange(period);
     }
+  };
+
+  const handleDateRangeApply = (start: string, end: string) => {
+    if (onDateRangeChange) {
+      onDateRangeChange(start, end);
+    }
+    // Убеждаемся, что период установлен в 'date'
+    if (value !== 'date') {
+      onChange('date');
+    }
+    setShowDatePicker(false);
+  };
+
+  const handleDatePickerClose = () => {
+    setShowDatePicker(false);
+  };
+
+  // Определяем текст для кнопки "Выбрать..."
+  const getDateButtonLabel = (): string => {
+    if (periods.find(p => p.value === 'date')) {
+      const datePeriod = periods.find(p => p.value === 'date');
+      if (value === 'date' && startDate && endDate) {
+        return formatDateRangeForDisplay(startDate, endDate);
+      }
+      return datePeriod?.label || 'Выбрать...';
+    }
+    return 'Выбрать...';
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      gap: '4px',
-      padding: '6px',
-      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-      borderRadius: '12px',
-      alignItems: 'center',
-      flexWrap: 'nowrap'
-    }}>
-      {periods.map((period) => {
-        // Если это период 'date' и он выбран, показываем два input вместо кнопки
-        if (period.value === 'date' && value === 'date') {
+    <>
+      <div style={{
+        display: 'flex',
+        gap: '4px',
+        padding: '6px',
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        borderRadius: '12px',
+        alignItems: 'center',
+        flexWrap: 'nowrap'
+      }}>
+        {periods.map((period) => {
+          const isDatePeriod = period.value === 'date';
+          const buttonLabel = isDatePeriod ? getDateButtonLabel() : period.label;
+          
           return (
-            <div
+            <button
               key={period.value}
-              style={{
-                display: 'flex',
-                gap: '3px',
-                alignItems: 'center',
-                flex: '1 1 0',
-                minWidth: 0
+              onClick={() => handlePeriodChange(period.value)}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                handlePeriodChange(period.value);
               }}
-            >
-              <input
-                type="date"
-                value={startDateValue}
-                onChange={handleStartDateChange}
-                style={{
-                  flex: '1 1 0',
-                  minWidth: 0,
-                  width: 0,
-                  padding: '4px 6px',
-                  borderRadius: '8px',
-                  border: '2px solid var(--tg-theme-button-color)',
-                  backgroundColor: 'var(--tg-theme-button-color)',
-                  color: 'var(--tg-theme-button-text-color)',
-                  fontSize: '10px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent',
-                  boxSizing: 'border-box'
-                }}
-              />
-              <span style={{ 
-                fontSize: '10px', 
-                color: 'var(--tg-theme-hint-color)',
+              style={{
+                flex: '1 1 0',
+                minWidth: '55px',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: value === period.value
+                  ? 'var(--tg-theme-button-color)'
+                  : 'transparent',
+                color: value === period.value
+                  ? 'var(--tg-theme-button-text-color)'
+                  : 'var(--tg-theme-text-color)',
+                fontSize: '12px',
+                fontWeight: value === period.value ? '600' : '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
                 whiteSpace: 'nowrap',
                 flexShrink: 0
-              }}>
-                —
-              </span>
-              <input
-                type="date"
-                value={endDateValue}
-                onChange={handleEndDateChange}
-                style={{
-                  flex: '1 1 0',
-                  minWidth: 0,
-                  width: 0,
-                  padding: '4px 6px',
-                  borderRadius: '8px',
-                  border: '2px solid var(--tg-theme-button-color)',
-                  backgroundColor: 'var(--tg-theme-button-color)',
-                  color: 'var(--tg-theme-button-text-color)',
-                  fontSize: '10px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
+              }}
+            >
+              <span style={{ fontSize: '16px' }}>{period.icon}</span>
+              <span>{buttonLabel}</span>
+            </button>
           );
-        }
-        
-        return (
-          <button
-            key={period.value}
-            onClick={() => handlePeriodChange(period.value)}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              handlePeriodChange(period.value);
-            }}
-            style={{
-              flex: '1 1 0',
-              minWidth: '55px',
-              padding: '6px 10px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: value === period.value
-                ? 'var(--tg-theme-button-color)'
-                : 'transparent',
-              color: value === period.value
-                ? 'var(--tg-theme-button-text-color)'
-                : 'var(--tg-theme-text-color)',
-              fontSize: '12px',
-              fontWeight: value === period.value ? '600' : '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '2px',
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-          >
-            <span style={{ fontSize: '16px' }}>{period.icon}</span>
-            <span>{period.label}</span>
-          </button>
-        );
-      })}
-    </div>
+        })}
+      </div>
+
+      {showDatePicker && (
+        <DateRangeBottomSheet
+          startDate={startDate}
+          endDate={endDate}
+          onApply={handleDateRangeApply}
+          onClose={handleDatePickerClose}
+        />
+      )}
+    </>
   );
 }
 
