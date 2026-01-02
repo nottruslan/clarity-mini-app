@@ -10,6 +10,9 @@ import Step3Status from '../components/Books/CreateBook/Step3Status';
 import Step4Genre from '../components/Books/CreateBook/Step4Genre';
 import Step5Cover from '../components/Books/CreateBook/Step5Cover';
 import BookBottomSheet from '../components/Books/BookBottomSheet';
+import BookDetailsBottomSheet from '../components/Books/BookDetailsBottomSheet';
+import EditBookModal from '../components/Books/EditBookModal';
+import CreateGoalModal from '../components/Books/Goals/CreateGoalModal';
 import { sectionColors } from '../utils/sectionColors';
 
 interface BooksPageProps {
@@ -24,6 +27,7 @@ export default function BooksPage({ storage }: BooksPageProps) {
   const touchEndRef = useRef<number | null>(null);
   const minSwipeDistance = 50;
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createStep, setCreateStep] = useState(0);
   const [bookData, setBookData] = useState<{
@@ -35,6 +39,9 @@ export default function BooksPage({ storage }: BooksPageProps) {
   }>({});
   const [menuBook, setMenuBook] = useState<Book | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [showCreateGoal, setShowCreateGoal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editBook, setEditBook] = useState<Book | null>(null);
 
   const handleStartCreate = () => {
     setIsCreating(true);
@@ -118,7 +125,7 @@ export default function BooksPage({ storage }: BooksPageProps) {
 
   const handleOpenDetails = (book: Book) => {
     setSelectedBook(book);
-    // TODO: открыть детальный просмотр
+    setShowDetails(true);
   };
 
   const handleOpenMenu = (book: Book) => {
@@ -302,11 +309,35 @@ export default function BooksPage({ storage }: BooksPageProps) {
               overflowY: 'auto',
               overflowX: 'hidden'
             }}>
-              <BooksStatisticsView booksData={storage.books} />
+              <BooksStatisticsView 
+                booksData={storage.books}
+                onCreateGoal={() => setShowCreateGoal(true)}
+                onDeleteGoal={async (goalId) => {
+                  await storage.deleteBookGoal(goalId);
+                }}
+              />
             </div>
           </div>
         </div>
       </div>
+
+      {/* BottomSheet для детального просмотра */}
+      {showDetails && selectedBook && (
+        <BookDetailsBottomSheet
+          book={selectedBook}
+          onClose={() => {
+            setShowDetails(false);
+            setSelectedBook(null);
+          }}
+          onUpdate={async (updatedBook) => {
+            await storage.updateBook(updatedBook.id, {
+              ...updatedBook,
+              updatedAt: Date.now()
+            });
+            setSelectedBook(updatedBook);
+          }}
+        />
+      )}
 
       {/* BottomSheet для меню */}
       {showMenu && menuBook && (
@@ -316,11 +347,41 @@ export default function BooksPage({ storage }: BooksPageProps) {
             setMenuBook(null);
           }}
           onEdit={() => {
-            // TODO: редактирование
-            setShowMenu(false);
-            setMenuBook(null);
+            if (menuBook) {
+              setEditBook(menuBook);
+              setShowEditModal(true);
+              setShowMenu(false);
+              setMenuBook(null);
+            }
           }}
           onDelete={() => handleDelete(menuBook.id)}
+        />
+      )}
+
+      {/* Модальное окно создания цели */}
+      {showCreateGoal && (
+        <CreateGoalModal
+          onSave={async (goal) => {
+            await storage.addBookGoal(goal);
+            setShowCreateGoal(false);
+          }}
+          onClose={() => setShowCreateGoal(false)}
+        />
+      )}
+
+      {/* Модальное окно редактирования книги */}
+      {showEditModal && editBook && (
+        <EditBookModal
+          book={editBook}
+          onSave={async (updates) => {
+            await storage.updateBook(editBook.id, updates);
+            setShowEditModal(false);
+            setEditBook(null);
+          }}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditBook(null);
+          }}
         />
       )}
     </>
