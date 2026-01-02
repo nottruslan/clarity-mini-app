@@ -10,15 +10,16 @@ interface DiaryEditScreenProps {
 }
 
 export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = false, onEditRequest }: DiaryEditScreenProps) {
-  const [title, setTitle] = useState(entry?.title || '');
-  const [content, setContent] = useState(entry?.content || '');
+  // Инициализируем состояние пустыми значениями, useEffect установит правильные значения
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Инициализация значений при монтировании или изменении entry
   useEffect(() => {
-    // Всегда сбрасываем состояние сначала
+    // Всегда сбрасываем состояние сначала - это гарантирует чистый сброс
     if (entry) {
       setTitle(entry.title || '');
       setContent(entry.content || '');

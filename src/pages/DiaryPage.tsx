@@ -16,7 +16,7 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
   const [menuEntry, setMenuEntry] = useState<DiaryEntry | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-  const [editKey, setEditKey] = useState<string | number>(0);
+  const [editKey, setEditKey] = useState<string | number>('');
 
   // Получаем сегодняшнюю дату (начало дня)
   const getTodayTimestamp = () => {
@@ -91,6 +91,7 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
   const handleEditFromRead = () => {
     if (viewingEntry) {
       setEditingEntry(viewingEntry);
+      setEditKey(viewingEntry.id);
       setViewingEntry(null);
       setIsEditing(true);
     }
@@ -98,6 +99,7 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
 
   const handleEdit = (entry: DiaryEntry) => {
     setEditingEntry(entry);
+    setEditKey(entry.id);
     setViewingEntry(null);
     setIsEditing(true);
     setShowMenu(false);
