@@ -26,8 +26,8 @@ export default function DiaryEntryCard({ entry, onView, onOpenMenu }: DiaryEntry
       style={{
         backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
         borderRadius: '12px',
-        padding: '16px',
-        marginBottom: '12px',
+        padding: '12px',
+        marginBottom: '10px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
         cursor: 'pointer'
       }}
@@ -35,10 +35,10 @@ export default function DiaryEntryCard({ entry, onView, onOpenMenu }: DiaryEntry
       {entry.title && (
         <div
           style={{
-            fontSize: '18px',
+            fontSize: '16px',
             fontWeight: '600',
             color: 'var(--tg-theme-text-color, #000000)',
-            marginBottom: '12px',
+            marginBottom: '8px',
             lineHeight: '1.4'
           }}
         >
@@ -47,12 +47,17 @@ export default function DiaryEntryCard({ entry, onView, onOpenMenu }: DiaryEntry
       )}
       <div
         style={{
-          fontSize: '16px',
+          fontSize: '14px',
           color: 'var(--tg-theme-text-color, #000000)',
-          lineHeight: '1.5',
+          lineHeight: '1.4',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
-          marginBottom: '12px'
+          marginBottom: '8px',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
         }}
       >
         {entry.content}
@@ -66,7 +71,7 @@ export default function DiaryEntryCard({ entry, onView, onOpenMenu }: DiaryEntry
       >
         <div
           style={{
-            fontSize: '14px',
+            fontSize: '12px',
             color: 'var(--tg-theme-hint-color, #999999)'
           }}
         >
@@ -78,8 +83,8 @@ export default function DiaryEntryCard({ entry, onView, onOpenMenu }: DiaryEntry
             onOpenMenu();
           }}
           style={{
-            width: '32px',
-            height: '32px',
+            width: '28px',
+            height: '28px',
             borderRadius: '50%',
             border: 'none',
             backgroundColor: 'transparent',
@@ -87,7 +92,7 @@ export default function DiaryEntryCard({ entry, onView, onOpenMenu }: DiaryEntry
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            fontSize: '20px',
+            fontSize: '18px',
             color: 'var(--tg-theme-hint-color, #999999)',
             flexShrink: 0
           }}

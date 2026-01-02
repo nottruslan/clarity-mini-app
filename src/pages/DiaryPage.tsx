@@ -49,13 +49,18 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
   }, [storage.diary, selectedMonth]);
 
   const handleCreateClick = () => {
-    if (todayEntry) {
+    // Всегда сначала сбрасываем editingEntry, чтобы избежать использования старого значения
+    setEditingEntry(null);
+    
+    // Затем проверяем актуальное состояние - есть ли запись за сегодня
+    const todayTimestamp = getTodayTimestamp();
+    const currentTodayEntry = storage.diary.find(entry => entry.date === todayTimestamp);
+    
+    if (currentTodayEntry) {
       // Если запись за сегодня уже существует, открываем её для редактирования
-      setEditingEntry(todayEntry);
-    } else {
-      // Иначе создаём новую запись
-      setEditingEntry(null);
+      setEditingEntry(currentTodayEntry);
     }
+    // Иначе editingEntry остается null для создания новой записи
     setIsEditing(true);
   };
 
@@ -67,7 +72,7 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
       // Создаём новую запись
       await storage.addDiaryEntry(entry);
     }
-    // Закрытие произойдет в DiaryEditScreen после показа уведомления
+    // Закрытие произойдет в DiaryEditScreen, там вызовется handleClose
   };
 
   const handleView = (entry: DiaryEntry) => {

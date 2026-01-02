@@ -49,16 +49,16 @@ export default function DiaryEntryList({ entries, onView, onOpenMenu }: DiaryEnt
   };
 
   return (
-    <div style={{ padding: '16px' }}>
+    <div style={{ padding: '12px' }}>
       {sortedMonths.map(monthKey => (
         <div key={monthKey}>
           <div
             style={{
-              fontSize: '18px',
+              fontSize: '16px',
               fontWeight: '600',
               color: 'var(--tg-theme-text-color, #000000)',
-              marginBottom: '16px',
-              marginTop: monthKey !== sortedMonths[0] ? '24px' : '0'
+              marginBottom: '12px',
+              marginTop: monthKey !== sortedMonths[0] ? '20px' : '0'
             }}
           >
             {formatMonthHeader(monthKey)}

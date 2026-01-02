@@ -13,7 +13,6 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
   const [title, setTitle] = useState(entry?.title || '');
   const [content, setContent] = useState(entry?.content || '');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [showToast, setShowToast] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -121,12 +120,8 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
     onSave(savedEntry);
     setHasUnsavedChanges(false);
     
-    // Показываем уведомление
-    setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-      onClose();
-    }, 1500);
+    // Закрываем сразу после сохранения
+    onClose();
   };
 
   const canSave = content.trim().length > 0;
@@ -317,34 +312,6 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
           />
         )}
       </div>
-
-      {/* Toast уведомление */}
-      {showToast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 'calc(20px + env(safe-area-inset-bottom))',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            color: '#ffffff',
-            padding: '12px 24px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            zIndex: 10001,
-            animation: 'fadeInOut 1.5s ease-in-out'
-          }}
-        >
-          Сохранено
-        </div>
-      )}
-
-      <style>{`
-        @keyframes fadeInOut {
-          0%, 100% { opacity: 0; transform: translateX(-50%) translateY(10px); }
-          20%, 80% { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }
