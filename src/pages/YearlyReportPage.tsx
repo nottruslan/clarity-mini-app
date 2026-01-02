@@ -54,8 +54,26 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
   });
   const currentYear = new Date().getFullYear();
 
+  // Проверка состояния загрузки
+  if (storage.loading) {
+    return (
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '32px'
+      }}>
+        <p style={{ color: 'var(--tg-theme-hint-color)' }}>Загрузка...</p>
+      </div>
+    );
+  }
+
+  // Безопасный доступ к данным
+  const yearlyReports = storage.yearlyReports ?? [];
+
   const handleCreateNew = () => {
-    const existingReport = storage.yearlyReports.find(r => r.year === currentYear);
+    const existingReport = yearlyReports.find(r => r.year === currentYear);
     if (existingReport) {
       setEditingReport(existingReport);
       setReportData({
@@ -108,7 +126,7 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
       updatedAt: Date.now()
     };
 
-    const existingIndex = storage.yearlyReports.findIndex(r => r.id === updatedReport.id);
+    const existingIndex = yearlyReports.findIndex(r => r.id === updatedReport.id);
     if (existingIndex >= 0) {
       await storage.updateYearlyReport(updatedReport.id, updatedReport);
     } else {
@@ -681,7 +699,7 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
   }
 
   const viewingReport = viewingReportId 
-    ? storage.yearlyReports.find(r => r.id === viewingReportId)
+    ? yearlyReports.find(r => r.id === viewingReportId)
     : null;
 
   return (
@@ -698,7 +716,7 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
         padding: '16px',
         paddingBottom: 'calc(116px + env(safe-area-inset-bottom))'
       }}>
-        {storage.yearlyReports.length === 0 ? (
+        {yearlyReports.length === 0 ? (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -721,7 +739,7 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
             flexDirection: 'column',
             gap: '12px'
           }}>
-            {storage.yearlyReports
+            {yearlyReports
               .sort((a, b) => b.year - a.year)
               .map((report) => {
                 const progress = calculateProgress(report);
