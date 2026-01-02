@@ -137,6 +137,10 @@ export function useCloudStorage() {
         categoriesCount: financeData.categories?.length || 0,
         budgetsCount: financeData.budgets?.length || 0
       });
+      console.log('[setFinance] Calling setFinance from loadAllData with:', {
+        transactionsCount: financeData.transactions?.length || 0,
+        transactions: financeData.transactions
+      });
       setFinance(financeData);
       console.log('[Finance] loadAllData - Finance state updated');
       setOnboarding(onboardingData);
@@ -253,9 +257,39 @@ export function useCloudStorage() {
             console.error('[Finance] addTransaction - Error saving finance:', err);
           });
         
-        console.log('[Finance] addTransaction - Returning newFinance from setFinance callback');
+        console.log('[Finance] addTransaction - Returning newFinance from setFinance callback:', {
+          transactionsCount: newFinance.transactions.length,
+          transactions: newFinance.transactions
+        });
         return newFinance;
       });
+      
+      // После вызова setFinance проверяем, что данные сохранились
+      // Даем небольшую задержку для завершения асинхронной операции сохранения
+      setTimeout(async () => {
+        try {
+          const savedData = await getFinanceData();
+          console.log('[Finance] addTransaction - Verification after save:', {
+            savedTransactionsCount: savedData.transactions?.length || 0,
+            expectedCount: (finance.transactions?.length || 0) + 1,
+            transactionIds: savedData.transactions?.map(t => t.id) || [],
+            lastTransactionId: transaction.id
+          });
+          if (savedData.transactions && savedData.transactions.length > 0) {
+            const found = savedData.transactions.some(t => t.id === transaction.id);
+            if (!found) {
+              console.error('[Finance] addTransaction - WARNING: Transaction not found in saved data!', {
+                savedIds: savedData.transactions.map(t => t.id),
+                expectedId: transaction.id
+              });
+            } else {
+              console.log('[Finance] addTransaction - Transaction verified in saved data');
+            }
+          }
+        } catch (error) {
+          console.error('[Finance] addTransaction - Error verifying saved data:', error);
+        }
+      }, 100);
       
       console.log('[Finance] addTransaction - setFinance called, state update scheduled');
     } catch (error) {
@@ -268,6 +302,9 @@ export function useCloudStorage() {
     try {
       console.log('[Finance] updateTransaction - START, id:', id, 'updates:', updates);
       setFinance(prevFinance => {
+        console.log('[setFinance] Inside setFinance callback in updateTransaction, prevFinance:', {
+          transactionsCount: prevFinance.transactions?.length || 0
+        });
         const transactionIndex = prevFinance.transactions.findIndex(t => t.id === id);
         if (transactionIndex === -1) {
           console.warn('[Finance] updateTransaction - Transaction not found:', id);
@@ -310,6 +347,7 @@ export function useCloudStorage() {
 
   const addCategory = useCallback(async (category: FinanceData['categories'][0]) => {
     try {
+      console.log('[setFinance] Calling setFinance from addCategory');
       setFinance(prevFinance => {
         const newFinance = {
           ...prevFinance,
@@ -353,6 +391,7 @@ export function useCloudStorage() {
 
   const updateCategory = useCallback(async (id: string, updates: Partial<Category>) => {
     try {
+      console.log('[setFinance] Calling setFinance from updateCategory');
       setFinance(prevFinance => {
         const newFinance = {
           ...prevFinance,
@@ -463,6 +502,7 @@ export function useCloudStorage() {
 
   const addBudget = useCallback(async (budget: FinanceData['budgets'][0]) => {
     try {
+      console.log('[setFinance] Calling setFinance from addBudget');
       setFinance(prevFinance => {
         const newFinance = {
           ...prevFinance,
@@ -497,6 +537,7 @@ export function useCloudStorage() {
 
   const deleteBudget = useCallback(async (categoryId: string) => {
     try {
+      console.log('[setFinance] Calling setFinance from deleteBudget');
       setFinance(prevFinance => {
         const newFinance = {
           ...prevFinance,

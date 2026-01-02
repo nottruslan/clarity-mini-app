@@ -383,11 +383,23 @@ function unwrapData<T>(wrapped: DataWithMetadata<T> | T): T {
   // Проверяем, что wrapped не null/undefined и является объектом
   // Примитивные типы (string, number, boolean) не могут быть обернуты метаданными
   // Массивы тоже могут быть обернуты, поэтому проверяем наличие _syncTimestamp
-  if (wrapped !== null && 
+  const hasMetadata = wrapped !== null && 
       wrapped !== undefined && 
       typeof wrapped === 'object' &&
-      '_syncTimestamp' in wrapped) {
-    return (wrapped as DataWithMetadata<T>).data;
+      '_syncTimestamp' in wrapped;
+  
+  if (hasMetadata) {
+    const unwrapped = (wrapped as DataWithMetadata<T>).data;
+    // Логируем для finance данных, чтобы проверить, не теряются ли транзакции
+    if (unwrapped && typeof unwrapped === 'object' && 'transactions' in unwrapped) {
+      const financeData = unwrapped as any;
+      console.log('[unwrapData] Unwrapping finance data:', {
+        transactionsCount: financeData.transactions?.length || 0,
+        hasTransactions: !!financeData.transactions,
+        transactionsIsArray: Array.isArray(financeData.transactions)
+      });
+    }
+    return unwrapped;
   }
   return wrapped as T;
 }
@@ -441,16 +453,39 @@ interface CloudStorageLoadResult<T> {
  * Приоритет: Cloud Storage (синхронизированные данные) > localStorage (кэш)
  */
 export async function getStorageData<T>(key: string): Promise<T | null> {
+  const isFinanceKey = key === STORAGE_KEYS.FINANCE;
+  if (isFinanceKey) {
+    console.log('[getStorageData] START - Loading finance data, key:', key);
+  }
+  
   // Сначала загружаем из localStorage для быстрого старта (кэш)
   let localData: T | null = null;
   try {
     const data = localStorage.getItem(key);
     if (data) {
       const parsed = JSON.parse(data);
+      if (isFinanceKey) {
+        console.log('[getStorageData] Parsed localStorage data for finance:', {
+          hasSyncTimestamp: '_syncTimestamp' in parsed,
+          hasData: 'data' in parsed,
+          dataType: typeof parsed.data,
+          transactionsInParsed: parsed.data?.transactions?.length || 0
+        });
+      }
       localData = unwrapData<T>(parsed);
+      if (isFinanceKey && localData) {
+        const financeData = localData as any;
+        console.log('[getStorageData] Unwrapped localStorage data for finance:', {
+          transactionsCount: financeData.transactions?.length || 0,
+          hasTransactions: !!financeData.transactions,
+          transactionsIsArray: Array.isArray(financeData.transactions)
+        });
+      }
+    } else if (isFinanceKey) {
+      console.log('[getStorageData] No data in localStorage for finance key');
     }
   } catch (parseError) {
-    console.error('Error parsing localStorage data:', parseError);
+    console.error('[getStorageData] Error parsing localStorage data:', parseError);
   }
 
   // Проверяем доступность CloudStorage для синхронизации
@@ -517,6 +552,13 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
 
     // Если Cloud Storage вернул данные - они приоритетнее для синхронизации
     if (result.data !== null) {
+      if (isFinanceKey) {
+        const financeData = result.data as any;
+        console.log('[getStorageData] Cloud Storage data found for finance:', {
+          transactionsCount: financeData.transactions?.length || 0,
+          hasTransactions: !!financeData.transactions
+        });
+      }
       // Обновляем localStorage для кэширования
       // Всегда оборачиваем данные метаданными с новым timestamp при сохранении в localStorage
       // Это обеспечивает актуальность метаданных для разрешения конфликтов
@@ -528,6 +570,9 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
         console.error('Error syncing Cloud Storage data to localStorage:', error);
       }
       // Возвращаем данные без метаданных (unwrapData уже был вызван при загрузке)
+      if (isFinanceKey) {
+        console.log('[getStorageData] END - Returning Cloud Storage data for finance');
+      }
       return result.data;
     }
 
@@ -540,15 +585,30 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
       } else {
         console.log(`[SYNC] No data in Cloud Storage for key "${key}", using localStorage`);
       }
+      if (isFinanceKey) {
+        const financeData = localData as any;
+        console.log('[getStorageData] END - Returning localStorage data for finance:', {
+          transactionsCount: financeData.transactions?.length || 0
+        });
+      }
       // Используем resolveConflict для единообразной обработки
       return resolveConflict(localData, null);
     }
 
     // Нет данных ни в CloudStorage, ни в localStorage
+    if (isFinanceKey) {
+      console.log('[getStorageData] END - No data found for finance key');
+    }
     return null;
   } catch (error) {
-    console.error('Error loading from Cloud Storage:', error);
+    console.error('[getStorageData] Error loading from Cloud Storage:', error);
     // При любой ошибке возвращаем localStorage как fallback
+    if (isFinanceKey && localData) {
+      const financeData = localData as any;
+      console.log('[getStorageData] END - Returning localStorage fallback for finance:', {
+        transactionsCount: financeData.transactions?.length || 0
+      });
+    }
     return localData;
   }
 }
@@ -707,8 +767,17 @@ export function getDefaultCategories(): Category[] {
  * Получить финансовые данные
  */
 export async function getFinanceData(): Promise<FinanceData> {
+  console.log('[getFinanceData] START - Loading finance data from storage');
   const data = await getStorageData<FinanceData>(STORAGE_KEYS.FINANCE);
+  console.log('[getFinanceData] Data loaded from storage:', {
+    hasData: !!data,
+    transactionsCount: data?.transactions?.length || 0,
+    categoriesCount: data?.categories?.length || 0,
+    budgetsCount: data?.budgets?.length || 0
+  });
+  
   if (!data) {
+    console.log('[getFinanceData] No data found, initializing default data');
     // Инициализируем с категориями по умолчанию
     const defaultData: FinanceData = {
       transactions: [],
@@ -721,23 +790,32 @@ export async function getFinanceData(): Promise<FinanceData> {
   // Убеждаемся, что transactions всегда существует (защита от потери данных)
   let needsSave = false;
   if (!data.transactions) {
+    console.warn('[getFinanceData] WARNING - transactions is missing, initializing empty array');
     data.transactions = [];
     needsSave = true;
   }
   // Если категорий нет, добавляем их
   if (!data.categories || data.categories.length === 0) {
+    console.log('[getFinanceData] Categories missing, adding default categories');
     data.categories = getDefaultCategories();
     needsSave = true;
   }
   // Если budgets нет, инициализируем пустым массивом
   if (!data.budgets) {
+    console.log('[getFinanceData] Budgets missing, initializing empty array');
     data.budgets = [];
     needsSave = true;
   }
   // Сохраняем изменения, если что-то было инициализировано
   if (needsSave) {
+    console.log('[getFinanceData] Saving initialized data back to storage');
     await saveFinanceData(data);
   }
+  console.log('[getFinanceData] END - Returning finance data:', {
+    transactionsCount: data.transactions?.length || 0,
+    categoriesCount: data.categories?.length || 0,
+    budgetsCount: data.budgets?.length || 0
+  });
   return data;
 }
 
