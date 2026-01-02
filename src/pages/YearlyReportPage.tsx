@@ -782,16 +782,25 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '32px',
+            padding: '60px 20px',
+            minHeight: '200px',
             textAlign: 'center'
           }}>
+            <div style={{ 
+              fontSize: '64px',
+              color: 'var(--tg-theme-hint-color)',
+              marginBottom: '16px',
+              opacity: 0.5
+            }}>
+              📭
+            </div>
             {/* Информационный блок */}
             <div style={{
               padding: '16px',
               backgroundColor: 'var(--tg-theme-secondary-bg-color)',
               borderRadius: '12px',
               border: '1px solid var(--tg-theme-secondary-bg-color)',
-              marginBottom: '24px',
+              marginTop: '16px',
               maxWidth: '100%',
               textAlign: 'left'
             }}>
@@ -808,12 +817,6 @@ export default function YearlyReportPage({ storage }: YearlyReportPageProps) {
                 </div>
               </div>
             </div>
-            <p style={{ fontSize: '16px', marginBottom: '8px', color: 'var(--tg-theme-hint-color)' }}>
-              У вас пока нет годовых отчетов
-            </p>
-            <p style={{ fontSize: '14px', color: 'var(--tg-theme-hint-color)' }}>
-              Создайте первый отчет, чтобы начать
-            </p>
           </div>
         ) : (
           <div style={{

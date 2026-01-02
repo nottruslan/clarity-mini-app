@@ -253,9 +253,55 @@ export default function TasksView({ storage }: TasksViewProps) {
           overflowY: 'auto'
         }}>
           {displayedTasks.length === 0 ? (
-            <EmptyState
-              message="Нет задач. Создайте новую задачу, нажав кнопку внизу"
-            />
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '60px 20px',
+              minHeight: '200px',
+              textAlign: 'center'
+            }}>
+              <div style={{ 
+                fontSize: '64px',
+                color: 'var(--tg-theme-hint-color)',
+                marginBottom: '16px',
+                opacity: 0.5
+              }}>
+                📭
+              </div>
+              {/* Информационный блок */}
+              <div style={{
+                padding: '16px',
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                borderRadius: '12px',
+                border: '1px solid var(--tg-theme-secondary-bg-color)',
+                marginTop: '16px',
+                maxWidth: '100%',
+                textAlign: 'left'
+              }}>
+                <div style={{
+                  fontSize: '14px',
+                  color: 'var(--tg-theme-text-color)',
+                  lineHeight: '1.5'
+                }}>
+                  <div style={{ marginBottom: '8px', fontWeight: '500' }}>
+                    💡 Как работать с задачами:
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                    <div style={{ marginBottom: '4px' }}>
+                      • В <strong>InBox</strong> вносите быстрые задачи, когда что-то вспомнили, но нет времени отсортировать
+                    </div>
+                    <div style={{ marginBottom: '4px' }}>
+                      • Из InBox можно перенести в <strong>Задачи</strong> и сделать более детальное описание
+                    </div>
+                    <div>
+                      • Дальше укажите время и разместите в <strong>План</strong> на день
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="list">
               {displayedTasks.map((task) => (

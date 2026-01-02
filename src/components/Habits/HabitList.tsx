@@ -1,6 +1,5 @@
 import { Habit } from '../../utils/storage';
 import HabitItem from './HabitItem';
-import EmptyState from '../EmptyState';
 
 interface HabitListProps {
   habits: Habit[];
@@ -48,15 +47,29 @@ export default function HabitList({
         flex: 1, 
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '60px 20px',
+        minHeight: '200px',
+        textAlign: 'center'
       }}>
+        <div style={{ 
+          fontSize: '64px',
+          color: 'var(--tg-theme-hint-color)',
+          marginBottom: '16px',
+          opacity: 0.5
+        }}>
+          📭
+        </div>
         {/* Информационный блок */}
         <div style={{
           padding: '16px',
           backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          margin: '16px',
           borderRadius: '12px',
-          border: '1px solid var(--tg-theme-secondary-bg-color)'
+          border: '1px solid var(--tg-theme-secondary-bg-color)',
+          marginTop: '16px',
+          maxWidth: '100%',
+          textAlign: 'left'
         }}>
           <div style={{
             fontSize: '14px',
@@ -76,9 +89,6 @@ export default function HabitList({
             </div>
           </div>
         </div>
-        <EmptyState 
-          message="У вас пока нет привычек. Создайте первую привычку!"
-        />
       </div>
     );
   }
@@ -96,52 +106,19 @@ export default function HabitList({
         paddingTop: '0px',
         WebkitOverflowScrolling: 'touch' as any
       }}>
-        {/* Информационный блок */}
-        <div style={{
-          padding: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          margin: '16px',
-          marginBottom: '8px',
-          borderRadius: '12px',
-          border: '1px solid var(--tg-theme-secondary-bg-color)'
-        }}>
-          <div style={{
-            fontSize: '14px',
-            color: 'var(--tg-theme-text-color)',
-            lineHeight: '1.5'
-          }}>
-            <div style={{ marginBottom: '8px', fontWeight: '500' }}>
-              💡 Как работать с привычками:
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
-              <div style={{ marginBottom: '4px' }}>
-                • Создайте привычку и отмечайте в календаре
-              </div>
-              <div>
-                • Чтобы открыть календарь, нужно нажать на привычку и там отмечать в календаре
-              </div>
-            </div>
-          </div>
-        </div>
-        {sortedHabits.length === 0 ? (
-          <EmptyState 
-            message="У вас пока нет привычек. Создайте первую привычку!"
+        {sortedHabits.map((habit) => (
+          <HabitItem
+            key={habit.id}
+            habit={habit}
+            onCheck={(value) => onCheck(habit.id, value)}
+            onUpdate={(updates) => onUpdate(habit.id, updates)}
+            onHistoryUpdate={(history) => onHistoryUpdate(habit.id, history)}
+            onDelete={() => onDelete(habit.id)}
+            onOpenDetails={() => onOpenDetails(habit)}
+            onOpenMenu={() => onOpenMenu(habit)}
+            onEdit={() => onEdit(habit)}
           />
-        ) : (
-          sortedHabits.map((habit) => (
-            <HabitItem
-              key={habit.id}
-              habit={habit}
-              onCheck={(value) => onCheck(habit.id, value)}
-              onUpdate={(updates) => onUpdate(habit.id, updates)}
-              onHistoryUpdate={(history) => onHistoryUpdate(habit.id, history)}
-              onDelete={() => onDelete(habit.id)}
-              onOpenDetails={() => onOpenDetails(habit)}
-              onOpenMenu={() => onOpenMenu(habit)}
-              onEdit={() => onEdit(habit)}
-            />
-          ))
-        )}
+        ))}
       </div>
     </div>
   );

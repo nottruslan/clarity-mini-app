@@ -1,5 +1,6 @@
 import { type Section } from '../types/navigation';
 import LottieAnimation from '../components/LottieAnimation';
+import { sectionColors } from '../utils/sectionColors';
 
 interface HomePageProps {
   onSectionChange: (section: Section) => void;
@@ -62,98 +63,119 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
       flex: 1, 
       display: 'flex', 
       flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      padding: '16px 16px',
+      width: '100%',
       overflow: 'hidden',
       height: '100%'
     }}>
-      <h1 style={{ 
-        fontSize: '28px', 
-        fontWeight: '600', 
-        marginBottom: '8px',
-        textAlign: 'center'
-      }}>
-        Clarity
-      </h1>
-      
-      <p style={{ 
-        fontSize: '16px', 
-        color: 'var(--tg-theme-hint-color)',
-        marginBottom: '32px',
-        textAlign: 'center'
-      }}>
-        Инструменты для личной эффективности
-      </p>
-
-      <div style={{ 
-        width: '100%', 
-        maxWidth: '150px', 
-        marginBottom: '32px' 
-      }}>
-        <LottieAnimation loop={true} autoplay={true} />
-      </div>
-
-      <div style={{ 
-        width: '100%', 
-        maxWidth: '400px',
+      {/* Компактный заголовок */}
+      <div style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        alignItems: 'center',
+        padding: '20px 16px 24px',
+        flexShrink: 0
       }}>
-        {sections.map((section) => (
-          <button
-            key={section.id}
-            onClick={() => onSectionChange(section.id)}
-            style={{
-              width: '100%',
-              backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-              color: 'var(--tg-theme-text-color, #000000)',
-              border: '1px solid var(--tg-theme-button-color, #3390ec)',
-              borderRadius: '10px',
-              padding: '16px 20px',
-              textAlign: 'left',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: '4px',
-              cursor: 'pointer',
-              transition: 'opacity 0.2s',
-              fontSize: '16px',
-              fontWeight: '500',
-              minHeight: '44px'
-            }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.opacity = '0.7';
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.opacity = '1';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '1';
-            }}
-          >
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '12px',
-              width: '100%'
-            }}>
-              <span style={{ fontSize: '24px' }}>{section.icon}</span>
-              <span style={{ fontSize: '18px', fontWeight: '500', color: 'var(--tg-theme-text-color, #000000)' }}>
-                {section.label}
-              </span>
-            </div>
-            <span style={{ 
-              fontSize: '14px', 
-              opacity: 0.8,
-              marginLeft: '36px',
-              color: 'var(--tg-theme-hint-color, #999999)'
-            }}>
-              {section.description}
-            </span>
-          </button>
-        ))}
+        <h1 style={{ 
+          fontSize: '24px', 
+          fontWeight: '600', 
+          marginBottom: '16px',
+          textAlign: 'center',
+          color: 'var(--tg-theme-text-color)'
+        }}>
+          Clarity
+        </h1>
+        
+        <div style={{ 
+          width: '100%', 
+          maxWidth: '120px', 
+          marginBottom: '0'
+        }}>
+          <LottieAnimation loop={true} autoplay={true} />
+        </div>
+      </div>
+
+      {/* Список разделов в стиле Telegram Mini Apps */}
+      <div className="list" style={{ 
+        width: '100%',
+        flex: 1,
+        overflowY: 'auto'
+      }}>
+        {sections.map((section, index) => {
+          const colors = sectionColors[section.id];
+          const isLast = index === sections.length - 1;
+          
+          return (
+            <button
+              key={section.id}
+              className="list-item"
+              onClick={() => onSectionChange(section.id)}
+              style={{
+                width: '100%',
+                backgroundColor: 'var(--tg-theme-section-bg-color)',
+                borderBottom: isLast 
+                  ? 'none' 
+                  : '1px solid var(--tg-theme-secondary-bg-color)',
+                padding: '16px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                border: 'none',
+                borderRadius: '0'
+              }}
+            >
+              {/* Иконка */}
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                backgroundColor: colors.primary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                flexShrink: 0
+              }}>
+                {section.icon}
+              </div>
+              
+              {/* Название и описание */}
+              <div style={{ 
+                flex: 1, 
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: 0
+              }}>
+                <span style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '500', 
+                  color: 'var(--tg-theme-text-color)',
+                  lineHeight: '1.4'
+                }}>
+                  {section.label}
+                </span>
+                <span style={{ 
+                  fontSize: '14px', 
+                  color: 'var(--tg-theme-hint-color)',
+                  lineHeight: '1.4'
+                }}>
+                  {section.description}
+                </span>
+              </div>
+              
+              {/* Стрелка */}
+              <div style={{
+                fontSize: '20px',
+                color: 'var(--tg-theme-hint-color)',
+                flexShrink: 0
+              }}>
+                →
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
