@@ -418,10 +418,13 @@ export default function FinancePage({ storage }: FinancePageProps) {
         {/* Заголовки разделов */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-around',
+          justifyContent: 'center',
+          alignItems: 'center',
           padding: '12px 16px',
           borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-          backgroundColor: 'var(--tg-theme-bg-color)'
+          backgroundColor: 'var(--tg-theme-bg-color)',
+          flexWrap: 'wrap',
+          gap: '4px'
         }}>
           {sectionTitles.map((title, index) => (
             <div
@@ -438,7 +441,8 @@ export default function FinancePage({ storage }: FinancePageProps) {
                 borderBottom: currentSlide === index 
                   ? '2px solid var(--tg-theme-button-color)' 
                   : '2px solid transparent',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
               }}
             >
               {title}

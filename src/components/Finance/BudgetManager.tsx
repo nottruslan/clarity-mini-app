@@ -323,13 +323,14 @@ export default function BudgetManager({
                     );
                   })}
                 </div>
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="tg-button"
-                  style={{ width: '100%' }}
-                >
-                  + Добавить бюджет
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    className="tg-button"
+                  >
+                    + Добавить бюджет
+                  </button>
+                </div>
               </>
             )}
           </>
