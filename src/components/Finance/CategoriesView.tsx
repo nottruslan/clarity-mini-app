@@ -7,7 +7,7 @@ interface CategoriesViewProps {
   categories: Category[];
   onCategoryAdd: (category: Category) => Promise<void>;
   onCategoryUpdate: (id: string, updates: Partial<Category>) => Promise<void>;
-  onCategoryDelete: (id: string, newCategoryName?: string) => Promise<void>;
+  onCategoryDelete: (id: string) => Promise<void>;
   onCategoryMoveUp: (id: string) => Promise<void>;
   onCategoryMoveDown: (id: string) => Promise<void>;
 }
@@ -202,12 +202,11 @@ export default function CategoriesView({
             setShowCategorySheet(false);
             setSelectedCategory(null);
           }}
-          onDelete={(categoryId: string, newCategoryName?: string) => {
-            onCategoryDelete(categoryId, newCategoryName);
+          onDelete={(categoryId: string) => {
+            onCategoryDelete(categoryId);
             setShowCategorySheet(false);
             setSelectedCategory(null);
           }}
-          categories={categories}
           canMoveUp={canMoveUp(selectedCategory)}
           canMoveDown={canMoveDown(selectedCategory)}
         />

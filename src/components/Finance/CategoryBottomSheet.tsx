@@ -7,10 +7,9 @@ interface CategoryBottomSheetProps {
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   onChangeIcon?: (icon: string) => void;
-  onDelete?: (categoryId: string, newCategoryName?: string) => void;
+  onDelete?: (categoryId: string) => void;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
-  categories?: Category[]; // Для выбора новой категории при удалении
 }
 
 const categoryIcons = [
@@ -33,14 +32,11 @@ export default function CategoryBottomSheet({
   onChangeIcon,
   onDelete,
   canMoveUp = false,
-  canMoveDown = false,
-  categories = []
+  canMoveDown = false
 }: CategoryBottomSheetProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const [showIconPicker, setShowIconPicker] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedReassignCategory, setSelectedReassignCategory] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -241,13 +237,9 @@ export default function CategoryBottomSheet({
               />
               <button
                 onClick={() => {
-                  if (categories.length > 0) {
-                    setShowDeleteConfirm(true);
-                  } else {
-                    if (window.confirm(`Вы уверены, что хотите удалить категорию "${category.name}"?`)) {
-                      onDelete(category.id);
-                      handleClose();
-                    }
+                  if (window.confirm(`Вы уверены, что хотите удалить категорию "${category.name}"? Все транзакции с этой категорией также будут удалены.`)) {
+                    onDelete?.(category.id);
+                    handleClose();
                   }
                 }}
                 style={{
@@ -276,127 +268,6 @@ export default function CategoryBottomSheet({
           )}
         </div>
       </div>
-
-      {showDeleteConfirm && categories.length > 0 && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            zIndex: 10002,
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            animation: 'fadeIn 0.2s ease-out'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowDeleteConfirm(false);
-            }
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: '500px',
-              backgroundColor: 'var(--tg-theme-bg-color)',
-              borderTopLeftRadius: '20px',
-              borderTopRightRadius: '20px',
-              padding: '20px',
-              paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
-              maxHeight: '60vh',
-              overflowY: 'auto'
-            }}
-          >
-            <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>
-                Удалить категорию
-              </h3>
-              <p style={{ margin: 0, fontSize: '14px', color: 'var(--tg-theme-hint-color)' }}>
-                У категории "{category.name}" могут быть транзакции. Выберите новую категорию для них:
-              </p>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-              {categories.filter(c => c.type === category.type).map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedReassignCategory(cat.id)}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    border: `2px solid ${selectedReassignCategory === cat.id ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)'}`,
-                    backgroundColor: selectedReassignCategory === cat.id 
-                      ? 'rgba(51, 144, 236, 0.1)' 
-                      : 'var(--tg-theme-secondary-bg-color)',
-                    color: 'var(--tg-theme-text-color)',
-                    fontSize: '16px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  {cat.icon && <span>{cat.icon}</span>}
-                  <span>{cat.name}</span>
-                </button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                  color: 'var(--tg-theme-text-color)',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={() => {
-                  if (selectedReassignCategory && onDelete) {
-                    const reassignCategory = categories.find(c => c.id === selectedReassignCategory);
-                    onDelete(category.id, reassignCategory?.name);
-                    setShowDeleteConfirm(false);
-                    handleClose();
-                  } else {
-                    alert('Пожалуйста, выберите новую категорию для транзакций.');
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: 'var(--tg-theme-destructive-text-color)',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'opacity 0.2s',
-                  opacity: selectedReassignCategory ? 1 : 0.5
-                }}
-                disabled={!selectedReassignCategory}
-              >
-                Удалить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showIconPicker && (
         <div

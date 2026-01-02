@@ -764,6 +764,24 @@ export function getDefaultCategories(): Category[] {
 }
 
 /**
+ * Список названий базовых категорий для миграции
+ */
+const DEFAULT_CATEGORY_NAMES = {
+  income: ['Зарплата', 'Подарки', 'Инвестиции', 'Фриланс', 'Прочее'],
+  expense: ['Еда', 'Транспорт', 'Развлечения', 'Здоровье', 'Покупки', 'Жилье', 'Образование', 'Прочее']
+};
+
+/**
+ * Проверяет, является ли категория базовой (по названию)
+ */
+function isDefaultCategory(category: Category): boolean {
+  const defaultNames = category.type === 'income' 
+    ? DEFAULT_CATEGORY_NAMES.income 
+    : DEFAULT_CATEGORY_NAMES.expense;
+  return defaultNames.includes(category.name);
+}
+
+/**
  * Получить финансовые данные
  */
 export async function getFinanceData(): Promise<FinanceData> {
@@ -799,6 +817,15 @@ export async function getFinanceData(): Promise<FinanceData> {
     console.log('[getFinanceData] Categories missing, initializing empty array');
     data.categories = [];
     needsSave = true;
+  } else {
+    // Миграция: удаляем базовые категории, сохраняем пользовательские
+    const originalCount = data.categories.length;
+    const filteredCategories = data.categories.filter(cat => !isDefaultCategory(cat));
+    if (filteredCategories.length !== originalCount) {
+      console.log(`[getFinanceData] Migration: removing default categories. Before: ${originalCount}, After: ${filteredCategories.length}`);
+      data.categories = filteredCategories;
+      needsSave = true;
+    }
   }
   // Если budgets нет, инициализируем пустым массивом
   if (!data.budgets) {

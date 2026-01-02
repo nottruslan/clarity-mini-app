@@ -393,7 +393,7 @@ export function useCloudStorage() {
     }
   }, []);
 
-  const deleteCategory = useCallback(async (id: string, newCategoryName?: string) => {
+  const deleteCategory = useCallback(async (id: string) => {
     try {
       setFinance(prevFinance => {
         const categoryToDelete = prevFinance.categories.find(c => c.id === id);
@@ -404,11 +404,9 @@ export function useCloudStorage() {
         const newFinance = {
           ...prevFinance,
           categories: prevFinance.categories.filter(c => c.id !== id),
-          transactions: prevFinance.transactions.map(t => 
-            // Транзакции хранят category как название (строку), а не ID
-            t.category === categoryToDelete.name 
-              ? { ...t, category: newCategoryName || 'Прочее' } 
-              : t
+          transactions: prevFinance.transactions.filter(t => 
+            // Удаляем транзакции с этой категорией
+            t.category !== categoryToDelete.name
           )
         };
         saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
