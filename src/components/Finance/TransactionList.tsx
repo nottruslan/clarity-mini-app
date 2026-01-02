@@ -125,6 +125,14 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
         const [year, month, day] = dateKey.split('-').map(Number);
         const dateTimestamp = new Date(year, month - 1, day).getTime();
         const displayDate = formatDate(dateTimestamp);
+        const transactionsForDate = grouped[dateKey] || [];
+        
+        console.log('[TransactionList] Rendering date group:', {
+          dateKey,
+          displayDate,
+          transactionsCount: transactionsForDate.length,
+          transactionIds: transactionsForDate.map(t => t.id)
+        });
         
         return (
           <div key={dateKey}>
@@ -137,7 +145,14 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
             }}>
               {displayDate}
             </div>
-          {grouped[dateKey].map((transaction) => (
+          {transactionsForDate.map((transaction) => {
+            console.log('[TransactionList] Rendering transaction:', {
+              id: transaction.id,
+              date: new Date(transaction.date).toISOString(),
+              category: transaction.category,
+              amount: transaction.amount
+            });
+            return (
             <div
               key={transaction.id}
               className="list-item"
@@ -226,7 +241,8 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
           </div>
         );
       })}
