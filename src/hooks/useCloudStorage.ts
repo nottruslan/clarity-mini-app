@@ -12,7 +12,13 @@ const log = (location: string, message: string, data: any, hypothesisId?: string
     hypothesisId: hypothesisId || 'A'
   };
   // Используем только console.log, чтобы избежать проблем с CORS
-  console.log('[DIARY_DEBUG]', JSON.stringify(logEntry));
+  // Добавляем несколько способов вывода для надежности
+  console.log('🔍 DIARY_DEBUG', location, message, data);
+  console.log('[DIARY_DEBUG_JSON]', JSON.stringify(logEntry));
+  // Также выводим в alert для отладки (можно убрать позже)
+  if (typeof window !== 'undefined' && window.location.search.includes('debug=true')) {
+    console.warn('DEBUG:', location, message, data);
+  }
 };
 // #endregion
 import {

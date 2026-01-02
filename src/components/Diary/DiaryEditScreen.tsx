@@ -13,7 +13,13 @@ const log = (location: string, message: string, data: any, hypothesisId?: string
     hypothesisId: hypothesisId || 'A'
   };
   // Используем только console.log, чтобы избежать проблем с CORS
-  console.log('[DIARY_DEBUG]', JSON.stringify(logEntry));
+  // Добавляем несколько способов вывода для надежности
+  console.log('🔍 DIARY_DEBUG', location, message, data);
+  console.log('[DIARY_DEBUG_JSON]', JSON.stringify(logEntry));
+  // Также выводим в alert для отладки (можно убрать позже)
+  if (window.location.search.includes('debug=true')) {
+    console.warn('DEBUG:', location, message, data);
+  }
 };
 // #endregion
 
@@ -27,8 +33,27 @@ interface DiaryEditScreenProps {
 
 export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = false, onEditRequest }: DiaryEditScreenProps) {
   // Инициализируем состояние пустыми значениями, useEffect установит правильные значения
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  // ВАЖНО: useState всегда инициализируется с пустыми строками, независимо от entry
+  const [title, setTitle] = useState(() => {
+    // #region agent log
+    log('DiaryEditScreen.tsx:useState', 'useState initializer called', {
+      entryId: entry?.id || null,
+      entryTitle: entry?.title || null,
+      willReturn: '' // Всегда возвращаем пустую строку
+    }, 'B');
+    // #endregion
+    return ''; // Всегда возвращаем пустую строку
+  });
+  const [content, setContent] = useState(() => {
+    // #region agent log
+    log('DiaryEditScreen.tsx:useState', 'useState content initializer called', {
+      entryId: entry?.id || null,
+      entryContent: entry?.content?.substring(0, 50) || null,
+      willReturn: '' // Всегда возвращаем пустую строку
+    }, 'B');
+    // #endregion
+    return ''; // Всегда возвращаем пустую строку
+  });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -40,7 +65,8 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
     entryContent: entry?.content?.substring(0, 50) || null,
     readOnly,
     initialTitle: title,
-    initialContent: content
+    initialContent: content,
+    isNewEntry: entry === null
   }, 'A');
   // #endregion
 

@@ -17,7 +17,13 @@ const log = (location: string, message: string, data: any, hypothesisId?: string
     hypothesisId: hypothesisId || 'A'
   };
   // Используем только console.log, чтобы избежать проблем с CORS
-  console.log('[DIARY_DEBUG]', JSON.stringify(logEntry));
+  // Добавляем несколько способов вывода для надежности
+  console.log('🔍 DIARY_DEBUG', location, message, data);
+  console.log('[DIARY_DEBUG_JSON]', JSON.stringify(logEntry));
+  // Также выводим в alert для отладки (можно убрать позже)
+  if (window.location.search.includes('debug=true')) {
+    console.warn('DEBUG:', location, message, data);
+  }
 };
 // #endregion
 
@@ -117,19 +123,25 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
       // Для новой записи используем уникальный ключ на основе timestamp
       const newKey = `new-${Date.now()}`;
       setEditKey(newKey);
+      // Явно устанавливаем editingEntry в null для новой записи
+      setEditingEntry(null);
       // #region agent log
       log('DiaryPage.tsx:handleCreateClick', 'creating new entry', {
         editKey: newKey,
-        editingEntry: null
+        editingEntry: null,
+        explicitlySetToNull: true
       }, 'A');
       // #endregion
     }
     setIsEditing(true);
     // #region agent log
-    log('DiaryPage.tsx:handleCreateClick', 'isEditing set to true', {
-      finalEditingEntry: editingEntry?.id || null,
-      finalEditKey: editKey
-    }, 'A');
+    // Логируем после небольшой задержки, чтобы увидеть актуальное состояние
+    setTimeout(() => {
+      log('DiaryPage.tsx:handleCreateClick', 'state after setState (delayed)', {
+        isEditing: true,
+        note: 'This log shows state after React has processed setState calls'
+      }, 'A');
+    }, 0);
     // #endregion
   };
 
