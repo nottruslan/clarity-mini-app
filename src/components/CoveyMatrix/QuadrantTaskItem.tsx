@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useState } from 'react';
 import { type CoveyTask } from '../../utils/storage';
 import CoveyTaskBottomSheet from './CoveyTaskBottomSheet';
+import CoveyTaskDetailsBottomSheet from './CoveyTaskDetailsBottomSheet';
 
 interface QuadrantTaskItemProps {
   task: CoveyTask;
@@ -12,6 +13,7 @@ interface QuadrantTaskItemProps {
 
 export default function QuadrantTaskItem({ task, storage, onEdit }: QuadrantTaskItemProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const {
     attributes,
     listeners,
@@ -60,7 +62,6 @@ export default function QuadrantTaskItem({ task, storage, onEdit }: QuadrantTask
       <div
         ref={setNodeRef}
         {...attributes}
-        {...listeners}
         className="list-item"
         style={{
           ...style,
@@ -68,12 +69,25 @@ export default function QuadrantTaskItem({ task, storage, onEdit }: QuadrantTask
           alignItems: 'center',
           gap: '8px',
           padding: '8px',
-          cursor: 'grab',
+          cursor: 'pointer',
           backgroundColor: 'var(--tg-theme-bg-color)',
           borderRadius: '6px',
           border: '1px solid var(--tg-theme-secondary-bg-color)'
         }}
       >
+        <div
+          {...listeners}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'grab',
+            flexShrink: 0,
+            padding: '4px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span style={{ fontSize: '16px', color: 'var(--tg-theme-hint-color)' }}>⋮⋮</span>
+        </div>
         <input
           type="checkbox"
           checked={task.completed}
@@ -90,12 +104,17 @@ export default function QuadrantTaskItem({ task, storage, onEdit }: QuadrantTask
           }}
         />
         <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDetails(true);
+          }}
           style={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
             gap: '2px',
-            minWidth: 0
+            minWidth: 0,
+            cursor: 'pointer'
           }}
         >
           <div
@@ -161,6 +180,13 @@ export default function QuadrantTaskItem({ task, storage, onEdit }: QuadrantTask
             storage.deleteCoveyTask(task.id);
             setShowMenu(false);
           }}
+        />
+      )}
+      
+      {showDetails && (
+        <CoveyTaskDetailsBottomSheet
+          task={task}
+          onClose={() => setShowDetails(false)}
         />
       )}
     </>
