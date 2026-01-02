@@ -57,7 +57,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
       transactions: transactions
     });
   }, [storage.finance.transactions]);
-
+  
   // Для списка транзакций не применяем фильтрацию по периоду - показываем все транзакции
   // Фильтрация по периоду применяется только для Обзора и Статистики
   // Убеждаемся, что transactions всегда является массивом
@@ -421,30 +421,30 @@ export default function FinancePage({ storage }: FinancePageProps) {
             display: 'flex',
             gap: '4px',
             minWidth: 'max-content'
-          }}>
-            {sectionTitles.map((title, index) => (
-              <div
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                style={{
+        }}>
+          {sectionTitles.map((title, index) => (
+            <div
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              style={{
                   fontSize: '15px',
-                  fontWeight: currentSlide === index ? '600' : '400',
-                  color: currentSlide === index 
-                    ? 'var(--tg-theme-button-color)' 
-                    : 'var(--tg-theme-hint-color)',
-                  cursor: 'pointer',
+                fontWeight: currentSlide === index ? '600' : '400',
+                color: currentSlide === index 
+                  ? 'var(--tg-theme-button-color)' 
+                  : 'var(--tg-theme-hint-color)',
+                cursor: 'pointer',
                   padding: '8px 10px',
-                  borderBottom: currentSlide === index 
-                    ? '2px solid var(--tg-theme-button-color)' 
-                    : '2px solid transparent',
+                borderBottom: currentSlide === index 
+                  ? '2px solid var(--tg-theme-button-color)' 
+                  : '2px solid transparent',
                   transition: 'all 0.2s',
                   whiteSpace: 'nowrap',
                   flexShrink: 0
-                }}
-              >
-                {title}
-              </div>
-            ))}
+              }}
+            >
+              {title}
+            </div>
+          ))}
           </div>
         </div>
 
@@ -463,7 +463,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
         flexDirection: 'column', 
         position: 'relative',
         paddingTop: '0px',
-        paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
         overflow: 'hidden'
       }}>
         <FinanceOverview finance={storage.finance} />
@@ -482,7 +481,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
               flexDirection: 'column', 
               position: 'relative',
               paddingTop: '0px',
-              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
               overflow: 'hidden',
               backgroundColor: 'transparent'
             }}>
@@ -539,7 +537,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
               flexDirection: 'column', 
               position: 'relative',
               paddingTop: '0px',
-              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
               overflowY: 'auto',
               overflowX: 'hidden'
             }}>
@@ -555,7 +552,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
               flexDirection: 'column', 
               position: 'relative',
               paddingTop: '0px',
-              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
               overflowY: 'auto',
               overflowX: 'hidden'
             }}>
@@ -570,7 +566,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
                 isModal={false}
               />
             </div>
-          </div>
+              </div>
 
           {/* Слайд 4: Категории */}
           <div className={`slide ${currentSlide === 4 ? 'active' : currentSlide > 4 ? 'prev' : 'next'}`}>
@@ -580,7 +576,6 @@ export default function FinancePage({ storage }: FinancePageProps) {
               flexDirection: 'column', 
               position: 'relative',
               paddingTop: '0px',
-              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
               overflowY: 'auto',
               overflowX: 'hidden'
             }}>

@@ -126,8 +126,8 @@ export default function BudgetManager({
   };
 
   const content = (
-    <div style={{
-      width: '100%',
+      <div style={{
+        width: '100%',
       backgroundColor: 'var(--tg-theme-bg-color)',
       padding: isModal ? '20px' : '20px 16px',
       paddingBottom: isModal && isKeyboardVisible ? '20px' : isModal ? 'calc(20px + env(safe-area-inset-bottom))' : '20px',
@@ -141,20 +141,20 @@ export default function BudgetManager({
       } : {
         minHeight: '100%'
       })
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px'
       }}>
-        <h2 style={{
-          fontSize: '24px',
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '24px'
+        }}>
+          <h2 style={{
+            fontSize: '24px',
           fontWeight: '600',
           color: 'var(--tg-theme-text-color)'
-        }}>
-          Бюджет
-        </h2>
+          }}>
+            Бюджет
+          </h2>
         {isModal && (
           <button
             onClick={onClose}
@@ -174,7 +174,7 @@ export default function BudgetManager({
             ×
           </button>
         )}
-      </div>
+        </div>
 
         {!showAddForm ? (
           <>
@@ -189,12 +189,12 @@ export default function BudgetManager({
                   У вас пока нет установленных бюджетов
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <button
-                    onClick={() => setShowAddForm(true)}
-                    className="tg-button"
-                  >
-                    Добавить бюджет
-                  </button>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="tg-button"
+                >
+                  Добавить бюджет
+                </button>
                 </div>
               </div>
             ) : (
@@ -326,12 +326,12 @@ export default function BudgetManager({
                   })}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <button
-                    onClick={() => setShowAddForm(true)}
-                    className="tg-button"
-                  >
-                    + Добавить бюджет
-                  </button>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="tg-button"
+                >
+                  + Добавить бюджет
+                </button>
                 </div>
               </>
             )}
@@ -492,8 +492,8 @@ export default function BudgetManager({
         justifyContent: 'center'
       }}>
         {content}
-      </div>
-    );
+    </div>
+  );
   }
 
   return content;

@@ -7,6 +7,7 @@ interface CategoryBottomSheetProps {
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   onChangeIcon?: (icon: string) => void;
+  onChangeName?: (name: string) => void;
   onDelete?: (categoryId: string) => void;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
@@ -30,6 +31,7 @@ export default function CategoryBottomSheet({
   onMoveUp,
   onMoveDown,
   onChangeIcon,
+  onChangeName,
   onDelete,
   canMoveUp = false,
   canMoveDown = false
@@ -37,6 +39,9 @@ export default function CategoryBottomSheet({
   const backdropRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [showNameEditor, setShowNameEditor] = useState(false);
+  const [newName, setNewName] = useState(category.name);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -188,7 +193,7 @@ export default function CategoryBottomSheet({
             </button>
           )}
 
-          {onChangeIcon && (
+          {(onChangeIcon || onChangeName) && (
             <>
               {(canMoveUp || canMoveDown) && (
                 <div
@@ -199,30 +204,61 @@ export default function CategoryBottomSheet({
                   }}
                 />
               )}
-              <button
-                onClick={() => setShowIconPicker(true)}
-                style={{
-                  padding: '16px 20px',
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--tg-theme-text-color)',
-                  fontSize: '16px',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                Изменить иконку
-              </button>
+              {onChangeName && (
+                <button
+                  onClick={() => {
+                    setNewName(category.name);
+                    setShowNameEditor(true);
+                  }}
+                  style={{
+                    padding: '16px 20px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--tg-theme-text-color)',
+                    fontSize: '16px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  Изменить название
+                </button>
+              )}
+              {onChangeIcon && (
+                <button
+                  onClick={() => setShowIconPicker(true)}
+                  style={{
+                    padding: '16px 20px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--tg-theme-text-color)',
+                    fontSize: '16px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color)';
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  Изменить иконку
+                </button>
+              )}
             </>
           )}
 
@@ -239,7 +275,7 @@ export default function CategoryBottomSheet({
                 onClick={() => {
                   if (window.confirm(`Вы уверены, что хотите удалить категорию "${category.name}"? Все транзакции с этой категорией также будут удалены.`)) {
                     onDelete?.(category.id);
-                    handleClose();
+                      handleClose();
                   }
                 }}
                 style={{
@@ -268,6 +304,139 @@ export default function CategoryBottomSheet({
           )}
         </div>
       </div>
+
+      {showNameEditor && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 10001,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowNameEditor(false);
+              setNewName(category.name);
+            }
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '500px',
+              backgroundColor: 'var(--tg-theme-bg-color)',
+              borderTopLeftRadius: '20px',
+              borderTopRightRadius: '20px',
+              padding: '8px 0',
+              paddingBottom: 'calc(8px + env(safe-area-inset-bottom))',
+              maxHeight: '80vh',
+              overflowY: 'auto'
+            }}
+          >
+            {/* Индикатор */}
+            <div
+              style={{
+                width: '40px',
+                height: '4px',
+                backgroundColor: 'var(--tg-theme-hint-color)',
+                borderRadius: '2px',
+                margin: '8px auto 16px',
+                opacity: 0.3
+              }}
+            />
+            
+            {/* Контент */}
+            <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: 'var(--tg-theme-text-color)',
+                margin: 0
+              }}>
+                Изменить название
+              </h3>
+              
+              <input
+                ref={nameInputRef}
+                type="text"
+                className="wizard-input"
+                placeholder="Название категории"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && newName.trim()) {
+                    if (onChangeName) {
+                      onChangeName(newName.trim());
+                      setShowNameEditor(false);
+                      handleClose();
+                    }
+                  }
+                }}
+                autoFocus
+                style={{
+                  marginTop: '8px'
+                }}
+              />
+              
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button
+                  onClick={() => {
+                    setShowNameEditor(false);
+                    setNewName(category.name);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                    color: 'var(--tg-theme-text-color)',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={() => {
+                    if (newName.trim() && onChangeName) {
+                      onChangeName(newName.trim());
+                      setShowNameEditor(false);
+                      handleClose();
+                    }
+                  }}
+                  disabled={!newName.trim()}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: 'var(--tg-theme-button-color)',
+                    color: 'var(--tg-theme-button-text-color)',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    cursor: newName.trim() ? 'pointer' : 'not-allowed',
+                    opacity: newName.trim() ? 1 : 0.5,
+                    transition: 'opacity 0.2s'
+                  }}
+                >
+                  Сохранить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showIconPicker && (
         <div

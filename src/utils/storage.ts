@@ -824,7 +824,7 @@ export async function getFinanceData(): Promise<FinanceData> {
     if (filteredCategories.length !== originalCount) {
       console.log(`[getFinanceData] Migration: removing default categories. Before: ${originalCount}, After: ${filteredCategories.length}`);
       data.categories = filteredCategories;
-      needsSave = true;
+    needsSave = true;
     }
   }
   // Если budgets нет, инициализируем пустым массивом

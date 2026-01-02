@@ -92,59 +92,59 @@ export default function PeriodSelector({ value, onChange, startDate, endDate, on
 
   return (
     <>
-      <div style={{
-        display: 'flex',
+    <div style={{
+      display: 'flex',
         gap: '4px',
         padding: '6px',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        borderRadius: '12px',
+      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+      borderRadius: '12px',
         alignItems: 'center',
         flexWrap: 'nowrap'
-      }}>
+    }}>
         {periods.map((period) => {
           const isDatePeriod = period.value === 'date';
           const buttonLabel = isDatePeriod ? getDateButtonLabel() : period.label;
           
           return (
-            <button
-              key={period.value}
+        <button
+          key={period.value}
               onClick={() => handlePeriodChange(period.value)}
-              onTouchEnd={(e) => {
-                e.preventDefault();
+          onTouchEnd={(e) => {
+            e.preventDefault();
                 handlePeriodChange(period.value);
-              }}
-              style={{
-                flex: '1 1 0',
+          }}
+          style={{
+            flex: '1 1 0',
                 minWidth: '55px',
                 padding: '6px 10px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: value === period.value
-                  ? 'var(--tg-theme-button-color)'
-                  : 'transparent',
-                color: value === period.value
-                  ? 'var(--tg-theme-button-text-color)'
-                  : 'var(--tg-theme-text-color)',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: value === period.value
+              ? 'var(--tg-theme-button-color)'
+              : 'transparent',
+            color: value === period.value
+              ? 'var(--tg-theme-button-text-color)'
+              : 'var(--tg-theme-text-color)',
                 fontSize: '12px',
-                fontWeight: value === period.value ? '600' : '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
+            fontWeight: value === period.value ? '600' : '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
                 gap: '2px',
-                touchAction: 'manipulation',
-                WebkitTapHighlightColor: 'transparent',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
                 whiteSpace: 'nowrap',
                 flexShrink: 0
-              }}
-            >
+          }}
+        >
               <span style={{ fontSize: '16px' }}>{period.icon}</span>
               <span>{buttonLabel}</span>
-            </button>
+        </button>
           );
         })}
-      </div>
+    </div>
 
       {showDatePicker && (
         <DateRangeBottomSheet

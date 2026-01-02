@@ -147,10 +147,10 @@ export default function Step3Category({
                 </span>
               </button>
             ))}
-          </div>
+                </div>
           <div style={{
-            display: 'flex',
-            justifyContent: 'center',
+                      display: 'flex',
+                      justifyContent: 'center',
             marginTop: '12px'
           }}>
             <GradientButton

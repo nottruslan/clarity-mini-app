@@ -202,6 +202,11 @@ export default function CategoriesView({
             setShowCategorySheet(false);
             setSelectedCategory(null);
           }}
+          onChangeName={(name: string) => {
+            onCategoryUpdate(selectedCategory.id, { name });
+            setShowCategorySheet(false);
+            setSelectedCategory(null);
+          }}
           onDelete={(categoryId: string) => {
             onCategoryDelete(categoryId);
             setShowCategorySheet(false);
