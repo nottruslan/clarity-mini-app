@@ -112,16 +112,10 @@ function App() {
       try {
         if (currentSection !== 'home') {
           const colors = sectionColors[currentSection];
-          // Пробуем разные форматы цвета
-          tg.setHeaderColor(colors.primary);
-          // Также пробуем без #
-          if (colors.primary.startsWith('#')) {
-            tg.setHeaderColor(colors.primary.substring(1));
-          }
+          tg.setHeaderColor(colors.primary); // ожидается формат #RRGGBB
         } else {
           // На главной странице возвращаем стандартный цвет
           tg.setHeaderColor('#ffffff');
-          tg.setHeaderColor('ffffff');
         }
       } catch (error) {
         console.error('Error setting header color:', error);
