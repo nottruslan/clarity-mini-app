@@ -87,44 +87,44 @@ export default function HabitCharts({ habit }: HabitChartsProps) {
           График выполнения
         </h4>
         <div style={{ outline: 'none', userSelect: 'none' }}>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={formattedChartData.slice(-30)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--tg-theme-secondary-bg-color)" />
-              <XAxis 
-                dataKey="date" 
-                stroke="var(--tg-theme-hint-color)"
-                tick={{ fill: 'var(--tg-theme-hint-color)', fontSize: 10 }}
-              />
-              <YAxis 
-                stroke="var(--tg-theme-hint-color)"
-                tick={{ fill: 'var(--tg-theme-hint-color)', fontSize: 10 }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  background: 'var(--tg-theme-bg-color)',
-                  border: '1px solid var(--tg-theme-secondary-bg-color)',
-                  borderRadius: '8px'
-                }}
-              />
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={formattedChartData.slice(-30)}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--tg-theme-secondary-bg-color)" />
+            <XAxis 
+              dataKey="date" 
+              stroke="var(--tg-theme-hint-color)"
+              tick={{ fill: 'var(--tg-theme-hint-color)', fontSize: 10 }}
+            />
+            <YAxis 
+              stroke="var(--tg-theme-hint-color)"
+              tick={{ fill: 'var(--tg-theme-hint-color)', fontSize: 10 }}
+            />
+            <Tooltip 
+              contentStyle={{
+                background: 'var(--tg-theme-bg-color)',
+                border: '1px solid var(--tg-theme-secondary-bg-color)',
+                borderRadius: '8px'
+              }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="completed" 
+              stroke="var(--tg-theme-button-color)" 
+              strokeWidth={2}
+              dot={{ fill: 'var(--tg-theme-button-color)', r: 3 }}
+            />
+            {habit.targetValue && (
               <Line 
                 type="monotone" 
-                dataKey="completed" 
-                stroke="var(--tg-theme-button-color)" 
-                strokeWidth={2}
-                dot={{ fill: 'var(--tg-theme-button-color)', r: 3 }}
+                dataKey="target" 
+                stroke="var(--tg-theme-hint-color)" 
+                strokeWidth={1}
+                strokeDasharray="5 5"
+                dot={false}
               />
-              {habit.targetValue && (
-                <Line 
-                  type="monotone" 
-                  dataKey="target" 
-                  stroke="var(--tg-theme-hint-color)" 
-                  strokeWidth={1}
-                  strokeDasharray="5 5"
-                  dot={false}
-                />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
+            )}
+          </LineChart>
+        </ResponsiveContainer>
         </div>
       </div>
 
@@ -138,38 +138,38 @@ export default function HabitCharts({ habit }: HabitChartsProps) {
           Процент выполнения
         </h4>
         <div style={{ outline: 'none', userSelect: 'none' }}>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={barData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--tg-theme-secondary-bg-color)" />
-              <XAxis 
-                dataKey="week" 
-                stroke="var(--tg-theme-hint-color)"
-                tick={{ fill: 'var(--tg-theme-hint-color)', fontSize: 10 }}
-              />
-              <YAxis 
-                stroke="var(--tg-theme-hint-color)"
-                tick={{ fill: 'var(--tg-theme-hint-color)', fontSize: 10 }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  background: 'var(--tg-theme-bg-color)',
-                  border: '1px solid var(--tg-theme-secondary-bg-color)',
-                  borderRadius: '8px'
-                }}
-                formatter={(value: any) => {
-                  if (typeof value === 'number') {
-                    return [`${value}%`, 'Выполнение'];
-                  }
-                  return [value, 'Выполнение'];
-                }}
-              />
-              <Bar 
-                dataKey="percentage" 
-                fill="var(--tg-theme-button-color)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={barData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--tg-theme-secondary-bg-color)" />
+            <XAxis 
+              dataKey="week" 
+              stroke="var(--tg-theme-hint-color)"
+              tick={{ fill: 'var(--tg-theme-hint-color)', fontSize: 10 }}
+            />
+            <YAxis 
+              stroke="var(--tg-theme-hint-color)"
+              tick={{ fill: 'var(--tg-theme-hint-color)', fontSize: 10 }}
+            />
+            <Tooltip 
+              contentStyle={{
+                background: 'var(--tg-theme-bg-color)',
+                border: '1px solid var(--tg-theme-secondary-bg-color)',
+                borderRadius: '8px'
+              }}
+              formatter={(value: any) => {
+                if (typeof value === 'number') {
+                  return [`${value}%`, 'Выполнение'];
+                }
+                return [value, 'Выполнение'];
+              }}
+            />
+            <Bar 
+              dataKey="percentage" 
+              fill="var(--tg-theme-button-color)"
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
         </div>
       </div>
     </div>

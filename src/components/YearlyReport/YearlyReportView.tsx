@@ -117,37 +117,37 @@ export default function YearlyReportView({ report, onClose, onUpdate, hideHeader
       minHeight: hideHeader ? 'auto' : '100%'
     }}>
       {!hideHeader && (
-        <div style={{
-          padding: '16px',
-          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          position: 'sticky',
-          top: 0,
-          backgroundColor: 'var(--tg-theme-bg-color)',
-          zIndex: 10
-        }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px',
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: 'var(--tg-theme-text-color)',
-              cursor: 'pointer',
-              fontSize: '18px',
-              transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-          >
-            ←
-          </button>
-          <h2 style={{ fontSize: '18px', fontWeight: '600', flex: 1 }}>
-            Отчет за {localReport.year}
-          </h2>
-        </div>
+      <div style={{
+        padding: '16px',
+        borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        position: 'sticky',
+        top: 0,
+        backgroundColor: 'var(--tg-theme-bg-color)',
+        zIndex: 10
+      }}>
+        <button
+          onClick={onClose}
+          style={{
+            padding: '8px',
+            border: 'none',
+            backgroundColor: 'transparent',
+            color: 'var(--tg-theme-text-color)',
+            cursor: 'pointer',
+            fontSize: '18px',
+            transition: 'opacity 0.2s'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+        >
+          ←
+        </button>
+        <h2 style={{ fontSize: '18px', fontWeight: '600', flex: 1 }}>
+          Отчет за {localReport.year}
+        </h2>
+      </div>
       )}
       <div
         ref={scrollRef}

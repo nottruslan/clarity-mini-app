@@ -98,40 +98,40 @@ export default function TransactionDetails({
         />
         <div style={{
           padding: '0 20px'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '24px'
         }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '24px'
-          }}>
-            <h2 style={{
+          <h2 style={{
               fontSize: '20px',
               fontWeight: '600',
               color: 'var(--tg-theme-text-color)',
               margin: 0
-            }}>
-              Детали транзакции
-            </h2>
-            <button
-              onClick={onClose}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                border: 'none',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          }}>
+            Детали транзакции
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              border: 'none',
+              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
                 fontSize: '24px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--tg-theme-text-color)'
-              }}
-            >
-              ×
-            </button>
-          </div>
+            }}
+          >
+            ×
+          </button>
+        </div>
 
         <div style={{
           display: 'flex',
@@ -228,7 +228,7 @@ export default function TransactionDetails({
               </div>
             )}
           </div>
-        </div>
+          </div>
         </div>
       </div>
     </div>

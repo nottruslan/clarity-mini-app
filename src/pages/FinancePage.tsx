@@ -243,11 +243,11 @@ export default function FinancePage({ storage }: FinancePageProps) {
         progressColor={colors.primary}
       >
         {!transactionData.type && (
-          <div 
-            className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}
-          >
-            <Step1Type onNext={handleStep1Complete} />
-          </div>
+        <div 
+          className={`wizard-slide ${createStep === 0 ? 'active' : createStep > 0 ? 'prev' : 'next'}`}
+        >
+          <Step1Type onNext={handleStep1Complete} />
+        </div>
         )}
         {transactionData.type && (
           <div 
@@ -412,57 +412,57 @@ export default function FinancePage({ storage }: FinancePageProps) {
         >
           {/* Слайд 0: Обзор */}
           <div className={`slide ${currentSlide === 0 ? 'active' : currentSlide > 0 ? 'prev' : 'next'}`}>
-            <div style={{ 
-              flex: 1, 
-              display: 'flex', 
-              flexDirection: 'column', 
-              position: 'relative',
-              paddingTop: '0px',
-              paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
-              overflow: 'hidden'
-            }}>
-              <FinanceOverview finance={storage.finance} />
-              <BudgetOverview 
-                budgets={storage.finance.budgets || []}
-                transactions={storage.finance.transactions}
-              />
+      <div style={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        position: 'relative',
+        paddingTop: '0px',
+        paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
+        overflow: 'hidden'
+      }}>
+        <FinanceOverview finance={storage.finance} />
+        <BudgetOverview 
+          budgets={storage.finance.budgets || []}
+          transactions={storage.finance.transactions}
+        />
             </div>
           </div>
 
           {/* Слайд 1: Транзакции */}
           <div className={`slide ${currentSlide === 1 ? 'active' : currentSlide > 1 ? 'prev' : 'next'}`}>
-            <div style={{ 
+        <div style={{
               flex: 1, 
-              display: 'flex', 
+          display: 'flex',
               flexDirection: 'column', 
               position: 'relative',
               paddingTop: '0px',
               paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
               overflow: 'hidden'
             }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 16px',
-                borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
-              }}>
-                <div style={{
-                  fontSize: '16px',
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--tg-theme-secondary-bg-color)'
+        }}>
+          <div style={{
+            fontSize: '16px',
                   fontWeight: '600',
                   color: 'var(--tg-theme-text-color)'
-                }}>
-                  Транзакции ({filteredTransactions.length})
-                </div>
-                <button
-                  onClick={() => setShowFilters(true)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tg-theme-secondary-bg-color)',
-                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                    color: 'var(--tg-theme-text-color)',
-                    fontSize: '14px',
+          }}>
+            Транзакции ({filteredTransactions.length})
+          </div>
+          <button
+            onClick={() => setShowFilters(true)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '1px solid var(--tg-theme-secondary-bg-color)',
+              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+              color: 'var(--tg-theme-text-color)',
+              fontSize: '14px',
                     fontWeight: '500',
                     cursor: 'pointer',
                     transition: 'opacity 0.2s'
@@ -472,16 +472,16 @@ export default function FinancePage({ storage }: FinancePageProps) {
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.opacity = '1';
-                  }}
-                >
-                  🔍 Фильтры
-                </button>
-              </div>
-              <TransactionList 
-                transactions={filteredTransactions}
-                onTransactionClick={handleTransactionClick}
+            }}
+          >
+            🔍 Фильтры
+          </button>
+        </div>
+        <TransactionList 
+          transactions={filteredTransactions}
+          onTransactionClick={handleTransactionClick}
                 onOpenMenu={handleOpenMenu}
-              />
+        />
             </div>
           </div>
 
@@ -497,16 +497,16 @@ export default function FinancePage({ storage }: FinancePageProps) {
               overflowY: 'auto',
               overflowX: 'hidden'
             }}>
-              <div style={{
+        <div style={{
                 padding: '12px 16px',
                 borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
-                display: 'flex',
+          display: 'flex',
                 justifyContent: 'center',
                 backgroundColor: 'var(--tg-theme-section-bg-color)'
-              }}>
-                <button
+        }}>
+          <button 
                   onClick={() => setShowBudget(true)}
-                  style={{
+            style={{
                     padding: '8px 16px',
                     borderRadius: '8px',
                     border: '1px solid var(--tg-theme-secondary-bg-color)',
@@ -514,18 +514,18 @@ export default function FinancePage({ storage }: FinancePageProps) {
                     color: 'var(--tg-theme-text-color)',
                     fontSize: '14px',
                     fontWeight: '500',
-                    cursor: 'pointer',
+              cursor: 'pointer',
                     transition: 'opacity 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
+            }}
+            onMouseEnter={(e) => {
                     e.currentTarget.style.opacity = '0.7';
-                  }}
-                  onMouseLeave={(e) => {
+            }}
+            onMouseLeave={(e) => {
                     e.currentTarget.style.opacity = '1';
-                  }}
-                >
+            }}
+          >
                   💰 Управление бюджетом
-                </button>
+          </button>
               </div>
               <StatisticsView finance={storage.finance} period={period} />
             </div>

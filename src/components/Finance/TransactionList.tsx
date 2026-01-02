@@ -133,14 +133,14 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
                 gap: '8px',
                 flexShrink: 0
               }}>
-                <div style={{
-                  fontSize: '18px',
-                  fontWeight: '600',
+              <div style={{
+                fontSize: '18px',
+                fontWeight: '600',
                   color: transaction.type === 'income' ? '#4caf50' : '#f44336',
                   whiteSpace: 'nowrap'
-                }}>
-                  {transaction.type === 'income' ? '+' : '-'}
-                  {formatCurrency(transaction.amount)}
+              }}>
+                {transaction.type === 'income' ? '+' : '-'}
+                {formatCurrency(transaction.amount)}
                 </div>
                 {onOpenMenu && (
                   <button

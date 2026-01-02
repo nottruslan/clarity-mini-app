@@ -32,13 +32,13 @@ export default function EditFieldModal({
     }
     // Фокусируемся на поле ввода при открытии
     setTimeout(() => {
-      inputRef.current?.focus();
-      if (inputRef.current && multiline) {
-        (inputRef.current as HTMLTextAreaElement).setSelectionRange(
-          editedValue.length,
-          editedValue.length
-        );
-      }
+    inputRef.current?.focus();
+    if (inputRef.current && multiline) {
+      (inputRef.current as HTMLTextAreaElement).setSelectionRange(
+        editedValue.length,
+        editedValue.length
+      );
+    }
     }, 100);
 
     return () => {
@@ -71,7 +71,7 @@ export default function EditFieldModal({
         onSave(editedValue.trim());
       }, 300);
     } else {
-      onSave(editedValue.trim());
+    onSave(editedValue.trim());
     }
   };
 
@@ -83,7 +83,7 @@ export default function EditFieldModal({
   };
 
   return (
-    <div
+    <div 
       ref={backdropRef}
       onClick={handleBackdropClick}
       style={{
@@ -104,7 +104,7 @@ export default function EditFieldModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          backgroundColor: 'var(--tg-theme-bg-color)',
+        backgroundColor: 'var(--tg-theme-bg-color)',
           borderTopLeftRadius: '20px',
           borderTopRightRadius: '20px',
           padding: '8px 0',
@@ -112,7 +112,7 @@ export default function EditFieldModal({
           transform: 'translateY(100%)',
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           maxHeight: '80vh',
-          display: 'flex',
+        display: 'flex',
           flexDirection: 'column'
         }}
       >
@@ -130,54 +130,54 @@ export default function EditFieldModal({
 
         {/* Контент */}
         <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', flex: 1 }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: 'var(--tg-theme-text-color)',
-            margin: 0
-          }}>
-            {title}
-          </h3>
-          {multiline ? (
-            <textarea
-              ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-              className="wizard-input"
-              value={editedValue}
-              onChange={(e) => setEditedValue(e.target.value)}
-              rows={8}
-              style={{ 
-                marginTop: 0, 
-                resize: 'vertical', 
-                minHeight: '120px',
-                fontFamily: 'inherit'
-              }}
-              onKeyDown={handleKeyDown}
-            />
-          ) : (
-            <input
-              ref={inputRef as React.RefObject<HTMLInputElement>}
-              type="text"
-              className="wizard-input"
-              value={editedValue}
-              onChange={(e) => setEditedValue(e.target.value)}
-              style={{ marginTop: 0, fontFamily: 'inherit' }}
-              onKeyDown={handleKeyDown}
-            />
-          )}
+        <h3 style={{
+          fontSize: '18px',
+          fontWeight: '600',
+          color: 'var(--tg-theme-text-color)',
+          margin: 0
+        }}>
+          {title}
+        </h3>
+        {multiline ? (
+          <textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            className="wizard-input"
+            value={editedValue}
+            onChange={(e) => setEditedValue(e.target.value)}
+            rows={8}
+            style={{ 
+              marginTop: 0, 
+              resize: 'vertical', 
+              minHeight: '120px',
+              fontFamily: 'inherit'
+            }}
+            onKeyDown={handleKeyDown}
+          />
+        ) : (
+          <input
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            type="text"
+            className="wizard-input"
+            value={editedValue}
+            onChange={(e) => setEditedValue(e.target.value)}
+            style={{ marginTop: 0, fontFamily: 'inherit' }}
+            onKeyDown={handleKeyDown}
+          />
+        )}
           <div style={{ display: 'flex', gap: '12px', width: '100%', paddingBottom: '8px' }}>
-            <GradientButton
-              variant="secondary"
+          <GradientButton
+            variant="secondary"
               onClick={handleClose}
-            >
-              Отмена
-            </GradientButton>
-            <GradientButton
-              onClick={handleSave}
-            >
-              Сохранить
-            </GradientButton>
-          </div>
+          >
+            Отмена
+          </GradientButton>
+          <GradientButton
+            onClick={handleSave}
+          >
+            Сохранить
+          </GradientButton>
         </div>
+      </div>
       </div>
 
       <style>{`
