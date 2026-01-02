@@ -37,6 +37,18 @@ export default function EditBookModal({ book, onSave, onClose }: EditBookModalPr
   const [rating, setRating] = useState<number | undefined>(book.rating);
   const [genre, setGenre] = useState(book.genre || '');
   const [coverUrl, setCoverUrl] = useState(book.coverUrl || '');
+  const [startDate, setStartDate] = useState<string>(() => {
+    if (book.startDate) {
+      return new Date(book.startDate).toISOString().split('T')[0];
+    }
+    return '';
+  });
+  const [completedDate, setCompletedDate] = useState<string>(() => {
+    if (book.completedDate) {
+      return new Date(book.completedDate).toISOString().split('T')[0];
+    }
+    return '';
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,12 +101,21 @@ export default function EditBookModal({ book, onSave, onClose }: EditBookModalPr
       updatedAt: Date.now()
     };
     
-    // Устанавливаем даты в зависимости от статуса
-    if (status === 'reading' && !book.startDate) {
-      updates.startDate = Date.now();
+    // Устанавливаем даты из input полей
+    if (startDate) {
+      const date = new Date(startDate);
+      date.setHours(0, 0, 0, 0);
+      updates.startDate = date.getTime();
+    } else {
+      updates.startDate = undefined;
     }
-    if (status === 'completed' && !book.completedDate) {
-      updates.completedDate = Date.now();
+    
+    if (completedDate) {
+      const date = new Date(completedDate);
+      date.setHours(0, 0, 0, 0);
+      updates.completedDate = date.getTime();
+    } else {
+      updates.completedDate = undefined;
     }
     
     onSave(updates);
@@ -222,6 +243,52 @@ export default function EditBookModal({ book, onSave, onClose }: EditBookModalPr
               ))}
             </div>
           </div>
+
+          {/* Дата начала чтения */}
+          {(status === 'reading' || status === 'completed' || status === 'paused' || status === 'abandoned') && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', color: 'var(--tg-theme-hint-color)', marginBottom: '8px' }}>
+                Дата начала чтения
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid var(--tg-theme-secondary-bg-color)',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--tg-theme-bg-color)',
+                  color: 'var(--tg-theme-text-color)',
+                  fontSize: '16px'
+                }}
+              />
+            </div>
+          )}
+
+          {/* Дата завершения */}
+          {status === 'completed' && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', color: 'var(--tg-theme-hint-color)', marginBottom: '8px' }}>
+                Дата завершения
+              </label>
+              <input
+                type="date"
+                value={completedDate}
+                onChange={(e) => setCompletedDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid var(--tg-theme-secondary-bg-color)',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--tg-theme-bg-color)',
+                  color: 'var(--tg-theme-text-color)',
+                  fontSize: '16px'
+                }}
+              />
+            </div>
+          )}
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '14px', color: 'var(--tg-theme-hint-color)', marginBottom: '8px' }}>

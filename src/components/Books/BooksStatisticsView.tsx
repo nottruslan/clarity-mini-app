@@ -41,9 +41,9 @@ export default function BooksStatisticsView({ booksData, onCreateGoal, onDeleteG
 
   return (
     <div style={{ 
-      flex: 1, 
-      padding: '16px',
-      overflowY: 'auto' as const
+      background: 'var(--tg-theme-section-bg-color)',
+      padding: '20px 16px',
+      paddingBottom: '40px'
     }}>
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: '600', color: 'var(--tg-theme-text-color)', marginBottom: '16px' }}>
