@@ -459,22 +459,28 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
       try {
         const parsed = JSON.parse(stored);
         // #region agent log
-        fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:455',message:'parsed data structure check',data:{key,isObject:typeof parsed==='object',isArray:Array.isArray(parsed),hasData:'data' in parsed,hasTimestamp:'timestamp' in parsed,keys:Object.keys(parsed)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:455',message:'parsed data structure check',data:{key,isObject:typeof parsed==='object',isArray:Array.isArray(parsed),hasData:parsed?.hasOwnProperty?.('data'),hasTimestamp:parsed?.hasOwnProperty?.('timestamp'),keys:Object.keys(parsed||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
         // #endregion
-        // Простая проверка: если это объект с полями data и timestamp - это обертка
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'data' in parsed && 'timestamp' in parsed) {
-          const wrapped = parsed as { data: T; timestamp: number };
-          localTimestamp = wrapped.timestamp || 0;
-          localData = wrapped.data;
-          // #region agent log
-          fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:460',message:'unwrapped data successfully',data:{key,timestamp:localTimestamp,dataExists:!!localData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-          // #endregion
+        // Проверяем структуру обертки: объект с полями data и timestamp
+        if (parsed && typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+          const obj = parsed as any;
+          // Безопасная проверка наличия свойств через Object.prototype.hasOwnProperty
+          if (Object.prototype.hasOwnProperty.call(obj, 'data') && Object.prototype.hasOwnProperty.call(obj, 'timestamp')) {
+            localTimestamp = obj.timestamp || 0;
+            localData = obj.data;
+            // #region agent log
+            fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:460',message:'unwrapped data successfully',data:{key,timestamp:localTimestamp,dataExists:!!localData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+            // #endregion
+          } else {
+            // Старый формат или данные напрямую
+            localData = parsed as T;
+            // #region agent log
+            fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:464',message:'using unwrapped format',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+            // #endregion
+          }
         } else {
-          // Старый формат или данные напрямую
+          // Массив или примитив - данные напрямую
           localData = parsed as T;
-          // #region agent log
-          fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:464',message:'using unwrapped format',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-          // #endregion
         }
       } catch (parseError) {
         // #region agent log
