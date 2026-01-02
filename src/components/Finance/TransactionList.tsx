@@ -42,12 +42,16 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
     }
   };
 
-  // Получаем ISO-дату для группировки (YYYY-MM-DD)
+  // Получаем ISO-дату для группировки (YYYY-MM-DD) в локальном времени
   const getDateKey = (timestamp: number): string => {
     const date = new Date(timestamp);
     // Устанавливаем время на начало дня для корректной группировки
     date.setHours(0, 0, 0, 0);
-    return date.toISOString().split('T')[0];
+    // Используем локальное время вместо UTC, чтобы избежать сдвига на день
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   // Группируем транзакции по дате (используем ISO-дату как ключ)
@@ -85,8 +89,9 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
       WebkitOverflowScrolling: 'touch' as any
     }}>
       {sortedDates.map((dateKey) => {
-        // Преобразуем ISO-дату обратно в timestamp для formatDate
-        const dateTimestamp = new Date(dateKey + 'T00:00:00').getTime();
+        // Преобразуем ISO-дату обратно в timestamp для formatDate в локальном времени
+        const [year, month, day] = dateKey.split('-').map(Number);
+        const dateTimestamp = new Date(year, month - 1, day).getTime();
         const displayDate = formatDate(dateTimestamp);
         
         return (
