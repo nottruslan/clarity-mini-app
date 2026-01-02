@@ -443,67 +443,80 @@ function saveToCloudStorage(key: string, jsonData: string): Promise<boolean> {
 // ============================================================================
 
 export async function getStorageData<T>(key: string): Promise<T | null> {
-  // Загружаем из localStorage
+  // Загружаем из localStorage (основной источник)
   let localData: T | null = null;
   let localTimestamp = 0;
   
   try {
     const stored = localStorage.getItem(key);
+    console.log(`[STORAGE] Getting ${key} from localStorage:`, stored ? 'exists' : 'not found');
     if (stored) {
-      const parsed = JSON.parse(stored);
-      // Проверяем, есть ли обертка с timestamp и data
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        const obj = parsed as any;
-        if (obj.timestamp !== undefined && obj.data !== undefined) {
-          localTimestamp = obj.timestamp || 0;
-          localData = obj.data as T;
+      try {
+        const parsed = JSON.parse(stored);
+        // Простая проверка: если это объект с полями data и timestamp - это обертка
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'data' in parsed && 'timestamp' in parsed) {
+          const wrapped = parsed as { data: T; timestamp: number };
+          localTimestamp = wrapped.timestamp || 0;
+          localData = wrapped.data;
+          console.log(`[STORAGE] Found wrapped data for ${key}, timestamp:`, localTimestamp);
         } else {
-          // Старый формат или данные напрямую (для обратной совместимости)
+          // Старый формат или данные напрямую
           localData = parsed as T;
+          console.log(`[STORAGE] Found unwrapped data for ${key}`);
         }
-      } else {
-        // Массив или примитив - данные напрямую
-        localData = parsed as T;
+      } catch (parseError) {
+        console.error(`[STORAGE] Error parsing localStorage data for ${key}:`, parseError);
       }
     }
   } catch (error) {
-    console.error(`Error loading from localStorage (${key}):`, error);
+    console.error(`[STORAGE] Error loading from localStorage (${key}):`, error);
   }
 
-  // Загружаем из Cloud Storage (для синхронизации)
-  const cloudResult = await loadFromCloudStorage<T>(key);
-
-  // Если есть данные в Cloud Storage
-  if (cloudResult) {
-    // Если локальных данных нет или Cloud Storage новее - используем Cloud Storage
-    if (!localData || cloudResult.timestamp > localTimestamp) {
-      try {
-        // Сохраняем в localStorage для кэширования
-        const wrapped = wrapData(cloudResult.data);
-        localStorage.setItem(key, JSON.stringify(wrapped));
-      } catch {}
-      return cloudResult.data;
+  // Загружаем из Cloud Storage (для синхронизации в фоне, не блокируем)
+  loadFromCloudStorage<T>(key).then((cloudResult) => {
+    console.log(`[STORAGE] Cloud result for ${key}:`, cloudResult ? 'exists' : 'not found');
+    if (cloudResult) {
+      // Если локальных данных нет или Cloud Storage новее - обновляем localStorage
+      if (!localData || cloudResult.timestamp > localTimestamp) {
+        console.log(`[STORAGE] Syncing cloud data to localStorage for ${key}`);
+        try {
+          const wrapped = wrapData(cloudResult.data);
+          localStorage.setItem(key, JSON.stringify(wrapped));
+        } catch {}
+      }
     }
-  }
+  }).catch(() => {
+    // Игнорируем ошибки Cloud Storage
+  });
 
-  // Возвращаем локальные данные (если они есть)
+  // Возвращаем локальные данные сразу (не ждем Cloud Storage)
+  console.log(`[STORAGE] Returning local data for ${key}:`, localData ? 'exists' : 'null');
   return localData;
 }
 
 export async function setStorageData<T>(key: string, data: T): Promise<void> {
+  console.log(`[STORAGE] Setting ${key}, data type:`, typeof data, Array.isArray(data));
   const wrapped = wrapData(data);
   const jsonData = JSON.stringify(wrapped);
+  console.log(`[STORAGE] Wrapped data for ${key}, length:`, jsonData.length);
 
   // Сохраняем в localStorage (быстро)
   try {
     localStorage.setItem(key, jsonData);
+    console.log(`[STORAGE] Successfully saved ${key} to localStorage`);
+    // Проверяем, что данные действительно сохранились
+    const verify = localStorage.getItem(key);
+    console.log(`[STORAGE] Verification: ${key} ${verify ? 'exists' : 'NOT FOUND'} in localStorage`);
   } catch (error) {
-    console.error(`Error saving to localStorage (${key}):`, error);
+    console.error(`[STORAGE] Error saving to localStorage (${key}):`, error);
     throw error;
   }
 
   // Сохраняем в Cloud Storage (асинхронно, не блокируем)
-  saveToCloudStorage(key, jsonData).catch(() => {
+  saveToCloudStorage(key, jsonData).then((success) => {
+    console.log(`[STORAGE] Cloud Storage save for ${key}:`, success ? 'success' : 'failed');
+  }).catch((err) => {
+    console.log(`[STORAGE] Cloud Storage error for ${key}:`, err);
     // Игнорируем ошибки Cloud Storage, данные уже в localStorage
   });
 }
