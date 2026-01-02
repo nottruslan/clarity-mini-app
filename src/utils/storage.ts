@@ -208,13 +208,75 @@ export interface YearlyReport {
   updatedAt: number;
 }
 
+export interface Note {
+  id: string;
+  bookId: string;
+  content: string;
+  page?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Quote {
+  id: string;
+  bookId: string;
+  text: string;
+  page?: number;
+  chapter?: string;
+  createdAt: number;
+}
+
+export interface Reflection {
+  id: string;
+  bookId: string;
+  title?: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Book {
+  id: string;
+  title: string;
+  author?: string;
+  status: 'want-to-read' | 'reading' | 'completed' | 'paused' | 'abandoned';
+  rating?: number; // 1-5
+  coverUrl?: string; // base64 или URL
+  genre?: string;
+  startDate?: number; // timestamp
+  completedDate?: number; // timestamp
+  notes: Note[];
+  quotes: Quote[];
+  reflections: Reflection[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BookGoal {
+  id: string;
+  targetCount: number;
+  period: 'year' | 'month';
+  year?: number; // для года
+  month?: number; // для месяца (1-12)
+  startDate: number; // timestamp начала периода
+  endDate: number; // timestamp конца периода
+  completedCount: number; // автоматически рассчитывается
+  createdAt: number;
+}
+
+export interface BooksData {
+  books: Book[];
+  goals: BookGoal[];
+}
+
 const STORAGE_KEYS = {
   HABITS: 'habits',
   FINANCE: 'finance',
   ONBOARDING: 'onboarding',
   YEARLY_REPORTS: 'yearly-reports',
   TASKS: 'tasks',
-  COVEY_MATRIX: 'covey-matrix-data'
+  COVEY_MATRIX: 'covey-matrix-data',
+  BOOKS: 'books'
 } as const;
 
 // Константы для синхронизации
@@ -764,6 +826,32 @@ export async function saveCoveyMatrixData(data: CoveyMatrixData): Promise<void> 
 }
 
 /**
+ * Получить данные книг
+ */
+export async function getBooksData(): Promise<BooksData> {
+  const data = await getStorageData<BooksData>(STORAGE_KEYS.BOOKS);
+  if (!data) {
+    const defaultData: BooksData = {
+      books: [],
+      goals: []
+    };
+    await saveBooksData(defaultData);
+    return defaultData;
+  }
+  // Инициализация полей, если их нет
+  if (!data.books) data.books = [];
+  if (!data.goals) data.goals = [];
+  return data;
+}
+
+/**
+ * Сохранить данные книг
+ */
+export async function saveBooksData(data: BooksData): Promise<void> {
+  await setStorageData(STORAGE_KEYS.BOOKS, data);
+}
+
+/**
  * Вычислить квадрант на основе важности и срочности
  */
 export function calculateQuadrant(important: boolean, urgent: boolean): 'q1' | 'q2' | 'q3' | 'q4' {
@@ -830,7 +918,8 @@ export async function createBackup(): Promise<string | null> {
       STORAGE_KEYS.FINANCE,
       STORAGE_KEYS.YEARLY_REPORTS,
       STORAGE_KEYS.TASKS,
-      STORAGE_KEYS.COVEY_MATRIX
+      STORAGE_KEYS.COVEY_MATRIX,
+      STORAGE_KEYS.BOOKS
     ];
     
     for (const key of userDataKeys) {

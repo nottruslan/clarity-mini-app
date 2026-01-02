@@ -42,6 +42,12 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
       label: 'Матрица Эйзенхауэра', 
       icon: '⚡',
       description: 'Организуйте задачи по важности и срочности'
+    },
+    { 
+      id: 'books', 
+      label: 'Книги', 
+      icon: '📚',
+      description: 'Ведите библиотеку и заметки'
     }
   ];
 

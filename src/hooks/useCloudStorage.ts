@@ -12,6 +12,8 @@ import {
   saveTasksData,
   getCoveyMatrixData,
   saveCoveyMatrixData,
+  getBooksData,
+  saveBooksData,
   calculateQuadrant,
   getQuadrantValues,
   type Habit,
@@ -22,7 +24,13 @@ import {
   type InBoxItem,
   type TasksData,
   type CoveyTask,
-  type CoveyMatrixData
+  type CoveyMatrixData,
+  type Book,
+  type Note,
+  type Quote,
+  type Reflection,
+  type BookGoal,
+  type BooksData
 } from '../utils/storage';
 
 export function useCloudStorage() {
@@ -37,6 +45,7 @@ export function useCloudStorage() {
   const [yearlyReports, setYearlyReports] = useState<YearlyReport[]>([]);
   const [tasksData, setTasksData] = useState<TasksData>({ inbox: [], tasks: [], completedTasks: [] });
   const [coveyMatrixData, setCoveyMatrixData] = useState<CoveyMatrixData>({ tasks: [], completedTasks: [] });
+  const [books, setBooks] = useState<BooksData>({ books: [], goals: [] });
   const [loading, setLoading] = useState(true);
   const isLoadingRef = useRef(false);
   const hasLoadedRef = useRef(false); // Флаг для отслеживания, были ли данные уже загружены
@@ -67,7 +76,7 @@ export function useCloudStorage() {
       
       // Загружаем данные из localStorage (быстро и надежно)
       // Cloud Storage синхронизируется в фоне автоматически
-      const [habitsData, financeData, onboardingData, reportsData, tasksData, coveyMatrixData] = await Promise.all([
+      const [habitsData, financeData, onboardingData, reportsData, tasksData, coveyMatrixData, booksData] = await Promise.all([
         getHabits().catch(err => {
           console.error('Error loading habits:', err);
           return [];
@@ -91,6 +100,10 @@ export function useCloudStorage() {
         getCoveyMatrixData().catch(err => {
           console.error('Error loading covey matrix:', err);
           return { tasks: [], completedTasks: [] };
+        }),
+        getBooksData().catch(err => {
+          console.error('Error loading books:', err);
+          return { books: [], goals: [] };
         })
       ]);
       
@@ -123,6 +136,7 @@ export function useCloudStorage() {
       setYearlyReports(reportsData);
       setTasksData(tasksData);
       setCoveyMatrixData(coveyMatrixData);
+      setBooks(booksData);
       
       // Сохраняем мигрированные привычки, если они изменились
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
@@ -681,6 +695,354 @@ export function useCloudStorage() {
     }
   }, []);
 
+  // Books
+  const updateBooks = useCallback(async (newBooks: BooksData) => {
+    setBooks(newBooks);
+    await saveBooksData(newBooks);
+  }, []);
+
+  const addBook = useCallback(async (book: Book) => {
+    try {
+      setBooks(prevBooks => {
+        const newBooks = {
+          ...prevBooks,
+          books: [...prevBooks.books, book]
+        };
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error adding book:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateBook = useCallback(async (id: string, updates: Partial<Book>) => {
+    try {
+      setBooks(prevBooks => {
+        const bookIndex = prevBooks.books.findIndex(book => book.id === id);
+        if (bookIndex === -1) {
+          console.warn('Book not found:', id);
+          return prevBooks;
+        }
+        
+        const updatedBook = { ...prevBooks.books[bookIndex], ...updates, updatedAt: Date.now() };
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.map(book => book.id === id ? updatedBook : book)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error updating book:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteBook = useCallback(async (id: string) => {
+    try {
+      setBooks(prevBooks => {
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.filter(book => book.id !== id)
+        };
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error deleting book:', error);
+      throw error;
+    }
+  }, []);
+
+  const addNote = useCallback(async (bookId: string, note: Note) => {
+    try {
+      setBooks(prevBooks => {
+        const bookIndex = prevBooks.books.findIndex(book => book.id === bookId);
+        if (bookIndex === -1) {
+          console.warn('Book not found:', bookId);
+          return prevBooks;
+        }
+        
+        const updatedBook = {
+          ...prevBooks.books[bookIndex],
+          notes: [...prevBooks.books[bookIndex].notes, note],
+          updatedAt: Date.now()
+        };
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.map(book => book.id === bookId ? updatedBook : book)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error adding note:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateNote = useCallback(async (bookId: string, noteId: string, updates: Partial<Note>) => {
+    try {
+      setBooks(prevBooks => {
+        const bookIndex = prevBooks.books.findIndex(book => book.id === bookId);
+        if (bookIndex === -1) {
+          console.warn('Book not found:', bookId);
+          return prevBooks;
+        }
+        
+        const updatedNotes = prevBooks.books[bookIndex].notes.map(note =>
+          note.id === noteId ? { ...note, ...updates, updatedAt: Date.now() } : note
+        );
+        const updatedBook = {
+          ...prevBooks.books[bookIndex],
+          notes: updatedNotes,
+          updatedAt: Date.now()
+        };
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.map(book => book.id === bookId ? updatedBook : book)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error updating note:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteNote = useCallback(async (bookId: string, noteId: string) => {
+    try {
+      setBooks(prevBooks => {
+        const bookIndex = prevBooks.books.findIndex(book => book.id === bookId);
+        if (bookIndex === -1) {
+          console.warn('Book not found:', bookId);
+          return prevBooks;
+        }
+        
+        const updatedBook = {
+          ...prevBooks.books[bookIndex],
+          notes: prevBooks.books[bookIndex].notes.filter(note => note.id !== noteId),
+          updatedAt: Date.now()
+        };
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.map(book => book.id === bookId ? updatedBook : book)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      throw error;
+    }
+  }, []);
+
+  const addQuote = useCallback(async (bookId: string, quote: Quote) => {
+    try {
+      setBooks(prevBooks => {
+        const bookIndex = prevBooks.books.findIndex(book => book.id === bookId);
+        if (bookIndex === -1) {
+          console.warn('Book not found:', bookId);
+          return prevBooks;
+        }
+        
+        const updatedBook = {
+          ...prevBooks.books[bookIndex],
+          quotes: [...prevBooks.books[bookIndex].quotes, quote],
+          updatedAt: Date.now()
+        };
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.map(book => book.id === bookId ? updatedBook : book)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error adding quote:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteQuote = useCallback(async (bookId: string, quoteId: string) => {
+    try {
+      setBooks(prevBooks => {
+        const bookIndex = prevBooks.books.findIndex(book => book.id === bookId);
+        if (bookIndex === -1) {
+          console.warn('Book not found:', bookId);
+          return prevBooks;
+        }
+        
+        const updatedBook = {
+          ...prevBooks.books[bookIndex],
+          quotes: prevBooks.books[bookIndex].quotes.filter(quote => quote.id !== quoteId),
+          updatedAt: Date.now()
+        };
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.map(book => book.id === bookId ? updatedBook : book)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error deleting quote:', error);
+      throw error;
+    }
+  }, []);
+
+  const addReflection = useCallback(async (bookId: string, reflection: Reflection) => {
+    try {
+      setBooks(prevBooks => {
+        const bookIndex = prevBooks.books.findIndex(book => book.id === bookId);
+        if (bookIndex === -1) {
+          console.warn('Book not found:', bookId);
+          return prevBooks;
+        }
+        
+        const updatedBook = {
+          ...prevBooks.books[bookIndex],
+          reflections: [...prevBooks.books[bookIndex].reflections, reflection],
+          updatedAt: Date.now()
+        };
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.map(book => book.id === bookId ? updatedBook : book)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error adding reflection:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateReflection = useCallback(async (bookId: string, reflectionId: string, updates: Partial<Reflection>) => {
+    try {
+      setBooks(prevBooks => {
+        const bookIndex = prevBooks.books.findIndex(book => book.id === bookId);
+        if (bookIndex === -1) {
+          console.warn('Book not found:', bookId);
+          return prevBooks;
+        }
+        
+        const updatedReflections = prevBooks.books[bookIndex].reflections.map(reflection =>
+          reflection.id === reflectionId ? { ...reflection, ...updates, updatedAt: Date.now() } : reflection
+        );
+        const updatedBook = {
+          ...prevBooks.books[bookIndex],
+          reflections: updatedReflections,
+          updatedAt: Date.now()
+        };
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.map(book => book.id === bookId ? updatedBook : book)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error updating reflection:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteReflection = useCallback(async (bookId: string, reflectionId: string) => {
+    try {
+      setBooks(prevBooks => {
+        const bookIndex = prevBooks.books.findIndex(book => book.id === bookId);
+        if (bookIndex === -1) {
+          console.warn('Book not found:', bookId);
+          return prevBooks;
+        }
+        
+        const updatedBook = {
+          ...prevBooks.books[bookIndex],
+          reflections: prevBooks.books[bookIndex].reflections.filter(reflection => reflection.id !== reflectionId),
+          updatedAt: Date.now()
+        };
+        const newBooks = {
+          ...prevBooks,
+          books: prevBooks.books.map(book => book.id === bookId ? updatedBook : book)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error deleting reflection:', error);
+      throw error;
+    }
+  }, []);
+
+  const addBookGoal = useCallback(async (goal: BookGoal) => {
+    try {
+      setBooks(prevBooks => {
+        const newBooks = {
+          ...prevBooks,
+          goals: [...prevBooks.goals, goal]
+        };
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error adding book goal:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateBookGoal = useCallback(async (id: string, updates: Partial<BookGoal>) => {
+    try {
+      setBooks(prevBooks => {
+        const goalIndex = prevBooks.goals.findIndex(goal => goal.id === id);
+        if (goalIndex === -1) {
+          console.warn('Book goal not found:', id);
+          return prevBooks;
+        }
+        
+        const updatedGoal = { ...prevBooks.goals[goalIndex], ...updates };
+        const newBooks = {
+          ...prevBooks,
+          goals: prevBooks.goals.map(goal => goal.id === id ? updatedGoal : goal)
+        };
+        
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error updating book goal:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteBookGoal = useCallback(async (id: string) => {
+    try {
+      setBooks(prevBooks => {
+        const newBooks = {
+          ...prevBooks,
+          goals: prevBooks.goals.filter(goal => goal.id !== id)
+        };
+        saveBooksData(newBooks).catch(err => console.error('Error saving books:', err));
+        return newBooks;
+      });
+    } catch (error) {
+      console.error('Error deleting book goal:', error);
+      throw error;
+    }
+  }, []);
+
   // Возвращаем объект напрямую
   return {
     // Data
@@ -689,6 +1051,7 @@ export function useCloudStorage() {
     onboarding,
     yearlyReports,
     tasksData,
+    books,
     loading,
     
     // Habits
@@ -738,6 +1101,23 @@ export function useCloudStorage() {
     moveCoveyTask,
     completeCoveyTask,
     uncompleteCoveyTask,
+    
+    // Books
+    updateBooks,
+    addBook,
+    updateBook,
+    deleteBook,
+    addNote,
+    updateNote,
+    deleteNote,
+    addQuote,
+    deleteQuote,
+    addReflection,
+    updateReflection,
+    deleteReflection,
+    addBookGoal,
+    updateBookGoal,
+    deleteBookGoal,
     
     // Reload
     reload: loadAllData

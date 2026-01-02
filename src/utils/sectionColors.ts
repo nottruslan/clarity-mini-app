@@ -49,6 +49,12 @@ export const sectionColors: Record<Section, SectionColor> = {
     secondary: '#ede7f6',
     text: '#ffffff',
     icon: '⚡'
+  },
+  books: {
+    primary: '#8B4513',
+    secondary: '#F5E6D3',
+    text: '#ffffff',
+    icon: '📚'
   }
 };
 
@@ -59,6 +65,7 @@ export const sectionLabels: Record<Section, string> = {
   finance: 'Финансы',
   languages: 'Языки',
   'yearly-report': 'Годовой отчет',
-  'covey-matrix': 'Матрица Эйзенхауэра'
+  'covey-matrix': 'Матрица Эйзенхауэра',
+  books: 'Книги'
 };
 
