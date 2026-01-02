@@ -1,26 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-
-// #region agent log
-const log = (location: string, message: string, data: any, hypothesisId?: string) => {
-  const logEntry = {
-    location,
-    message,
-    data,
-    timestamp: Date.now(),
-    sessionId: 'debug-session',
-    runId: 'run1',
-    hypothesisId: hypothesisId || 'A'
-  };
-  // Используем только console.log, чтобы избежать проблем с CORS
-  // Добавляем несколько способов вывода для надежности
-  console.log('🔍 DIARY_DEBUG', location, message, data);
-  console.log('[DIARY_DEBUG_JSON]', JSON.stringify(logEntry));
-  // Также выводим в alert для отладки (можно убрать позже)
-  if (typeof window !== 'undefined' && window.location.search.includes('debug=true')) {
-    console.warn('DEBUG:', location, message, data);
-  }
-};
-// #endregion
 import {
   getHabits,
   saveHabits,
@@ -1326,29 +1304,11 @@ export function useCloudStorage() {
 
   // Diary
   const addDiaryEntry = useCallback(async (entry: DiaryEntry) => {
-    // #region agent log
-    log('useCloudStorage.ts:addDiaryEntry', 'addDiaryEntry called', {
-      entryId: entry.id,
-      entryTitle: entry.title,
-      entryContent: entry.content?.substring(0, 50),
-      entryDate: entry.date,
-      diaryCountBefore: diary.length
-    }, 'E');
-    // #endregion
-    
     try {
       setDiary(prevDiary => {
         const newDiary = [...prevDiary, entry];
         const newData: DiaryData = { entries: newDiary };
         saveDiaryData(newData).catch(err => console.error('Error saving diary:', err));
-        
-        // #region agent log
-        log('useCloudStorage.ts:addDiaryEntry', 'diary state updated', {
-          entryId: entry.id,
-          diaryCountAfter: newDiary.length,
-          allEntryIds: newDiary.map(e => e.id)
-        }, 'E');
-        // #endregion
         
         return newDiary;
       });

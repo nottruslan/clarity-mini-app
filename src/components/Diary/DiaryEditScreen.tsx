@@ -1,28 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { generateId, type DiaryEntry } from '../../utils/storage';
 
-// #region agent log
-const log = (location: string, message: string, data: any, hypothesisId?: string) => {
-  const logEntry = {
-    location,
-    message,
-    data,
-    timestamp: Date.now(),
-    sessionId: 'debug-session',
-    runId: 'run1',
-    hypothesisId: hypothesisId || 'A'
-  };
-  // Используем только console.log, чтобы избежать проблем с CORS
-  // Добавляем несколько способов вывода для надежности
-  console.log('🔍 DIARY_DEBUG', location, message, data);
-  console.log('[DIARY_DEBUG_JSON]', JSON.stringify(logEntry));
-  // Также выводим в alert для отладки (можно убрать позже)
-  if (window.location.search.includes('debug=true')) {
-    console.warn('DEBUG:', location, message, data);
-  }
-};
-// #endregion
-
 interface DiaryEditScreenProps {
   entry?: DiaryEntry | null;
   onSave: (entry: DiaryEntry) => void;
@@ -35,83 +13,27 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
   // Инициализируем состояние пустыми значениями, useEffect установит правильные значения
   // ВАЖНО: useState всегда инициализируется с пустыми строками, независимо от entry
   const [title, setTitle] = useState(() => {
-    // #region agent log
-    log('DiaryEditScreen.tsx:useState', 'useState initializer called', {
-      entryId: entry?.id || null,
-      entryTitle: entry?.title || null,
-      willReturn: '' // Всегда возвращаем пустую строку
-    }, 'B');
-    // #endregion
     return ''; // Всегда возвращаем пустую строку
   });
   const [content, setContent] = useState(() => {
-    // #region agent log
-    log('DiaryEditScreen.tsx:useState', 'useState content initializer called', {
-      entryId: entry?.id || null,
-      entryContent: entry?.content?.substring(0, 50) || null,
-      willReturn: '' // Всегда возвращаем пустую строку
-    }, 'B');
-    // #endregion
     return ''; // Всегда возвращаем пустую строку
   });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
-  
-  // #region agent log
-  log('DiaryEditScreen.tsx:component', 'DiaryEditScreen mounted', {
-    entryId: entry?.id || null,
-    entryTitle: entry?.title || null,
-    entryContent: entry?.content?.substring(0, 50) || null,
-    readOnly,
-    initialTitle: title,
-    initialContent: content,
-    isNewEntry: entry === null
-  }, 'A');
-  // #endregion
 
   // Инициализация значений при монтировании или изменении entry
   useEffect(() => {
-    // #region agent log
-    log('DiaryEditScreen.tsx:useEffect', 'useEffect triggered', {
-      entryId: entry?.id || null,
-      entryTitle: entry?.title || null,
-      entryContent: entry?.content?.substring(0, 50) || null,
-      readOnly,
-      currentTitle: title,
-      currentContent: content?.substring(0, 50) || '',
-      willSetTitle: entry ? (entry.title || '') : '',
-      willSetContent: entry ? (entry.content?.substring(0, 50) || '') : ''
-    }, 'B');
-    // #endregion
-    
     // Всегда сбрасываем состояние сначала - это гарантирует чистый сброс
     if (entry) {
       const newTitle = entry.title || '';
       const newContent = entry.content || '';
       setTitle(newTitle);
       setContent(newContent);
-      // #region agent log
-      log('DiaryEditScreen.tsx:useEffect', 'state set from entry', {
-        entryId: entry.id,
-        newTitle,
-        newContent: newContent.substring(0, 50),
-        previousTitle: title,
-        previousContent: content.substring(0, 50)
-      }, 'B');
-      // #endregion
     } else {
       // Явно сбрасываем для новой записи
       setTitle('');
       setContent('');
-      // #region agent log
-      log('DiaryEditScreen.tsx:useEffect', 'state reset for new entry', {
-        previousTitle: title,
-        previousContent: content.substring(0, 50),
-        newTitle: '',
-        newContent: ''
-      }, 'B');
-      // #endregion
     }
     setHasUnsavedChanges(false);
     // Фокус на поле заголовка при открытии (только в режиме редактирования)
@@ -176,16 +98,6 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
   };
 
   const handleSave = () => {
-    // #region agent log
-    log('DiaryEditScreen.tsx:handleSave', 'handleSave called', {
-      entryId: entry?.id || null,
-      currentTitle: title,
-      currentContent: content.substring(0, 50),
-      isUpdate: entry !== null,
-      isNewEntry: entry === null
-    }, 'B');
-    // #endregion
-    
     if (!content.trim()) return;
 
     const now = Date.now();
@@ -203,13 +115,6 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
         content: content.trim(),
         updatedAt: now
       };
-      // #region agent log
-      log('DiaryEditScreen.tsx:handleSave', 'updating existing entry', {
-        entryId: entry.id,
-        savedTitle: savedEntry.title,
-        savedContent: savedEntry.content.substring(0, 50)
-      }, 'B');
-      // #endregion
     } else {
       // Создание новой записи
       const newId = generateId();
@@ -221,14 +126,6 @@ export default function DiaryEditScreen({ entry, onSave, onClose, readOnly = fal
         createdAt: now,
         updatedAt: now
       };
-      // #region agent log
-      log('DiaryEditScreen.tsx:handleSave', 'creating new entry', {
-        newId,
-        savedTitle: savedEntry.title,
-        savedContent: savedEntry.content.substring(0, 50),
-        date: todayTimestamp
-      }, 'B');
-      // #endregion
     }
 
     onSave(savedEntry);

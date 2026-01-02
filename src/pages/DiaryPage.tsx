@@ -5,28 +5,6 @@ import DiaryEntryList from '../components/Diary/DiaryEntryList';
 import DiaryEditScreen from '../components/Diary/DiaryEditScreen';
 import DiaryEntryBottomSheet from '../components/Diary/DiaryEntryBottomSheet';
 
-// #region agent log
-const log = (location: string, message: string, data: any, hypothesisId?: string) => {
-  const logEntry = {
-    location,
-    message,
-    data,
-    timestamp: Date.now(),
-    sessionId: 'debug-session',
-    runId: 'run1',
-    hypothesisId: hypothesisId || 'A'
-  };
-  // Используем только console.log, чтобы избежать проблем с CORS
-  // Добавляем несколько способов вывода для надежности
-  console.log('🔍 DIARY_DEBUG', location, message, data);
-  console.log('[DIARY_DEBUG_JSON]', JSON.stringify(logEntry));
-  // Также выводим в alert для отладки (можно убрать позже)
-  if (window.location.search.includes('debug=true')) {
-    console.warn('DEBUG:', location, message, data);
-  }
-};
-// #endregion
-
 interface DiaryPageProps {
   storage: ReturnType<typeof useCloudStorage>;
 }
@@ -66,15 +44,6 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
   }, [storage.diary, selectedMonth]);
 
   const handleCreateClick = () => {
-    // #region agent log
-    log('DiaryPage.tsx:handleCreateClick', 'handleCreateClick called', {
-      currentEditingEntry: editingEntry?.id || null,
-      currentEditKey: editKey,
-      diaryEntriesCount: storage.diary.length,
-      diaryEntryIds: storage.diary.map(e => e.id)
-    }, 'A');
-    // #endregion
-    
     // Всегда создаем новую запись - убираем ограничение на одну запись в день
     setEditingEntry(null);
     
@@ -82,57 +51,16 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
     const newKey = `new-${Date.now()}`;
     setEditKey(newKey);
     
-    // #region agent log
-    log('DiaryPage.tsx:handleCreateClick', 'creating new entry', {
-      editKey: newKey,
-      editingEntry: null,
-      note: 'Always creating new entry, no limit per day'
-    }, 'A');
-    // #endregion
-    
     setIsEditing(true);
-    // #region agent log
-    // Логируем после небольшой задержки, чтобы увидеть актуальное состояние
-    setTimeout(() => {
-      log('DiaryPage.tsx:handleCreateClick', 'state after setState (delayed)', {
-        isEditing: true,
-        note: 'This log shows state after React has processed setState calls'
-      }, 'A');
-    }, 0);
-    // #endregion
   };
 
   const handleSave = async (entry: DiaryEntry) => {
-    // #region agent log
-    log('DiaryPage.tsx:handleSave', 'handleSave called', {
-      entryId: entry.id,
-      entryTitle: entry.title,
-      entryContent: entry.content?.substring(0, 50),
-      currentEditingEntryId: editingEntry?.id || null,
-      isUpdate: editingEntry && editingEntry.id === entry.id,
-      diaryEntriesCountBefore: storage.diary.length
-    }, 'B');
-    // #endregion
-    
     if (editingEntry && editingEntry.id === entry.id) {
       // Обновляем существующую запись
       await storage.updateDiaryEntry(entry.id, entry);
-      // #region agent log
-      log('DiaryPage.tsx:handleSave', 'entry updated', {
-        entryId: entry.id,
-        diaryEntriesCountAfter: storage.diary.length
-      }, 'B');
-      // #endregion
     } else {
       // Создаём новую запись
       await storage.addDiaryEntry(entry);
-      // #region agent log
-      log('DiaryPage.tsx:handleSave', 'entry added', {
-        entryId: entry.id,
-        diaryEntriesCountAfter: storage.diary.length,
-        newDiaryEntryIds: storage.diary.map(e => e.id)
-      }, 'B');
-      // #endregion
     }
     // Закрытие произойдет в DiaryEditScreen, там вызовется handleClose
   };
@@ -147,53 +75,21 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
   };
 
   const handleEditFromRead = () => {
-    // #region agent log
-    log('DiaryPage.tsx:handleEditFromRead', 'handleEditFromRead called', {
-      viewingEntryId: viewingEntry?.id || null,
-      viewingEntryTitle: viewingEntry?.title,
-      viewingEntryContent: viewingEntry?.content?.substring(0, 50)
-    }, 'A');
-    // #endregion
-    
     if (viewingEntry) {
       setEditingEntry(viewingEntry);
       setEditKey(viewingEntry.id);
       setViewingEntry(null);
       setIsEditing(true);
-      // #region agent log
-      log('DiaryPage.tsx:handleEditFromRead', 'switched to edit mode', {
-        editingEntryId: viewingEntry.id,
-        editKey: viewingEntry.id
-      }, 'A');
-      // #endregion
     }
   };
 
   const handleEdit = (entry: DiaryEntry) => {
-    // #region agent log
-    log('DiaryPage.tsx:handleEdit', 'handleEdit called', {
-      entryId: entry.id,
-      entryTitle: entry.title,
-      entryContent: entry.content?.substring(0, 50),
-      currentEditingEntry: editingEntry?.id || null,
-      currentEditKey: editKey
-    }, 'A');
-    // #endregion
-    
     setEditingEntry(entry);
     setEditKey(entry.id);
     setViewingEntry(null);
     setIsEditing(true);
     setShowMenu(false);
     setMenuEntry(null);
-    
-    // #region agent log
-    log('DiaryPage.tsx:handleEdit', 'state updated', {
-      editingEntryId: entry.id,
-      editKey: entry.id,
-      isEditing: true
-    }, 'A');
-    // #endregion
   };
 
   const handleDelete = async (entry: DiaryEntry) => {
@@ -216,27 +112,10 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
   };
 
   const handleClose = () => {
-    // #region agent log
-    log('DiaryPage.tsx:handleClose', 'handleClose called', {
-      currentEditingEntry: editingEntry?.id || null,
-      currentEditKey: editKey,
-      currentViewingEntry: viewingEntry?.id || null
-    }, 'C');
-    // #endregion
-    
     setIsEditing(false);
     setEditingEntry(null);
     setViewingEntry(null);
     setEditKey('');
-    
-    // #region agent log
-    log('DiaryPage.tsx:handleClose', 'state reset', {
-      isEditing: false,
-      editingEntry: null,
-      viewingEntry: null,
-      editKey: ''
-    }, 'C');
-    // #endregion
   };
 
 
@@ -275,16 +154,6 @@ export default function DiaryPage({ storage }: DiaryPageProps) {
 
   // Если открыт экран редактирования, показываем его
   if (isEditing) {
-    // #region agent log
-    log('DiaryPage.tsx:render', 'rendering DiaryEditScreen', {
-      editKey,
-      editingEntryId: editingEntry?.id || null,
-      editingEntryTitle: editingEntry?.title || null,
-      editingEntryContent: editingEntry?.content?.substring(0, 50) || null,
-      isNewEntry: editingEntry === null
-    }, 'A');
-    // #endregion
-    
     return (
       <DiaryEditScreen
         key={editKey}
