@@ -494,30 +494,29 @@ export async function getStorageData<T>(key: string): Promise<T | null> {
     // #endregion
   }
 
-  // Загружаем из Cloud Storage (для синхронизации в фоне, не блокируем)
-  loadFromCloudStorage<T>(key).then((cloudResult) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:476',message:'cloud storage result',data:{key,hasResult:!!cloudResult},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
-    if (cloudResult) {
-      // Если локальных данных нет или Cloud Storage новее - обновляем localStorage
-      if (!localData || cloudResult.timestamp > localTimestamp) {
-        // #region agent log
-        fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:480',message:'syncing cloud to local',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
-        try {
-          const wrapped = wrapData(cloudResult.data);
-          localStorage.setItem(key, JSON.stringify(wrapped));
-        } catch {}
-      }
-    }
-  }).catch(() => {
-    // Игнорируем ошибки Cloud Storage
-  });
-
-  // Возвращаем локальные данные сразу (не ждем Cloud Storage)
+  // Загружаем из Cloud Storage (ожидаем результат, чтобы не потерять данные)
+  const cloudResult = await loadFromCloudStorage<T>(key).catch(() => null);
   // #region agent log
-  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:492',message:'returning result',data:{key,hasData:!!localData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:476',message:'cloud storage result',data:{key,hasResult:!!cloudResult},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
+
+  if (cloudResult && (!localData || cloudResult.timestamp > localTimestamp)) {
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:480',message:'using cloud data',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    try {
+      const wrapped = wrapData(cloudResult.data);
+      localStorage.setItem(key, JSON.stringify(wrapped));
+    } catch {}
+    // #region agent log
+    fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:492',message:'returning cloud data',data:{key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    return cloudResult.data;
+  }
+
+  // Возвращаем локальные данные (если они есть)
+  // #region agent log
+  fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:492',message:'returning local data',data:{key,hasData:!!localData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
   // #endregion
   return localData;
 }
