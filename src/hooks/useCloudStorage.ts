@@ -422,11 +422,32 @@ export function useCloudStorage() {
     try {
       console.log('[setFinance] Calling setFinance from updateCategory');
       setFinance(prevFinance => {
+        // Находим категорию, которую обновляем, чтобы получить старое название
+        const categoryToUpdate = prevFinance.categories.find(c => c.id === id);
+        if (!categoryToUpdate) {
+          return prevFinance;
+        }
+
+        const oldName = categoryToUpdate.name;
+        const newName = updates.name;
+
+        // Если изменяется название категории
+        let updatedTransactions = prevFinance.transactions;
+        if (newName && newName !== oldName) {
+          // Обновляем все транзакции, которые используют старое название
+          updatedTransactions = prevFinance.transactions.map(transaction => 
+            transaction.category === oldName 
+              ? { ...transaction, category: newName }
+              : transaction
+          );
+        }
+
         const newFinance = {
           ...prevFinance,
           categories: prevFinance.categories.map(c => 
             c.id === id ? { ...c, ...updates } : c
-          )
+          ),
+          transactions: updatedTransactions
         };
         saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
         return newFinance;
