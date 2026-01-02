@@ -103,6 +103,13 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
     // Сортируем по ISO-дате (YYYY-MM-DD) в обратном порядке
     return b.localeCompare(a);
   });
+  
+  console.log('[TransactionList] Final sorted dates:', {
+    sortedDates,
+    sortedDatesCount: sortedDates.length,
+    groupsCount: Object.keys(grouped).length,
+    willRenderGroups: sortedDates.length
+  });
 
   return (
     <div style={{ 

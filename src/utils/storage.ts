@@ -814,7 +814,16 @@ export async function getFinanceData(): Promise<FinanceData> {
   console.log('[getFinanceData] END - Returning finance data:', {
     transactionsCount: data.transactions?.length || 0,
     categoriesCount: data.categories?.length || 0,
-    budgetsCount: data.budgets?.length || 0
+    budgetsCount: data.budgets?.length || 0,
+    transactions: data.transactions?.map(t => ({
+      id: t.id,
+      date: new Date(t.date).toISOString(),
+      dateLocal: new Date(t.date).toString(),
+      timestamp: t.date,
+      type: t.type,
+      amount: t.amount,
+      category: t.category
+    })) || []
   });
   return data;
 }
@@ -826,11 +835,20 @@ export async function saveFinanceData(data: FinanceData): Promise<void> {
   console.log('[saveFinanceData] START - Saving finance data:', {
     transactionsCount: data.transactions?.length || 0,
     categoriesCount: data.categories?.length || 0,
-    budgetsCount: data.budgets?.length || 0
+    budgetsCount: data.budgets?.length || 0,
+    transactions: data.transactions?.map(t => ({
+      id: t.id,
+      date: new Date(t.date).toISOString(),
+      dateLocal: new Date(t.date).toString(),
+      timestamp: t.date,
+      type: t.type,
+      amount: t.amount,
+      category: t.category
+    })) || []
   });
   try {
     await setStorageData(STORAGE_KEYS.FINANCE, data);
-    console.log('[saveFinanceData] SUCCESS - Finance data saved');
+    console.log('[saveFinanceData] SUCCESS - Finance data saved to storage');
   } catch (error) {
     console.error('[saveFinanceData] ERROR - Failed to save finance data:', error);
     throw error;

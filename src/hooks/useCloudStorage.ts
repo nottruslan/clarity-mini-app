@@ -227,11 +227,21 @@ export function useCloudStorage() {
 
   const addTransaction = useCallback(async (transaction: FinanceData['transactions'][0]) => {
     try {
-      console.log('[Finance] addTransaction - START, transaction:', transaction);
+      console.log('[Finance] addTransaction - START, transaction:', {
+        ...transaction,
+        dateISO: new Date(transaction.date).toISOString(),
+        dateLocal: new Date(transaction.date).toString(),
+        timestamp: transaction.date
+      });
       
       setFinance(prevFinance => {
         console.log('[Finance] addTransaction - Inside setFinance callback, prevFinance:', {
-          transactionsCount: prevFinance.transactions?.length || 0
+          transactionsCount: prevFinance.transactions?.length || 0,
+          existingTransactions: prevFinance.transactions?.map(t => ({
+            id: t.id,
+            date: new Date(t.date).toISOString(),
+            timestamp: t.date
+          })) || []
         });
         
         // Убеждаемся, что transactions всегда является массивом
@@ -244,7 +254,15 @@ export function useCloudStorage() {
         };
         console.log('[Finance] addTransaction - New finance object:', {
           transactionsCount: newFinance.transactions.length,
-          lastTransactionId: newFinance.transactions[newFinance.transactions.length - 1]?.id
+          lastTransactionId: newFinance.transactions[newFinance.transactions.length - 1]?.id,
+          lastTransactionDate: newFinance.transactions[newFinance.transactions.length - 1] 
+            ? new Date(newFinance.transactions[newFinance.transactions.length - 1].date).toISOString()
+            : null,
+          allTransactions: newFinance.transactions.map(t => ({
+            id: t.id,
+            date: new Date(t.date).toISOString(),
+            timestamp: t.date
+          }))
         });
         
         // Сохраняем в хранилище асинхронно
@@ -271,19 +289,32 @@ export function useCloudStorage() {
           const savedData = await getFinanceData();
           console.log('[Finance] addTransaction - Verification after save:', {
             savedTransactionsCount: savedData.transactions?.length || 0,
-            expectedCount: (finance.transactions?.length || 0) + 1,
             transactionIds: savedData.transactions?.map(t => t.id) || [],
-            lastTransactionId: transaction.id
+            lastTransactionId: transaction.id,
+            savedTransactions: savedData.transactions?.map(t => ({
+              id: t.id,
+              date: new Date(t.date).toISOString(),
+              dateLocal: new Date(t.date).toString(),
+              timestamp: t.date
+            })) || []
           });
           if (savedData.transactions && savedData.transactions.length > 0) {
             const found = savedData.transactions.some(t => t.id === transaction.id);
             if (!found) {
               console.error('[Finance] addTransaction - WARNING: Transaction not found in saved data!', {
                 savedIds: savedData.transactions.map(t => t.id),
-                expectedId: transaction.id
+                expectedId: transaction.id,
+                savedTransactions: savedData.transactions.map(t => ({
+                  id: t.id,
+                  date: new Date(t.date).toISOString(),
+                  timestamp: t.date
+                }))
               });
             } else {
-              console.log('[Finance] addTransaction - Transaction verified in saved data');
+              console.log('[Finance] addTransaction - Transaction verified in saved data:', {
+                transactionId: transaction.id,
+                transactionDate: new Date(transaction.date).toISOString()
+              });
             }
           }
         } catch (error) {

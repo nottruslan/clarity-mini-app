@@ -72,6 +72,15 @@ export function useFinanceFilters(
     }
 
     console.log('[useFinanceFilters] Final filtered count:', filtered.length);
+    console.log('[useFinanceFilters] Final filtered transactions:', filtered.map(t => ({
+      id: t.id,
+      date: new Date(t.date).toISOString(),
+      dateLocal: new Date(t.date).toString(),
+      timestamp: t.date,
+      type: t.type,
+      amount: t.amount,
+      category: t.category
+    })));
     return filtered;
   }, [transactions, filters]);
 }
