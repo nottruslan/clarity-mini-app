@@ -117,6 +117,14 @@ export default function FinancePage({ storage }: FinancePageProps) {
   };
 
   const handleStep5Complete = async (description?: string) => {
+    console.log('[FinancePage] handleStep5Complete - START', {
+      isEditing,
+      transactionData,
+      date: transactionData.date,
+      dateString: transactionData.date ? new Date(transactionData.date).toISOString() : null,
+      dateLocal: transactionData.date ? new Date(transactionData.date).toString() : null
+    });
+    
     if (isEditing && editingTransaction) {
       await storage.updateTransaction(editingTransaction.id, {
         type: transactionData.type!,
@@ -137,7 +145,14 @@ export default function FinancePage({ storage }: FinancePageProps) {
         description,
         createdAt: Date.now()
       };
+      console.log('[FinancePage] handleStep5Complete - Creating transaction:', {
+        transaction: newTransaction,
+        date: newTransaction.date,
+        dateString: new Date(newTransaction.date).toISOString(),
+        dateLocal: new Date(newTransaction.date).toString()
+      });
       await storage.addTransaction(newTransaction);
+      console.log('[FinancePage] handleStep5Complete - Transaction added to storage');
     }
     setIsCreating(false);
     setCreateStep(0);
