@@ -50,8 +50,11 @@ export default function FinancePage({ storage }: FinancePageProps) {
   
   // Для списка транзакций не применяем фильтрацию по периоду - показываем все транзакции
   // Фильтрация по периоду применяется только для Обзора и Статистики
-  const allTransactions = storage.finance.transactions || [];
+  // Убеждаемся, что transactions всегда является массивом
+  const allTransactions = Array.isArray(storage.finance.transactions) ? storage.finance.transactions : [];
+  console.log('[FinancePage] All transactions count:', allTransactions.length);
   const filteredTransactions = useFinanceFilters(allTransactions, filters);
+  console.log('[FinancePage] Filtered transactions count:', filteredTransactions.length);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchEndRef.current = null;
@@ -431,7 +434,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
         <FinanceOverview finance={storage.finance} />
         <BudgetOverview 
           budgets={storage.finance.budgets || []}
-          transactions={storage.finance.transactions}
+          transactions={Array.isArray(storage.finance.transactions) ? storage.finance.transactions : []}
         />
             </div>
           </div>
@@ -561,7 +564,7 @@ export default function FinancePage({ storage }: FinancePageProps) {
         <BudgetManager
           budgets={storage.finance.budgets || []}
           categories={storage.finance.categories}
-          transactions={storage.finance.transactions}
+          transactions={Array.isArray(storage.finance.transactions) ? storage.finance.transactions : []}
           onBudgetAdd={(budget) => storage.addBudget(budget)}
           onBudgetUpdate={(budget) => storage.updateBudget(budget)}
           onBudgetDelete={(categoryId) => storage.deleteBudget(categoryId)}

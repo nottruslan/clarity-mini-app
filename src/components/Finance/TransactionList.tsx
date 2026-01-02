@@ -8,7 +8,11 @@ interface TransactionListProps {
 }
 
 export default function TransactionList({ transactions, onTransactionClick, onOpenMenu }: TransactionListProps) {
-  if (transactions.length === 0) {
+  // Убеждаемся, что transactions всегда является массивом
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  console.log('[TransactionList] Rendering transactions:', safeTransactions.length);
+  
+  if (safeTransactions.length === 0) {
     return (
       <EmptyState 
         message="У вас пока нет транзакций. Добавьте первую транзакцию!"
@@ -55,7 +59,7 @@ export default function TransactionList({ transactions, onTransactionClick, onOp
   };
 
   // Группируем транзакции по дате (используем ISO-дату как ключ)
-  const grouped = transactions.reduce((acc, transaction) => {
+  const grouped = safeTransactions.reduce((acc, transaction) => {
     const dateKey = getDateKey(transaction.date);
     if (!acc[dateKey]) {
       acc[dateKey] = [];

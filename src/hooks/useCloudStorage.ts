@@ -217,16 +217,27 @@ export function useCloudStorage() {
 
   const addTransaction = useCallback(async (transaction: FinanceData['transactions'][0]) => {
     try {
+      console.log('[Finance] Adding transaction:', transaction);
       setFinance(prevFinance => {
+        // Убеждаемся, что transactions всегда является массивом
+        const prevTransactions = prevFinance.transactions || [];
         const newFinance = {
           ...prevFinance,
-          transactions: [...prevFinance.transactions, transaction]
+          transactions: [...prevTransactions, transaction]
         };
-        saveFinanceData(newFinance).catch(err => console.error('Error saving finance:', err));
+        console.log('[Finance] New transactions count:', newFinance.transactions.length);
+        // Сохраняем в хранилище асинхронно
+        saveFinanceData(newFinance)
+          .then(() => {
+            console.log('[Finance] Transaction saved successfully');
+          })
+          .catch(err => {
+            console.error('[Finance] Error saving finance:', err);
+          });
         return newFinance;
       });
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      console.error('[Finance] Error adding transaction:', error);
       throw error;
     }
   }, []);

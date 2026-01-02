@@ -719,17 +719,23 @@ export async function getFinanceData(): Promise<FinanceData> {
     return defaultData;
   }
   // Убеждаемся, что transactions всегда существует (защита от потери данных)
+  let needsSave = false;
   if (!data.transactions) {
     data.transactions = [];
+    needsSave = true;
   }
   // Если категорий нет, добавляем их
   if (!data.categories || data.categories.length === 0) {
     data.categories = getDefaultCategories();
-    await saveFinanceData(data);
+    needsSave = true;
   }
   // Если budgets нет, инициализируем пустым массивом
   if (!data.budgets) {
     data.budgets = [];
+    needsSave = true;
+  }
+  // Сохраняем изменения, если что-то было инициализировано
+  if (needsSave) {
     await saveFinanceData(data);
   }
   return data;

@@ -16,7 +16,9 @@ export default function StatisticsView({ finance, period }: StatisticsViewProps)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCategoryType, setSelectedCategoryType] = useState<'income' | 'expense' | null>(null);
   
-  const periodTransactions = filterTransactionsByPeriod(finance.transactions || [], period);
+  // Убеждаемся, что transactions всегда является массивом
+  const allTransactions = Array.isArray(finance.transactions) ? finance.transactions : [];
+  const periodTransactions = filterTransactionsByPeriod(allTransactions, period);
 
   const transactions = periodTransactions;
   const categories = finance.categories || [];

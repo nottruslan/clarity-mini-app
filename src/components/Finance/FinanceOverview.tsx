@@ -8,7 +8,8 @@ interface FinanceOverviewProps {
 
 export default function FinanceOverview({ finance }: FinanceOverviewProps) {
   const [period, setPeriod] = useState<Period>('month');
-  const allTransactions = finance.transactions || [];
+  // Убеждаемся, что transactions всегда является массивом
+  const allTransactions = Array.isArray(finance.transactions) ? finance.transactions : [];
   const transactions = filterTransactionsByPeriod(allTransactions, period);
   
   const totalIncome = transactions
