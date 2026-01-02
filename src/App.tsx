@@ -16,6 +16,7 @@ import YearlyReportPage from './pages/YearlyReportPage';
 import TasksPage from './pages/TasksPage';
 import CoveyMatrixPage from './pages/CoveyMatrixPage';
 import BooksPage from './pages/BooksPage';
+import DiaryPage from './pages/DiaryPage';
 
 function App() {
   const { isReady, tg } = useTelegram();
@@ -216,6 +217,8 @@ function App() {
         return <CoveyMatrixPage storage={storage} />;
       case 'books':
         return <BooksPage storage={storage} />;
+      case 'diary':
+        return <DiaryPage storage={storage} />;
       default:
         return <HomePage onSectionChange={handleSectionChange} />;
     }

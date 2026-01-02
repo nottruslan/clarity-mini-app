@@ -48,6 +48,12 @@ export default function HomePage({ onSectionChange }: HomePageProps) {
       label: 'Книги', 
       icon: '📚',
       description: 'Ведите библиотеку и заметки'
+    },
+    { 
+      id: 'diary', 
+      label: 'Дневник', 
+      icon: '📔',
+      description: 'Записывайте ежедневные рефлексии'
     }
   ];
 

@@ -14,6 +14,8 @@ import {
   saveCoveyMatrixData,
   getBooksData,
   saveBooksData,
+  getDiaryData,
+  saveDiaryData,
   calculateQuadrant,
   getQuadrantValues,
   type Habit,
@@ -31,7 +33,9 @@ import {
   type Quote,
   type Reflection,
   type BookGoal,
-  type BooksData
+  type BooksData,
+  type DiaryEntry,
+  type DiaryData
 } from '../utils/storage';
 
 export function useCloudStorage() {
@@ -47,6 +51,7 @@ export function useCloudStorage() {
   const [tasksData, setTasksData] = useState<TasksData>({ inbox: [], tasks: [], completedTasks: [] });
   const [coveyMatrixData, setCoveyMatrixData] = useState<CoveyMatrixData>({ tasks: [], completedTasks: [] });
   const [books, setBooks] = useState<BooksData>({ books: [], goals: [] });
+  const [diary, setDiary] = useState<DiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const isLoadingRef = useRef(false);
 
@@ -68,7 +73,7 @@ export function useCloudStorage() {
       const loadStartTime = Date.now();
       
       // Загружаем данные из localStorage
-      const [habitsData, financeData, onboardingData, reportsData, tasksData, coveyMatrixData, booksData] = await Promise.all([
+      const [habitsData, financeData, onboardingData, reportsData, tasksData, coveyMatrixData, booksData, diaryData] = await Promise.all([
         getHabits().catch(err => {
           console.error('Error loading habits:', err);
           return [];
@@ -96,6 +101,10 @@ export function useCloudStorage() {
         getBooksData().catch(err => {
           console.error('Error loading books:', err);
           return { books: [], goals: [] };
+        }),
+        getDiaryData().catch(err => {
+          console.error('Error loading diary:', err);
+          return { entries: [] };
         })
       ]);
       
@@ -144,6 +153,7 @@ export function useCloudStorage() {
       setTasksData(tasksData);
       setCoveyMatrixData(coveyMatrixData);
       setBooks(booksData);
+      setDiary(diaryData.entries || []);
       
       // Сохраняем мигрированные привычки, если они изменились
       if (migratedHabits.length > 0 && JSON.stringify(migratedHabits) !== JSON.stringify(habitsData)) {
@@ -1292,6 +1302,54 @@ export function useCloudStorage() {
     }
   }, []);
 
+  // Diary
+  const addDiaryEntry = useCallback(async (entry: DiaryEntry) => {
+    try {
+      setDiary(prevDiary => {
+        const newDiary = [...prevDiary, entry];
+        const newData: DiaryData = { entries: newDiary };
+        saveDiaryData(newData).catch(err => console.error('Error saving diary:', err));
+        return newDiary;
+      });
+    } catch (error) {
+      console.error('Error adding diary entry:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateDiaryEntry = useCallback(async (id: string, updates: Partial<DiaryEntry>) => {
+    try {
+      setDiary(prevDiary => {
+        const entryIndex = prevDiary.findIndex(entry => entry.id === id);
+        if (entryIndex === -1) {
+          return prevDiary;
+        }
+        const updatedEntry = { ...prevDiary[entryIndex], ...updates, updatedAt: Date.now() };
+        const newDiary = prevDiary.map(entry => entry.id === id ? updatedEntry : entry);
+        const newData: DiaryData = { entries: newDiary };
+        saveDiaryData(newData).catch(err => console.error('Error saving diary:', err));
+        return newDiary;
+      });
+    } catch (error) {
+      console.error('Error updating diary entry:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteDiaryEntry = useCallback(async (id: string) => {
+    try {
+      setDiary(prevDiary => {
+        const newDiary = prevDiary.filter(entry => entry.id !== id);
+        const newData: DiaryData = { entries: newDiary };
+        saveDiaryData(newData).catch(err => console.error('Error saving diary:', err));
+        return newDiary;
+      });
+    } catch (error) {
+      console.error('Error deleting diary entry:', error);
+      throw error;
+    }
+  }, []);
+
   // Возвращаем объект напрямую
   return {
     // Data
@@ -1301,6 +1359,7 @@ export function useCloudStorage() {
     yearlyReports,
     tasksData,
     books,
+    diary,
     loading,
     
     // Habits
@@ -1370,6 +1429,11 @@ export function useCloudStorage() {
     addBookGoal,
     updateBookGoal,
     deleteBookGoal,
+    
+    // Diary
+    addDiaryEntry,
+    updateDiaryEntry,
+    deleteDiaryEntry,
     
     // Reload
     reload: loadAllData

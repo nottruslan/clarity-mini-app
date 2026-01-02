@@ -275,6 +275,19 @@ export interface BooksData {
   goals: BookGoal[];
 }
 
+export interface DiaryEntry {
+  id: string;
+  title: string;
+  content: string;
+  date: number; // timestamp начала дня (00:00:00)
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface DiaryData {
+  entries: DiaryEntry[];
+}
+
 // ============================================================================
 // КОНСТАНТЫ
 // ============================================================================
@@ -286,7 +299,8 @@ const STORAGE_KEYS = {
   YEARLY_REPORTS: 'yearly-reports',
   TASKS: 'tasks',
   COVEY_MATRIX: 'covey-matrix-data',
-  BOOKS: 'books'
+  BOOKS: 'books',
+  DIARY: 'diary'
 } as const;
 
 const CLOUD_STORAGE_MIN_VERSION = [6, 1] as const;
@@ -687,6 +701,23 @@ export async function getBooksData(): Promise<BooksData> {
 
 export async function saveBooksData(data: BooksData): Promise<void> {
   await setStorageData(STORAGE_KEYS.BOOKS, data);
+}
+
+export async function getDiaryData(): Promise<DiaryData> {
+  const data = await getStorageData<DiaryData>(STORAGE_KEYS.DIARY);
+  if (!data) {
+    const defaultData: DiaryData = {
+      entries: []
+    };
+    await saveDiaryData(defaultData);
+    return defaultData;
+  }
+  if (!data.entries) data.entries = [];
+  return data;
+}
+
+export async function saveDiaryData(data: DiaryData): Promise<void> {
+  await setStorageData(STORAGE_KEYS.DIARY, data);
 }
 
 // ============================================================================

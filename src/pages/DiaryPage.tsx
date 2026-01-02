@@ -1,0 +1,214 @@
+import { useState, useMemo } from 'react';
+import { useCloudStorage } from '../hooks/useCloudStorage';
+import { type DiaryEntry } from '../utils/storage';
+import DiaryEntryList from '../components/Diary/DiaryEntryList';
+import CreateDiaryEntryModal from '../components/Diary/CreateDiaryEntryModal';
+
+interface DiaryPageProps {
+  storage: ReturnType<typeof useCloudStorage>;
+}
+
+export default function DiaryPage({ storage }: DiaryPageProps) {
+  const [showModal, setShowModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+
+  // Получаем сегодняшнюю дату (начало дня)
+  const getTodayTimestamp = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today.getTime();
+  };
+
+  // Проверяем, есть ли запись за сегодня
+  const todayEntry = useMemo(() => {
+    const todayTimestamp = getTodayTimestamp();
+    return storage.diary.find(entry => entry.date === todayTimestamp);
+  }, [storage.diary]);
+
+  // Фильтруем записи по выбранному месяцу
+  const filteredEntries = useMemo(() => {
+    let entries = storage.diary;
+
+    if (selectedMonth) {
+      const [year, month] = selectedMonth.split('-');
+      entries = entries.filter(entry => {
+        const entryDate = new Date(entry.date);
+        return (
+          entryDate.getFullYear() === parseInt(year) &&
+          entryDate.getMonth() + 1 === parseInt(month)
+        );
+      });
+    }
+
+    return entries;
+  }, [storage.diary, selectedMonth]);
+
+  const handleCreateClick = () => {
+    if (todayEntry) {
+      // Если запись за сегодня уже существует, открываем её для редактирования
+      setEditingEntry(todayEntry);
+    } else {
+      // Иначе создаём новую запись
+      setEditingEntry(null);
+    }
+    setShowModal(true);
+  };
+
+  const handleSave = async (entry: DiaryEntry) => {
+    if (editingEntry && editingEntry.id === entry.id) {
+      // Обновляем существующую запись
+      await storage.updateDiaryEntry(entry.id, entry);
+    } else {
+      // Создаём новую запись
+      await storage.addDiaryEntry(entry);
+    }
+    setShowModal(false);
+    setEditingEntry(null);
+  };
+
+  const handleEdit = (entry: DiaryEntry) => {
+    setEditingEntry(entry);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (entry: DiaryEntry) => {
+    if (window.confirm('Вы уверены, что хотите удалить эту запись?')) {
+      await storage.deleteDiaryEntry(entry.id);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingEntry(null);
+  };
+
+  // Получаем список доступных месяцев для фильтрации
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    storage.diary.forEach(entry => {
+      const date = new Date(entry.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      months.add(monthKey);
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  }, [storage.diary]);
+
+  const formatMonthOption = (monthKey: string) => {
+    const [year, month] = monthKey.split('-');
+    const monthNames = [
+      'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+    ];
+    return `${monthNames[parseInt(month) - 1]} ${year}`;
+  };
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        paddingBottom: 'calc(100px + env(safe-area-inset-bottom))'
+      }}
+    >
+      {/* Фильтр по месяцам */}
+      {availableMonths.length > 0 && (
+        <div
+          style={{
+            padding: '12px 16px',
+            borderBottom: '1px solid var(--tg-theme-secondary-bg-color)',
+            backgroundColor: 'var(--tg-theme-bg-color)'
+          }}
+        >
+          <select
+            value={selectedMonth || ''}
+            onChange={(e) => setSelectedMonth(e.target.value || null)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '1px solid var(--tg-theme-secondary-bg-color)',
+              borderRadius: '8px',
+              backgroundColor: 'var(--tg-theme-bg-color)',
+              color: 'var(--tg-theme-text-color)',
+              fontSize: '16px',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="">Все месяцы</option>
+            {availableMonths.map(monthKey => (
+              <option key={monthKey} value={monthKey}>
+                {formatMonthOption(monthKey)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Список записей */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          paddingTop: '16px'
+        }}
+      >
+        <DiaryEntryList
+          entries={filteredEntries}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </div>
+
+      {/* FAB кнопка */}
+      <button
+        onClick={handleCreateClick}
+        aria-label={todayEntry ? 'Редактировать запись за сегодня' : 'Создать новую запись'}
+        style={{
+          position: 'fixed',
+          bottom: 'calc(20px + env(safe-area-inset-bottom))',
+          right: '20px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          backgroundColor: '#9C27B0',
+          color: '#ffffff',
+          border: 'none',
+          fontSize: '32px',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          transition: 'transform 0.2s, box-shadow 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'scale(0.95)';
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+        }}
+      >
+        +
+      </button>
+
+      {/* Модальное окно */}
+      {showModal && (
+        <CreateDiaryEntryModal
+          entry={editingEntry}
+          onSave={handleSave}
+          onClose={handleCloseModal}
+        />
+      )}
+    </div>
+  );
+}
+
