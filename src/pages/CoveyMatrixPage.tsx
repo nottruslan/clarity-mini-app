@@ -3,6 +3,7 @@ import { useCloudStorage } from '../hooks/useCloudStorage';
 import { generateId, calculateQuadrant, type CoveyTask } from '../utils/storage';
 import QuadrantView from '../components/CoveyMatrix/QuadrantView';
 import CoveyStatisticsView from '../components/CoveyMatrix/CoveyStatisticsView';
+import CoveyDocumentationView from '../components/CoveyMatrix/CoveyDocumentationView';
 import WizardContainer from '../components/Wizard/WizardContainer';
 import Step1Name from '../components/CoveyMatrix/CreateTask/Step1Name';
 import Step2Description from '../components/CoveyMatrix/CreateTask/Step2Description';
@@ -12,7 +13,7 @@ interface CoveyMatrixPageProps {
   storage: ReturnType<typeof useCloudStorage>;
 }
 
-const sectionTitles = ['Q1', 'Q2', 'Q3', 'Q4', 'Статистика'];
+const sectionTitles = ['Q1', 'Q2', 'Q3', 'Q4', 'Статистика', 'Документация'];
 
 export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -285,6 +286,9 @@ export default function CoveyMatrixPage({ storage }: CoveyMatrixPageProps) {
         </div>
         <div className={`slide ${currentSlide === 4 ? 'active' : currentSlide > 4 ? 'prev' : 'next'}`}>
           <CoveyStatisticsView storage={storage} />
+        </div>
+        <div className={`slide ${currentSlide === 5 ? 'active' : currentSlide > 5 ? 'prev' : 'next'}`}>
+          <CoveyDocumentationView />
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { sectionColors } from './utils/sectionColors';
 import { restoreFromBackup } from './utils/storage';
 import AppHeader from './components/Navigation/AppHeader';
 import NavigationMenu from './components/Navigation/NavigationMenu';
+import SplashScreen from './components/SplashScreen/SplashScreen';
 import HomePage from './pages/HomePage';
 import HabitsPage from './pages/HabitsPage';
 import FinancePage from './pages/FinancePage';
@@ -20,6 +21,7 @@ function App() {
   const [currentSection, setCurrentSection] = useState<Section>('home');
   const [navigationHistory, setNavigationHistory] = useState<Section[]>(['home']);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Восстановление данных из резервной копии после перезагрузки
   useEffect(() => {
@@ -136,7 +138,7 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [currentSection, tg, isReady]);
 
-  if (!isReady || storage.loading) {
+  if (!isReady) {
     return (
       <div style={{ 
         display: 'flex', 
@@ -148,6 +150,15 @@ function App() {
       }}>
         Загрузка...
       </div>
+    );
+  }
+
+  if (showSplash) {
+    return (
+      <SplashScreen
+        isLoading={storage.loading}
+        onComplete={() => setShowSplash(false)}
+      />
     );
   }
 

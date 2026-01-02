@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { type CoveyTask } from '../../utils/storage';
 import CoveyTaskBottomSheet from './CoveyTaskBottomSheet';
 import CoveyTaskDetailsBottomSheet from './CoveyTaskDetailsBottomSheet';
@@ -14,6 +14,8 @@ interface QuadrantTaskItemProps {
 export default function QuadrantTaskItem({ task, storage, onEdit }: QuadrantTaskItemProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const dragStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const hasMovedRef = useRef(false);
   const {
     attributes,
     listeners,
@@ -57,11 +59,65 @@ export default function QuadrantTaskItem({ task, storage, onEdit }: QuadrantTask
     }
   };
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Проверяем, что клик не на drag handle, checkbox или меню
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-drag-handle]') || 
+        (target instanceof HTMLInputElement && target.type === 'checkbox') || 
+        target.closest('button')) {
+      return;
+    }
+
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: Date.now()
+    };
+    hasMovedRef.current = false;
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragStartRef.current) return;
+    
+    const deltaX = Math.abs(e.clientX - dragStartRef.current.x);
+    const deltaY = Math.abs(e.clientY - dragStartRef.current.y);
+    
+    // Если движение больше 5px - это drag
+    if (deltaX > 5 || deltaY > 5) {
+      hasMovedRef.current = true;
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!dragStartRef.current) return;
+
+    const target = e.target as HTMLElement;
+    // Не обрабатываем клик, если это был drag handle, checkbox или меню
+    if (target.closest('[data-drag-handle]') || 
+        (target instanceof HTMLInputElement && target.type === 'checkbox') || 
+        target.closest('button')) {
+      dragStartRef.current = null;
+      return;
+    }
+
+    const deltaX = Math.abs(e.clientX - dragStartRef.current.x);
+    const deltaY = Math.abs(e.clientY - dragStartRef.current.y);
+    const deltaTime = Date.now() - dragStartRef.current.time;
+
+    // Если движение было маленьким и быстрым, и не было drag - это клик
+    if (!hasMovedRef.current && deltaX < 10 && deltaY < 10 && deltaTime < 500) {
+      e.stopPropagation();
+      setShowDetails(true);
+    }
+
+    dragStartRef.current = null;
+    hasMovedRef.current = false;
+  };
+
   return (
     <>
       <div
         ref={setNodeRef}
-        {...attributes}
         className="list-item"
         style={{
           ...style,
@@ -74,15 +130,21 @@ export default function QuadrantTaskItem({ task, storage, onEdit }: QuadrantTask
           borderRadius: '6px',
           border: '1px solid var(--tg-theme-secondary-bg-color)'
         }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
       >
         <div
+          {...attributes}
           {...listeners}
+          data-drag-handle
           style={{
             display: 'flex',
             alignItems: 'center',
             cursor: 'grab',
             flexShrink: 0,
-            padding: '4px'
+            padding: '4px',
+            touchAction: 'none'
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -104,10 +166,7 @@ export default function QuadrantTaskItem({ task, storage, onEdit }: QuadrantTask
           }}
         />
         <div
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowDetails(true);
-          }}
+          className="task-content"
           style={{
             flex: 1,
             display: 'flex',
