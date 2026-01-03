@@ -39,41 +39,23 @@ function optimizeHtmlPlugin() {
             const scriptName = src.split('/').pop();
             // Упрощенная обработка ошибок - просто логируем, не делаем автоматический retry
             // Retry может быть добавлен позже, если нужно
-            const retryId = 'module-retry-' + scriptName.replace(/[^a-zA-Z0-9]/g, '_') + '_' + Date.now();
-            // Retry механизм для загрузки модуля при ошибке (до 3 попыток)
+            // Используем единый глобальный retry механизм
             return `<script type="module" src="${src}" 
-              onload="console.log('[DEBUG] Module loaded:', '${scriptName}'); 
-                      if (window['${retryId}']) { clearTimeout(window['${retryId}'].timeout); delete window['${retryId}']; }" 
+              onload="console.log('[DEBUG] Module loaded:', '${scriptName}');" 
               onerror="(function() {
                 console.error('[DEBUG] Module failed:', '${scriptName}', this.src); 
-                const retryKey = '${retryId}';
-                if (!window[retryKey] || !window[retryKey].retryCount) {
-                  window[retryKey] = { retryCount: 0, maxRetries: 3 };
-                }
-                if (window[retryKey].retryCount < window[retryKey].maxRetries) {
-                  window[retryKey].retryCount++;
-                  const delay = 1000 * window[retryKey].retryCount;
-                  console.log('[DEBUG] Retrying module load:', '${scriptName}', 'attempt', window[retryKey].retryCount, 'delay', delay + 'ms');
-                  window[retryKey].timeout = setTimeout(() => {
-                    const script = document.createElement('script');
-                    script.type = 'module';
-                    script.src = '${src}';
-                    script.onload = function() { 
-                      console.log('[DEBUG] Module loaded after retry:', '${scriptName}'); 
-                      if (window[retryKey]) { clearTimeout(window[retryKey].timeout); delete window[retryKey]; }
-                    };
-                    script.onerror = function() { 
-                      console.error('[DEBUG] Module failed after retry:', '${scriptName}'); 
-                      if (window[retryKey].retryCount >= window[retryKey].maxRetries) {
-                        console.error('[DEBUG] Max retries reached for:', '${scriptName}');
-                        delete window[retryKey];
-                      }
-                    };
-                    document.body.appendChild(script);
-                  }, delay);
+                // Используем глобальный retry обработчик
+                if (window.moduleRetryHandler) {
+                  window.moduleRetryHandler(this.src, 0);
                 } else {
-                  console.error('[DEBUG] Max retries reached for:', '${scriptName}');
-                  delete window[retryKey];
+                  // Если глобальный обработчик еще не загружен, ждем немного и пробуем снова
+                  setTimeout(() => {
+                    if (window.moduleRetryHandler) {
+                      window.moduleRetryHandler(this.src, 0);
+                    } else {
+                      console.error('[DEBUG] Global retry handler not available');
+                    }
+                  }, 500);
                 }
               })();"></script>`;
           }
@@ -83,34 +65,69 @@ function optimizeHtmlPlugin() {
         // Логирование будет через PerformanceObserver в index.html
         // Глобальный обработчик ошибок загрузки модулей с retry механизмом
         // Это обрабатывает ошибки для всех модулей, включая загружаемые через modulepreload
-        if (!html.includes('window.moduleRetryHandler')) {
+        // Проверяем, что глобальный обработчик еще не вставлен (ищем определение функции, а не просто упоминание)
+        if (!html.includes('window.moduleRetryHandler = function')) {
           const retryScript = `
 <script>
 (function() {
   // Глобальный retry механизм для всех модулей
+  // Глобальный retry механизм с защитой от дублирования
+  window.moduleRetryAttempts = window.moduleRetryAttempts || {};
+  
   window.moduleRetryHandler = function(moduleSrc, retryCount) {
     retryCount = retryCount || 0;
-    const maxRetries = 3;
+    const maxRetries = 5; // Увеличиваем до 5 попыток
     
-    if (retryCount >= maxRetries) {
-      console.error('[DEBUG] Max retries reached for module:', moduleSrc);
+    // Защита от дублирования - проверяем, не запущен ли уже retry для этого модуля
+    const retryKey = 'retry_' + moduleSrc.replace(/[^a-zA-Z0-9]/g, '_');
+    if (window.moduleRetryAttempts[retryKey] && window.moduleRetryAttempts[retryKey].inProgress) {
+      console.log('[DEBUG] Retry already in progress for:', moduleSrc);
       return;
     }
     
+    if (retryCount >= maxRetries) {
+      console.error('[DEBUG] Max retries reached for module:', moduleSrc);
+      if (window.moduleRetryAttempts[retryKey]) {
+        delete window.moduleRetryAttempts[retryKey];
+      }
+      return;
+    }
+    
+    // Помечаем, что retry запущен
+    window.moduleRetryAttempts[retryKey] = { inProgress: true, retryCount: retryCount };
+    
     const delay = 1000 * (retryCount + 1);
-    console.log('[DEBUG] Retrying module load:', moduleSrc, 'attempt', retryCount + 1, 'delay', delay + 'ms');
+    console.log('[DEBUG] Retrying module load:', moduleSrc, 'attempt', retryCount + 1, '/', maxRetries, 'delay', delay + 'ms');
     
     setTimeout(() => {
+      // Удаляем старый скрипт, если он есть
+      const oldScripts = Array.from(document.querySelectorAll('script[type="module"]')).filter(s => s.src === moduleSrc);
+      oldScripts.forEach(s => {
+        s.onerror = null;
+        s.onload = null;
+        if (s.parentNode) {
+          s.parentNode.removeChild(s);
+        }
+      });
+      
       const script = document.createElement('script');
       script.type = 'module';
       script.src = moduleSrc;
       script.onload = function() {
         console.log('[DEBUG] Module loaded after retry:', moduleSrc);
+        if (window.moduleRetryAttempts[retryKey]) {
+          delete window.moduleRetryAttempts[retryKey];
+        }
       };
-      script.onerror = function() {
+      script.onerror = function(e) {
+        console.error('[DEBUG] Module failed after retry:', moduleSrc, 'attempt', retryCount + 1);
+        // Снимаем флаг inProgress, чтобы можно было повторить
+        if (window.moduleRetryAttempts[retryKey]) {
+          window.moduleRetryAttempts[retryKey].inProgress = false;
+        }
         window.moduleRetryHandler(moduleSrc, retryCount + 1);
       };
-      document.body.appendChild(script);
+      document.head.appendChild(script); // Добавляем в head, а не body
     }, delay);
   };
   
@@ -168,12 +185,27 @@ function optimizeHtmlPlugin() {
   }, 2000);
   
   // Также отслеживаем ошибки через глобальный обработчик ошибок
+  // НО только для ошибок загрузки, не для ошибок выполнения
   window.addEventListener('error', (e) => {
+    // Проверяем, что это ошибка загрузки модуля, а не ошибка выполнения
     if (e.target && e.target.tagName === 'SCRIPT' && e.target.type === 'module') {
       const src = e.target.src;
       if (src && src.includes('/assets/') && !src.includes('telegram-web-app.js')) {
-        console.error('[DEBUG] Script module error:', src);
-        window.moduleRetryHandler(src, 0);
+        // Проверяем, что это действительно ошибка загрузки (нет сообщения об ошибке выполнения)
+        // Ошибки загрузки обычно не имеют message или имеют специфичные сообщения
+        const isLoadError = !e.message || 
+                           e.message.includes('Failed to load') || 
+                           e.message.includes('Loading') ||
+                           e.message.includes('network') ||
+                           e.message.includes('connection');
+        
+        if (isLoadError) {
+          console.error('[DEBUG] Script module load error:', src);
+          // Небольшая задержка, чтобы избежать конфликта с встроенным onerror
+          setTimeout(() => {
+            window.moduleRetryHandler(src, 0);
+          }, 100);
+        }
       }
     }
   }, true);
