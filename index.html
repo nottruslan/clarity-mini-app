@@ -8,27 +8,19 @@
   <script>
     // #region agent log
     (function() {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const logEndpoint = 'http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5';
       const log = (msg, data, hypothesisId) => {
-        fetch(logEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html',message:msg,data:data||{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:hypothesisId||'A'})}).catch(()=>{});
+        const logData = {location:'index.html',message:msg,data:data||{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:hypothesisId||'A'};
+        console.log('[DEBUG]', msg, data || '');
+        if (isLocalhost) {
+          fetch(logEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logData)}).catch(()=>{});
+        }
       };
       log('HTML loaded', {url: window.location.href, userAgent: navigator.userAgent}, 'A');
       
       // Отслеживаем загрузку Telegram скрипта
-      const telegramScript = document.createElement('script');
-      telegramScript.src = 'https://telegram.org/js/telegram-web-app.js';
-      telegramScript.defer = true;
       const telegramLoadStart = Date.now();
-      telegramScript.onload = () => {
-        log('Telegram script loaded', {loadTime: Date.now() - telegramLoadStart, hasTelegram: !!window.Telegram}, 'D');
-      };
-      telegramScript.onerror = (err) => {
-        log('Telegram script error', {error: err.toString(), loadTime: Date.now() - telegramLoadStart}, 'D');
-        window.Telegram = window.Telegram || {};
-      };
-      document.head.appendChild(telegramScript);
-      
-      // Отслеживаем загрузку основного модуля
       window.addEventListener('error', (e) => {
         log('Global error', {message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno, error: e.error?.toString()}, 'B');
       }, true);
@@ -38,9 +30,9 @@
         list.getEntries().forEach(entry => {
           if (entry.initiatorType === 'script' || entry.initiatorType === 'link') {
             log('Resource loaded', {
-              name: entry.name,
+              name: entry.name.split('/').pop(),
               type: entry.initiatorType,
-              duration: entry.duration,
+              duration: Math.round(entry.duration),
               size: entry.transferSize,
               status: entry.responseStatus
             }, 'A');
@@ -50,6 +42,11 @@
       try {
         resourceObserver.observe({entryTypes: ['resource']});
       } catch(e) {}
+      
+      // Проверяем загрузку Telegram через небольшой таймаут
+      setTimeout(() => {
+        log('Telegram check', {hasTelegram: !!window.Telegram, hasWebApp: !!window.Telegram?.WebApp, loadTime: Date.now() - telegramLoadStart}, 'D');
+      }, 100);
     })();
     // #endregion
   </script>

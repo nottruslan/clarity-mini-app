@@ -62,9 +62,14 @@ export function useCloudStorage() {
 
   const loadAllData = async () => {
     // #region agent log
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const logEndpoint = 'http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5';
     const log = (msg: string, data?: any, hypothesisId?: string) => {
-      fetch(logEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts',message:msg,data:data||{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:hypothesisId||'E'})}).catch(()=>{});
+      const logData = {location:'useCloudStorage.ts',message:msg,data:data||{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:hypothesisId||'E'};
+      console.log('[DEBUG useCloudStorage]', msg, data || '');
+      if (isLocalhost) {
+        fetch(logEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logData)}).catch(()=>{});
+      }
     };
     const loadStartTime = Date.now();
     log('loadAllData started', {}, 'E');
