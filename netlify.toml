@@ -11,11 +11,13 @@
   node_bundler = "esbuild"
 
 # Настройки для обработки запросов через Cloudflare
+# КРИТИЧНО: Правильный redirect для SPA - должен быть первым
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = false
+  # force = true гарантирует, что redirect применяется даже для существующих файлов
+  force = true
 
 # Дополнительные настройки для статики
 [[headers]]
@@ -26,6 +28,20 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     # Увеличиваем таймауты для Cloudflare
     Connection = "keep-alive"
+
+# КРИТИЧНО: Явно указываем Content-Type для HTML файлов
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Content-Type = "text/html; charset=utf-8"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# КРИТИЧНО: Явно указываем Content-Type для корневого пути (index.html)
+[[headers]]
+  for = "/"
+  [headers.values]
+    Content-Type = "text/html; charset=utf-8"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/assets/*"
@@ -47,11 +63,14 @@
     # Отключаем Cloudflare RUM для JS файлов, чтобы избежать проблем с загрузкой
     X-Content-Type-Options = "nosniff"
 
-# Настройки для работы с Cloudflare RUM (отключаем проблемные запросы)
+# Настройки для работы с Cloudflare RUM (исправляем CORS)
 [[headers]]
   for = "/cdn-cgi/*"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
-    # Разрешаем Cloudflare RUM работать, но с ограничениями
+    # Правильные CORS заголовки для Cloudflare RUM
     Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "*"
+    Access-Control-Max-Age = "86400"
 

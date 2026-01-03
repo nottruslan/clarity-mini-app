@@ -10,6 +10,11 @@
   Content-Type: text/html; charset=utf-8
   Cache-Control: public, max-age=0, must-revalidate
 
+# КРИТИЧНО: Явно указываем Content-Type для корневого пути
+/
+  Content-Type: text/html; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
 # Заголовки для статических ассетов (ES модули)
 /assets/*
   Content-Type: application/javascript; charset=utf-8
@@ -56,9 +61,12 @@
   Content-Type: application/json; charset=utf-8
   Cache-Control: public, max-age=3600
 
-# Заголовки для Cloudflare RUM (разрешаем работу, но с ограничениями)
+# Заголовки для Cloudflare RUM (исправляем CORS)
 /cdn-cgi/*
   Cache-Control: no-cache, no-store, must-revalidate
   Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Access-Control-Allow-Headers: *
+  Access-Control-Max-Age: 86400
   Connection: keep-alive
 
