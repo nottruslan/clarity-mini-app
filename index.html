@@ -28,28 +28,33 @@
       // Детальное отслеживание загрузки ресурсов
       const resourceObserver = new PerformanceObserver((list) => {
         list.getEntries().forEach(entry => {
-          if (entry.initiatorType === 'script' || entry.initiatorType === 'link' || entry.initiatorType === 'other') {
-            const name = entry.name.split('/').pop();
-            const isFailed = entry.transferSize === 0 && entry.duration === 0;
-            const details = {
-              name: name,
-              fullUrl: entry.name,
-              type: entry.initiatorType,
-              duration: Math.round(entry.duration),
-              size: entry.transferSize,
-              decodedSize: entry.decodedBodySize,
-              encodedSize: entry.encodedBodySize,
-              status: entry.responseStatus,
-              failed: isFailed,
-              startTime: Math.round(entry.startTime),
-              domain: new URL(entry.name).hostname
-            };
-            
-            if (isFailed || entry.responseStatus >= 400) {
-              log('Resource FAILED', details, 'A');
-            } else {
-              log('Resource loaded', details, 'A');
-            }
+          // Отслеживаем ВСЕ ресурсы, включая те, которые еще загружаются
+          const name = entry.name.split('/').pop();
+          const isFailed = (entry.transferSize === 0 && entry.duration === 0) || entry.responseStatus >= 400;
+          const isComplete = entry.duration > 0 || entry.transferSize > 0;
+          
+          const details = {
+            name: name,
+            fullUrl: entry.name,
+            type: entry.initiatorType,
+            duration: Math.round(entry.duration),
+            size: entry.transferSize,
+            decodedSize: entry.decodedBodySize,
+            encodedSize: entry.encodedBodySize,
+            status: entry.responseStatus,
+            failed: isFailed,
+            complete: isComplete,
+            startTime: Math.round(entry.startTime),
+            domain: entry.name.startsWith('http') ? new URL(entry.name).hostname : 'same-origin',
+            nextHopProtocol: entry.nextHopProtocol
+          };
+          
+          if (isFailed) {
+            log('Resource FAILED', details, 'A');
+          } else if (isComplete) {
+            log('Resource loaded', details, 'A');
+          } else {
+            log('Resource loading', details, 'A');
           }
         });
       });
@@ -58,6 +63,22 @@
       } catch(e) {
         log('PerformanceObserver error', {error: e.toString()}, 'A');
       }
+      
+      // Отслеживаем все попытки загрузки через fetch
+      const originalFetch = window.fetch;
+      window.fetch = function(...args) {
+        const url = args[0];
+        log('Fetch called', {url: url.toString(), method: args[1]?.method || 'GET'}, 'A');
+        return originalFetch.apply(this, args)
+          .then(res => {
+            log('Fetch success', {url: url.toString(), status: res.status}, 'A');
+            return res;
+          })
+          .catch(err => {
+            log('Fetch failed', {url: url.toString(), error: err.toString()}, 'A');
+            throw err;
+          });
+      };
       
       // Отслеживаем изменения состояния сети
       if (navigator.onLine !== undefined) {
@@ -99,14 +120,38 @@
         }, 'B');
       });
       
-      // Проверяем, какие скрипты есть в DOM
+      // Проверяем, какие скрипты и ссылки есть в DOM
       setTimeout(() => {
         const scripts = Array.from(document.querySelectorAll('script'));
-        log('Scripts in DOM', {
-          count: scripts.length,
-          scripts: scripts.map(s => ({src: s.src, type: s.type, async: s.async, defer: s.defer}))
+        const links = Array.from(document.querySelectorAll('link[rel="stylesheet"], link[rel="modulepreload"]'));
+        log('Resources in DOM', {
+          scriptsCount: scripts.length,
+          linksCount: links.length,
+          scripts: scripts.map(s => ({src: s.src, type: s.type, async: s.async, defer: s.defer})),
+          links: links.map(l => ({href: l.href, rel: l.rel, type: l.type}))
         }, 'B');
-      }, 200);
+        
+        // Пытаемся загрузить файлы вручную для диагностики
+        links.forEach(link => {
+          if (link.href && link.href.includes('/assets/')) {
+            fetch(link.href, {method: 'HEAD'})
+              .then(res => {
+                log('Manual fetch HEAD success', {
+                  url: link.href,
+                  status: res.status,
+                  statusText: res.statusText,
+                  headers: Object.fromEntries(res.headers.entries())
+                }, 'A');
+              })
+              .catch(err => {
+                log('Manual fetch HEAD failed', {
+                  url: link.href,
+                  error: err.toString()
+                }, 'A');
+              });
+          }
+        });
+      }, 500);
       
       // Проверяем загрузку Telegram через небольшой таймаут
       setTimeout(() => {
