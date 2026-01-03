@@ -25,43 +25,79 @@
         log('Global error', {message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno, error: e.error?.toString()}, 'B');
       }, true);
       
-      // Отслеживаем загрузку ресурсов
+      // Детальное отслеживание загрузки ресурсов
       const resourceObserver = new PerformanceObserver((list) => {
         list.getEntries().forEach(entry => {
-          if (entry.initiatorType === 'script' || entry.initiatorType === 'link') {
+          if (entry.initiatorType === 'script' || entry.initiatorType === 'link' || entry.initiatorType === 'other') {
             const name = entry.name.split('/').pop();
-            log('Resource loaded', {
+            const isFailed = entry.transferSize === 0 && entry.duration === 0;
+            const details = {
               name: name,
               fullUrl: entry.name,
               type: entry.initiatorType,
               duration: Math.round(entry.duration),
               size: entry.transferSize,
+              decodedSize: entry.decodedBodySize,
+              encodedSize: entry.encodedBodySize,
               status: entry.responseStatus,
-              failed: entry.transferSize === 0 && entry.duration === 0
-            }, 'A');
+              failed: isFailed,
+              startTime: Math.round(entry.startTime),
+              domain: new URL(entry.name).hostname
+            };
             
-            // Проверяем ошибки загрузки
-            if (entry.transferSize === 0 && entry.duration === 0 && entry.initiatorType === 'script') {
-              log('Resource failed to load', {name, url: entry.name}, 'A');
+            if (isFailed || entry.responseStatus >= 400) {
+              log('Resource FAILED', details, 'A');
+            } else {
+              log('Resource loaded', details, 'A');
             }
           }
         });
       });
       try {
-        resourceObserver.observe({entryTypes: ['resource']});
-      } catch(e) {}
+        resourceObserver.observe({entryTypes: ['resource', 'navigation']});
+      } catch(e) {
+        log('PerformanceObserver error', {error: e.toString()}, 'A');
+      }
       
-      // Отслеживаем ошибки загрузки модулей
+      // Отслеживаем изменения состояния сети
+      if (navigator.onLine !== undefined) {
+        window.addEventListener('online', () => log('Network: online', {}, 'F'));
+        window.addEventListener('offline', () => log('Network: offline', {}, 'F'));
+        log('Network status', {online: navigator.onLine, connection: navigator.connection?.effectiveType}, 'F');
+      }
+      
+      // Детальное отслеживание ошибок загрузки модулей
       window.addEventListener('error', (e) => {
+        const errorDetails = {
+          message: e.message,
+          filename: e.filename,
+          lineno: e.lineno,
+          colno: e.colno,
+          error: e.error?.toString(),
+          stack: e.error?.stack,
+          target: e.target ? {
+            tagName: e.target.tagName,
+            src: e.target.src,
+            type: e.target.type,
+            id: e.target.id,
+            className: e.target.className
+          } : null
+        };
+        
         if (e.target && e.target.tagName === 'SCRIPT') {
-          const script = e.target;
-          log('Script load error', {
-            src: script.src,
-            type: script.type,
-            message: e.message
-          }, 'B');
+          log('Script load ERROR', errorDetails, 'B');
+        } else {
+          log('Global ERROR', errorDetails, 'B');
         }
       }, true);
+      
+      // Отслеживаем unhandled promise rejections
+      window.addEventListener('unhandledrejection', (e) => {
+        log('Unhandled promise rejection', {
+          reason: e.reason?.toString(),
+          promise: e.promise
+        }, 'B');
+      });
       
       // Проверяем, какие скрипты есть в DOM
       setTimeout(() => {

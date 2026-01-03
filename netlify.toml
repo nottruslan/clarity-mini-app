@@ -13,6 +13,13 @@
 # Настройки для обработки запросов через Cloudflare
 # КРИТИЧНО: Правильный redirect для SPA
 # Без force - существующие файлы отдаются как есть, остальное идет на index.html
+# Исключаем статические файлы из redirect
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+  force = false
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -44,6 +51,7 @@
     Cache-Control = "public, max-age=0, must-revalidate"
 
 # Заголовки для JS файлов в assets (включая vendor чанки)
+# КРИТИЧНО: Настройки для предотвращения обрыва соединения через Cloudflare
 [[headers]]
   for = "/assets/*.js"
   [headers.values]
@@ -54,6 +62,11 @@
     X-Content-Type-Options = "nosniff"
     # Важно для параллельной загрузки чанков
     Accept-Ranges = "bytes"
+    # Отключаем сжатие для больших файлов через Cloudflare (может вызывать таймауты)
+    # Cloudflare автоматически сжимает, но мы явно указываем
+    Vary = "Accept-Encoding"
+    # Увеличиваем таймауты
+    Keep-Alive = "timeout=300, max=1000"
 
 # Заголовки для CSS файлов в assets
 [[headers]]

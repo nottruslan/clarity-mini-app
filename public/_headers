@@ -16,6 +16,7 @@
   Cache-Control: public, max-age=0, must-revalidate
 
 # Заголовки для JS файлов в assets (включая vendor чанки)
+# КРИТИЧНО: Настройки для предотвращения обрыва соединения
 /assets/*.js
   Content-Type: application/javascript; charset=utf-8
   Access-Control-Allow-Origin: *
@@ -24,6 +25,9 @@
   X-Content-Type-Options: nosniff
   # Важно для параллельной загрузки чанков
   Accept-Ranges: bytes
+  # Увеличиваем таймауты для больших файлов
+  Keep-Alive: timeout=300, max=1000
+  Vary: Accept-Encoding
 
 # Заголовки для CSS файлов в assets
 /assets/*.css
