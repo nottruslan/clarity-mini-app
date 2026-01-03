@@ -411,7 +411,124 @@
   <script src="https://telegram.org/js/telegram-web-app.js" defer onerror="console.warn('Failed to load Telegram WebApp script'); window.Telegram = window.Telegram || {};"></script>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Индикатор загрузки - показывается пока приложение не загрузилось -->
+    <div id="loading-indicator" style="
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--tg-theme-bg-color, #ffffff);
+      color: var(--tg-theme-text-color, #000000);
+    ">
+      <div style="
+        width: 50px;
+        height: 50px;
+        border: 4px solid var(--tg-theme-hint-color, #e0e0e0);
+        border-top-color: var(--tg-theme-button-color, #3390ec);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      "></div>
+      <div id="loading-text" style="margin-top: 16px; font-size: 14px; color: var(--tg-theme-hint-color, #999);">
+        Загрузка...
+      </div>
+      <div id="loading-progress" style="margin-top: 8px; font-size: 12px; color: var(--tg-theme-hint-color, #aaa);">
+      </div>
+      <div id="loading-error" style="
+        display: none;
+        margin-top: 20px;
+        padding: 16px;
+        background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+        border-radius: 12px;
+        text-align: center;
+        max-width: 280px;
+      ">
+        <div style="font-size: 14px; color: var(--tg-theme-text-color, #333); margin-bottom: 12px;">
+          Проблемы с загрузкой. Проверьте соединение.
+        </div>
+        <button onclick="location.reload()" style="
+          padding: 10px 20px;
+          background: var(--tg-theme-button-color, #3390ec);
+          color: var(--tg-theme-button-text-color, #ffffff);
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          cursor: pointer;
+        ">
+          Попробовать снова
+        </button>
+      </div>
+    </div>
+    <style>
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+    <script>
+      // Отслеживаем прогресс загрузки
+      (function() {
+        let loadedModules = 0;
+        let totalModules = 0;
+        let hasError = false;
+        
+        // Считаем modulepreload ссылки
+        document.addEventListener('DOMContentLoaded', function() {
+          const preloads = document.querySelectorAll('link[rel="modulepreload"]');
+          totalModules = preloads.length + 1; // +1 для основного модуля
+          updateProgress();
+        });
+        
+        function updateProgress() {
+          const progressEl = document.getElementById('loading-progress');
+          if (progressEl && totalModules > 0) {
+            progressEl.textContent = 'Загружено ' + loadedModules + ' из ' + totalModules + ' модулей';
+          }
+        }
+        
+        function showError() {
+          hasError = true;
+          const errorEl = document.getElementById('loading-error');
+          const textEl = document.getElementById('loading-text');
+          if (errorEl) errorEl.style.display = 'block';
+          if (textEl) textEl.textContent = 'Ошибка загрузки';
+        }
+        
+        // Глобальный обработчик успешной загрузки модулей
+        window.onModuleLoaded = function() {
+          loadedModules++;
+          updateProgress();
+        };
+        
+        // Показываем ошибку если приложение не загрузилось за 30 секунд
+        setTimeout(function() {
+          const root = document.getElementById('root');
+          const indicator = document.getElementById('loading-indicator');
+          if (root && indicator && indicator.style.display !== 'none') {
+            showError();
+          }
+        }, 30000);
+        
+        // Прячем индикатор когда React загрузится
+        const observer = new MutationObserver(function(mutations) {
+          const root = document.getElementById('root');
+          const indicator = document.getElementById('loading-indicator');
+          if (root && root.children.length > 1 && indicator) {
+            indicator.style.display = 'none';
+            observer.disconnect();
+          }
+        });
+        
+        setTimeout(function() {
+          const root = document.getElementById('root');
+          if (root) {
+            observer.observe(root, { childList: true, subtree: true });
+          }
+        }, 100);
+      })();
+    </script>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

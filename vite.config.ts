@@ -253,30 +253,82 @@ export default defineConfig({
         // Умное разделение на чанки для оптимизации загрузки
         // Разделяем только большие библиотеки, чтобы основной код загружался быстрее
         manualChunks(id) {
-          // Разделяем node_modules на отдельные чанки для оптимизации загрузки
+          // КРИТИЧНО: Разделяем на МЕЛКИЕ чанки для надежной загрузки при плохом соединении
           if (id.includes('node_modules')) {
-            // React и React-DOM вместе (часто используются вместе)
-            if (id.includes('react') || id.includes('react-dom')) {
+            // React и React-DOM - критически важные, грузим первыми
+            if (id.includes('react-dom')) {
+              return 'vendor-react-dom';
+            }
+            if (id.includes('react') && !id.includes('recharts')) {
               return 'vendor-react';
             }
-            // Большие библиотеки отдельно
+            // Recharts - большая библиотека, разбиваем на части
             if (id.includes('recharts')) {
               return 'vendor-recharts';
             }
-            // @dnd-kit библиотеки отдельно (большая библиотека)
-            if (id.includes('@dnd-kit')) {
-              return 'vendor-dnd';
+            // @dnd-kit библиотеки
+            if (id.includes('@dnd-kit/core')) {
+              return 'vendor-dnd-core';
             }
-            // Остальные библиотеки вместе
-            return 'vendor';
+            if (id.includes('@dnd-kit/sortable')) {
+              return 'vendor-dnd-sortable';
+            }
+            if (id.includes('@dnd-kit')) {
+              return 'vendor-dnd-utils';
+            }
+            // Lottie - большая библиотека
+            if (id.includes('lottie')) {
+              return 'vendor-lottie';
+            }
+            // @tma.js SDK
+            if (id.includes('@tma.js')) {
+              return 'vendor-tma';
+            }
+            // Остальные мелкие библиотеки
+            return 'vendor-misc';
           }
-          // Разделяем основной код на чанки для уменьшения размера основного модуля
-          // Это поможет избежать обрыва соединения при загрузке большого файла
-          if (id.includes('src/pages/')) {
-            return 'pages';
+          // Разделяем код приложения на мелкие части
+          if (id.includes('src/pages/HomePage')) {
+            return 'page-home';
+          }
+          if (id.includes('src/pages/HabitsPage') || id.includes('src/components/Habits/')) {
+            return 'page-habits';
+          }
+          if (id.includes('src/pages/FinancePage') || id.includes('src/components/Finance/')) {
+            return 'page-finance';
+          }
+          if (id.includes('src/pages/TasksPage') || id.includes('src/components/Tasks/')) {
+            return 'page-tasks';
+          }
+          if (id.includes('src/pages/CoveyMatrixPage') || id.includes('src/components/CoveyMatrix/')) {
+            return 'page-covey';
+          }
+          if (id.includes('src/pages/BooksPage') || id.includes('src/components/Books/')) {
+            return 'page-books';
+          }
+          if (id.includes('src/pages/DiaryPage') || id.includes('src/components/Diary/')) {
+            return 'page-diary';
+          }
+          if (id.includes('src/pages/YearlyReportPage') || id.includes('src/components/YearlyReport/')) {
+            return 'page-yearly';
+          }
+          if (id.includes('src/components/Navigation/')) {
+            return 'components-nav';
+          }
+          if (id.includes('src/components/SplashScreen/')) {
+            return 'components-splash';
+          }
+          if (id.includes('src/components/Wizard/')) {
+            return 'components-wizard';
           }
           if (id.includes('src/components/')) {
-            return 'components';
+            return 'components-misc';
+          }
+          if (id.includes('src/hooks/')) {
+            return 'hooks';
+          }
+          if (id.includes('src/utils/')) {
+            return 'utils';
           }
         }
       }
