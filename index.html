@@ -12,15 +12,26 @@
       // Логируем СРАЗУ, до любых других операций
       console.log('[DEBUG] Script execution started', {timestamp: Date.now(), url: window.location.href});
       
+      // Сохраняем оригинальный fetch ДО перехвата
+      const originalFetch = window.fetch;
       const logEndpoint = 'http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5';
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const log = (msg, data, hypothesisId) => {
         const logData = {location:'index.html',message:msg,data:data||{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:hypothesisId||'A'};
         console.log('[DEBUG]', msg, data || '');
-        // ВСЕГДА пытаемся отправить логи, даже если это не localhost (может быть mixed content ошибка, но это нормально)
-        try {
-          fetch(logEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logData), mode:'no-cors'}).catch(()=>{});
-        } catch(e) {
-          // Игнорируем ошибки отправки логов (mixed content и т.д.)
+        // Отправляем логи только на localhost, чтобы избежать mixed content проблем
+        // На production используем только console.log
+        if (isLocalhost) {
+          try {
+            // Используем оригинальный fetch напрямую, чтобы избежать перехвата
+            originalFetch(logEndpoint, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify(logData)
+            }).catch(()=>{});
+          } catch(e) {
+            // Игнорируем ошибки отправки логов
+          }
         }
       };
       
@@ -81,11 +92,17 @@
       }
       
       // Отслеживаем все попытки загрузки через fetch
-      const originalFetch = window.fetch;
+      // КРИТИЧНО: Исключаем endpoint логирования из перехвата, чтобы избежать бесконечного цикла
+      const logEndpointUrl = logEndpoint;
       window.fetch = function(...args) {
         const url = args[0];
+        const urlStr = url.toString();
+        // Пропускаем запросы к endpoint логирования - иначе будет бесконечный цикл!
+        if (urlStr.includes('127.0.0.1:7250') || urlStr.includes(logEndpointUrl)) {
+          return originalFetch.apply(this, args);
+        }
         const startTime = Date.now();
-        log('Fetch called', {url: url.toString(), method: args[1]?.method || 'GET'}, 'A');
+        log('Fetch called', {url: urlStr, method: args[1]?.method || 'GET'}, 'A');
         return originalFetch.apply(this, args)
           .then(async res => {
             const duration = Date.now() - startTime;
