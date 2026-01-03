@@ -1,0 +1,13 @@
+/assets/*
+  Content-Type: application/javascript
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.js
+  Content-Type: application/javascript
+  Access-Control-Allow-Origin: *
+
+/*.css
+  Content-Type: text/css
+  Access-Control-Allow-Origin: *
+
