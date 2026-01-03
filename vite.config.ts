@@ -81,6 +81,108 @@ function optimizeHtmlPlugin() {
         
         // Preload ссылки не поддерживают onload/onerror события напрямую
         // Логирование будет через PerformanceObserver в index.html
+        // Глобальный обработчик ошибок загрузки модулей с retry механизмом
+        // Это обрабатывает ошибки для всех модулей, включая загружаемые через modulepreload
+        if (!html.includes('window.moduleRetryHandler')) {
+          const retryScript = `
+<script>
+(function() {
+  // Глобальный retry механизм для всех модулей
+  window.moduleRetryHandler = function(moduleSrc, retryCount) {
+    retryCount = retryCount || 0;
+    const maxRetries = 3;
+    
+    if (retryCount >= maxRetries) {
+      console.error('[DEBUG] Max retries reached for module:', moduleSrc);
+      return;
+    }
+    
+    const delay = 1000 * (retryCount + 1);
+    console.log('[DEBUG] Retrying module load:', moduleSrc, 'attempt', retryCount + 1, 'delay', delay + 'ms');
+    
+    setTimeout(() => {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = moduleSrc;
+      script.onload = function() {
+        console.log('[DEBUG] Module loaded after retry:', moduleSrc);
+      };
+      script.onerror = function() {
+        window.moduleRetryHandler(moduleSrc, retryCount + 1);
+      };
+      document.body.appendChild(script);
+    }, delay);
+  };
+  
+  // Отслеживаем ошибки загрузки модулей через PerformanceObserver
+  const observer = new PerformanceObserver((list) => {
+    list.getEntries().forEach(entry => {
+      // Проверяем только модули (JS файлы в assets)
+      if (entry.name.includes('/assets/') && entry.name.endsWith('.js')) {
+        const isFailed = (entry.transferSize === 0 && entry.duration === 0) || 
+                        (entry.responseStatus && entry.responseStatus >= 400);
+        
+        if (isFailed && !entry.name.includes('telegram-web-app.js')) {
+          console.error('[DEBUG] Module failed to load (PerformanceObserver):', entry.name);
+          // Запускаем retry только если еще не запущен
+          const retryKey = 'retry_' + entry.name.replace(/[^a-zA-Z0-9]/g, '_');
+          if (!window[retryKey]) {
+            window[retryKey] = true;
+            window.moduleRetryHandler(entry.name, 0);
+          }
+        }
+      }
+    });
+  });
+  
+  try {
+    observer.observe({entryTypes: ['resource']});
+  } catch(e) {
+    console.warn('[DEBUG] PerformanceObserver not supported:', e);
+  }
+  
+  // Дополнительная проверка через setTimeout - проверяем загруженные модули
+  setTimeout(() => {
+    const allScripts = Array.from(document.querySelectorAll('script[type="module"]'));
+    const allPreloads = Array.from(document.querySelectorAll('link[rel="modulepreload"]'));
+    const allModules = [...allScripts.map(s => s.src), ...allPreloads.map(l => l.href)].filter(Boolean);
+    
+    // Проверяем, что все модули загружены
+    allModules.forEach(moduleSrc => {
+      if (moduleSrc.includes('/assets/') && !moduleSrc.includes('telegram-web-app.js')) {
+        // Проверяем через fetch, загружен ли модуль
+        fetch(moduleSrc, {method: 'HEAD', cache: 'no-cache'})
+          .then(() => {
+            // Модуль доступен
+          })
+          .catch(() => {
+            console.error('[DEBUG] Module not accessible:', moduleSrc);
+            const retryKey = 'retry_' + moduleSrc.replace(/[^a-zA-Z0-9]/g, '_');
+            if (!window[retryKey]) {
+              window[retryKey] = true;
+              window.moduleRetryHandler(moduleSrc, 0);
+            }
+          });
+      }
+    });
+  }, 2000);
+  
+  // Также отслеживаем ошибки через глобальный обработчик ошибок
+  window.addEventListener('error', (e) => {
+    if (e.target && e.target.tagName === 'SCRIPT' && e.target.type === 'module') {
+      const src = e.target.src;
+      if (src && src.includes('/assets/') && !src.includes('telegram-web-app.js')) {
+        console.error('[DEBUG] Script module error:', src);
+        window.moduleRetryHandler(src, 0);
+      }
+    }
+  }, true);
+})();
+</script>`;
+          
+          // Вставляем скрипт перед закрывающим тегом </head>
+          html = html.replace('</head>', retryScript + '\n</head>');
+        }
         
         writeFileSync(htmlPath, html, 'utf-8');
       } catch (error) {
