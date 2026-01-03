@@ -15,14 +15,27 @@
   Content-Type: text/html; charset=utf-8
   Cache-Control: public, max-age=0, must-revalidate
 
-# Заголовки для статических ассетов (ES модули)
-/assets/*
+# Заголовки для JS файлов в assets
+/assets/*.js
   Content-Type: application/javascript; charset=utf-8
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=31536000, immutable
   Connection: keep-alive
-  # Важно для ES модулей - правильный MIME тип
   X-Content-Type-Options: nosniff
+
+# Заголовки для CSS файлов в assets
+/assets/*.css
+  Content-Type: text/css; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable
+  Connection: keep-alive
+  X-Content-Type-Options: nosniff
+
+# Заголовки для других файлов в assets
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+  Connection: keep-alive
 
 # Заголовки для JavaScript файлов (ES модули)
 /*.js

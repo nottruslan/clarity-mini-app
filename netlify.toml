@@ -11,13 +11,13 @@
   node_bundler = "esbuild"
 
 # Настройки для обработки запросов через Cloudflare
-# КРИТИЧНО: Правильный redirect для SPA - должен быть первым
+# КРИТИЧНО: Правильный redirect для SPA
+# Без force - существующие файлы отдаются как есть, остальное идет на index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  # force = true гарантирует, что redirect применяется даже для существующих файлов
-  force = true
+  # Убираем force, чтобы статические файлы (JS, CSS, изображения) отдавались напрямую
 
 # Дополнительные настройки для статики
 [[headers]]
@@ -43,14 +43,33 @@
     Content-Type = "text/html; charset=utf-8"
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# Заголовки для JS файлов в assets
+[[headers]]
+  for = "/assets/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Access-Control-Allow-Origin = "*"
+    Connection = "keep-alive"
+    Content-Type = "application/javascript; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+# Заголовки для CSS файлов в assets
+[[headers]]
+  for = "/assets/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Access-Control-Allow-Origin = "*"
+    Connection = "keep-alive"
+    Content-Type = "text/css; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+# Заголовки для других файлов в assets (изображения и т.д.)
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
     Access-Control-Allow-Origin = "*"
     Connection = "keep-alive"
-    # Важно для ES модулей
-    Content-Type = "application/javascript; charset=utf-8"
 
 # Специальные настройки для JS модулей
 [[headers]]
