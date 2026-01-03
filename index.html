@@ -1,535 +1,66 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
-  <title>Clarity</title>
-  <script>
-    // #region agent log
-    // КРИТИЧНО: Логирование должно работать ВСЕГДА, даже если страница не загружается полностью
-    (function() {
-      // Логируем СРАЗУ, до любых других операций
-      console.log('[DEBUG] Script execution started', {timestamp: Date.now(), url: window.location.href});
-      
-      // Сохраняем оригинальный fetch ДО перехвата
-      const originalFetch = window.fetch;
-      const logEndpoint = 'http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5';
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const log = (msg, data, hypothesisId) => {
-        const logData = {location:'index.html',message:msg,data:data||{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:hypothesisId||'A'};
-        console.log('[DEBUG]', msg, data || '');
-        // Отправляем логи только на localhost, чтобы избежать mixed content проблем
-        // На production используем только console.log
-        if (isLocalhost) {
-          try {
-            // Используем оригинальный fetch напрямую, чтобы избежать перехвата
-            originalFetch(logEndpoint, {
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body:JSON.stringify(logData)
-            }).catch(()=>{});
-          } catch(e) {
-            // Игнорируем ошибки отправки логов
-          }
-        }
-      };
-      
-      // Логируем СРАЗУ после определения функции
-      log('HTML script loaded', {
-        url: window.location.href,
-        hostname: window.location.hostname,
-        pathname: window.location.pathname,
-        userAgent: navigator.userAgent,
-        readyState: document.readyState,
-        hasWindow: typeof window !== 'undefined',
-        hasDocument: typeof document !== 'undefined'
-      }, 'D');
-      
-      // Отслеживаем загрузку Telegram скрипта
-      const telegramLoadStart = Date.now();
-      window.addEventListener('error', (e) => {
-        log('Global error', {message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno, error: e.error?.toString()}, 'B');
-      }, true);
-      
-      // Детальное отслеживание загрузки ресурсов
-      const resourceObserver = new PerformanceObserver((list) => {
-        list.getEntries().forEach(entry => {
-          // Отслеживаем ВСЕ ресурсы, включая те, которые еще загружаются
-          const name = entry.name.split('/').pop();
-          const isFailed = (entry.transferSize === 0 && entry.duration === 0) || entry.responseStatus >= 400;
-          const isComplete = entry.duration > 0 || entry.transferSize > 0;
-          
-          const details = {
-            name: name,
-            fullUrl: entry.name,
-            type: entry.initiatorType,
-            duration: Math.round(entry.duration),
-            size: entry.transferSize,
-            decodedSize: entry.decodedBodySize,
-            encodedSize: entry.encodedBodySize,
-            status: entry.responseStatus,
-            failed: isFailed,
-            complete: isComplete,
-            startTime: Math.round(entry.startTime),
-            domain: entry.name.startsWith('http') ? new URL(entry.name).hostname : 'same-origin',
-            nextHopProtocol: entry.nextHopProtocol
-          };
-          
-          if (isFailed) {
-            log('Resource FAILED', details, 'A');
-          } else if (isComplete) {
-            log('Resource loaded', details, 'A');
-          } else {
-            log('Resource loading', details, 'A');
-          }
-        });
-      });
-      try {
-        resourceObserver.observe({entryTypes: ['resource', 'navigation']});
-      } catch(e) {
-        log('PerformanceObserver error', {error: e.toString()}, 'A');
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a1a1a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Clarity</title>
+    <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
-      
-      // Отслеживаем все попытки загрузки через fetch
-      // КРИТИЧНО: Исключаем endpoint логирования из перехвата, чтобы избежать бесконечного цикла
-      const logEndpointUrl = logEndpoint;
-      window.fetch = function(...args) {
-        const url = args[0];
-        const urlStr = url.toString();
-        // Пропускаем запросы к endpoint логирования - иначе будет бесконечный цикл!
-        if (urlStr.includes('127.0.0.1:7250') || urlStr.includes(logEndpointUrl)) {
-          return originalFetch.apply(this, args);
-        }
-        const startTime = Date.now();
-        log('Fetch called', {url: urlStr, method: args[1]?.method || 'GET'}, 'A');
-        return originalFetch.apply(this, args)
-          .then(async res => {
-            const duration = Date.now() - startTime;
-            const headers = {};
-            res.headers.forEach((v, k) => headers[k] = v);
-            const contentType = res.headers.get('content-type') || '';
-            const isJS = url.toString().includes('.js') || contentType.includes('javascript');
-            const isHTML = contentType.includes('html');
-            log('Fetch success', {
-              url: url.toString(),
-              status: res.status,
-              statusText: res.statusText,
-              contentType: contentType,
-              isJS: isJS,
-              isHTML: isHTML,
-              duration: duration,
-              headers: headers
-            }, isJS ? 'C' : 'A');
-            // КРИТИЧНО: Если запрашиваем JS, а получаем HTML - это redirect!
-            if (isJS && isHTML && res.status === 200) {
-              const text = await res.clone().text();
-              log('JS file returned HTML (redirect detected)', {
-                url: url.toString(),
-                htmlPreview: text.substring(0, 200),
-                isIndexHtml: text.includes('<html') || text.includes('<!DOCTYPE')
-              }, 'C');
-            }
-            return res;
-          })
-          .catch(err => {
-            const duration = Date.now() - startTime;
-            log('Fetch failed', {
-              url: url.toString(),
-              error: err.toString(),
-              errorName: err.name,
-              errorMessage: err.message,
-              duration: duration
-            }, 'C');
-            throw err;
-          });
-      };
-      
-      // Перехватываем XMLHttpRequest для отслеживания загрузки модулей
-      const originalXHROpen = XMLHttpRequest.prototype.open;
-      const originalXHRSend = XMLHttpRequest.prototype.send;
-      XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-        this._debugUrl = url;
-        this._debugMethod = method;
-        this._debugStartTime = Date.now();
-        log('XHR open', {method: method, url: url.toString()}, 'C');
-        return originalXHROpen.apply(this, [method, url, ...rest]);
-      };
-      XMLHttpRequest.prototype.send = function(...args) {
-        const xhr = this;
-        const url = this._debugUrl;
-        const isJS = url && (url.toString().includes('.js') || url.toString().includes('/assets/'));
-        
-        xhr.addEventListener('loadstart', () => {
-          log('XHR loadstart', {url: url?.toString(), method: xhr._debugMethod}, 'C');
-        });
-        
-        xhr.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            log('XHR progress', {
-              url: url?.toString(),
-              loaded: e.loaded,
-              total: e.total,
-              percent: Math.round((e.loaded / e.total) * 100)
-            }, 'C');
-          }
-        });
-        
-        xhr.addEventListener('load', () => {
-          const duration = Date.now() - (xhr._debugStartTime || Date.now());
-          const contentType = xhr.getResponseHeader('content-type') || '';
-          log('XHR load', {
-            url: url?.toString(),
-            status: xhr.status,
-            statusText: xhr.statusText,
-            contentType: contentType,
-            responseSize: xhr.responseText?.length || 0,
-            duration: duration,
-            isJS: isJS,
-            isHTML: contentType.includes('html')
-          }, 'C');
-        });
-        
-        xhr.addEventListener('error', (e) => {
-          const duration = Date.now() - (xhr._debugStartTime || Date.now());
-          log('XHR error', {
-            url: url?.toString(),
-            method: xhr._debugMethod,
-            duration: duration,
-            error: e.type
-          }, 'C');
-        });
-        
-        xhr.addEventListener('abort', () => {
-          const duration = Date.now() - (xhr._debugStartTime || Date.now());
-          log('XHR abort', {
-            url: url?.toString(),
-            method: xhr._debugMethod,
-            duration: duration
-          }, 'C');
-        });
-        
-        xhr.addEventListener('timeout', () => {
-          const duration = Date.now() - (xhr._debugStartTime || Date.now());
-          log('XHR timeout', {
-            url: url?.toString(),
-            method: xhr._debugMethod,
-            duration: duration,
-            timeout: xhr.timeout
-          }, 'C');
-        });
-        
-        return originalXHRSend.apply(this, args);
-      };
-      
-      // Отслеживаем изменения состояния сети
-      if (navigator.onLine !== undefined) {
-        window.addEventListener('online', () => log('Network: online', {}, 'F'));
-        window.addEventListener('offline', () => log('Network: offline', {}, 'F'));
-        log('Network status', {online: navigator.onLine, connection: navigator.connection?.effectiveType}, 'F');
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--tg-theme-bg-color, #1a1a1a);
+        color: var(--tg-theme-text-color, #ffffff);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       }
-      
-      // Детальное отслеживание ошибок загрузки модулей
-      window.addEventListener('error', (e) => {
-        const errorDetails = {
-          message: e.message,
-          filename: e.filename,
-          lineno: e.lineno,
-          colno: e.colno,
-          error: e.error?.toString(),
-          stack: e.error?.stack,
-          target: e.target ? {
-            tagName: e.target.tagName,
-            src: e.target.src,
-            type: e.target.type,
-            id: e.target.id,
-            className: e.target.className
-          } : null
-        };
-        
-        if (e.target && e.target.tagName === 'SCRIPT') {
-          log('Script load ERROR', errorDetails, 'B');
-        } else {
-          log('Global ERROR', errorDetails, 'B');
-        }
-      }, true);
-      
-      // Отслеживаем unhandled promise rejections
-      window.addEventListener('unhandledrejection', (e) => {
-        log('Unhandled promise rejection', {
-          reason: e.reason?.toString(),
-          promise: e.promise
-        }, 'B');
-      });
-      
-      // Проверяем, какие скрипты и ссылки есть в DOM
-      setTimeout(() => {
-        const scripts = Array.from(document.querySelectorAll('script'));
-        const links = Array.from(document.querySelectorAll('link[rel="stylesheet"], link[rel="modulepreload"]'));
-        log('Resources in DOM', {
-          scriptsCount: scripts.length,
-          linksCount: links.length,
-          scripts: scripts.map(s => ({src: s.src, type: s.type, async: s.async, defer: s.defer})),
-          links: links.map(l => ({href: l.href, rel: l.rel, type: l.type}))
-        }, 'B');
-        
-        // Пытаемся загрузить файлы вручную для диагностики
-        links.forEach(link => {
-          if (link.href && link.href.includes('/assets/')) {
-            const url = link.href;
-            const isJS = url.includes('.js');
-            // Для JS файлов делаем GET запрос, чтобы увидеть реальный ответ
-            fetch(url, {method: isJS ? 'GET' : 'HEAD'})
-              .then(async res => {
-                const headers = {};
-                res.headers.forEach((v, k) => headers[k] = v);
-                const contentType = res.headers.get('content-type') || '';
-                const isHTML = contentType.includes('html');
-                const details = {
-                  url: url,
-                  status: res.status,
-                  statusText: res.statusText,
-                  contentType: contentType,
-                  isJS: isJS,
-                  isHTML: isHTML,
-                  headers: headers
-                };
-                
-                // КРИТИЧНО: Если JS файл возвращает HTML - это redirect!
-                if (isJS && isHTML && res.status === 200) {
-                  const text = await res.text();
-                  details.htmlPreview = text.substring(0, 300);
-                  details.isIndexHtml = text.includes('<html') || text.includes('<!DOCTYPE') || text.includes('root');
-                  log('Manual fetch: JS file returned HTML (REDIRECT DETECTED)', details, 'C');
-                } else {
-                  log('Manual fetch success', details, isJS ? 'C' : 'A');
-                }
-              })
-              .catch(err => {
-                log('Manual fetch failed', {
-                  url: url,
-                  error: err.toString(),
-                  errorName: err.name,
-                  errorMessage: err.message
-                }, 'C');
-              });
-          }
-        });
-        
-        // Проверяем все script теги
-        scripts.forEach(script => {
-          if (script.src && script.src.includes('/assets/')) {
-            const url = script.src;
-            fetch(url, {method: 'GET'})
-              .then(async res => {
-                const contentType = res.headers.get('content-type') || '';
-                const isHTML = contentType.includes('html');
-                const details = {
-                  url: url,
-                  status: res.status,
-                  contentType: contentType,
-                  isHTML: isHTML
-                };
-                
-                if (isHTML && res.status === 200) {
-                  const text = await res.text();
-                  details.htmlPreview = text.substring(0, 300);
-                  details.isIndexHtml = text.includes('<html') || text.includes('<!DOCTYPE') || text.includes('root');
-                  log('Script src check: JS file returned HTML (REDIRECT DETECTED)', details, 'C');
-                } else {
-                  log('Script src check: OK', details, 'C');
-                }
-              })
-              .catch(err => {
-                log('Script src check: FAILED', {
-                  url: url,
-                  error: err.toString()
-                }, 'C');
-              });
-          }
-        });
-      }, 500);
-      
-      // Проверяем загрузку Telegram через небольшой таймаут
-      setTimeout(() => {
-        log('Telegram check', {hasTelegram: !!window.Telegram, hasWebApp: !!window.Telegram?.WebApp, loadTime: Date.now() - telegramLoadStart}, 'D');
-      }, 100);
-      
-      // КРИТИЧНО: Проверяем, что скрипт выполнился полностью
-      setTimeout(() => {
-        log('Script execution complete', {
-          readyState: document.readyState,
-          scriptsCount: document.querySelectorAll('script').length,
-          hasRoot: !!document.getElementById('root')
-        }, 'D');
-      }, 1000);
-      
-      // Проверяем, что возвращает сервер для корневого пути (может быть redirect loop)
-      setTimeout(() => {
-        fetch(window.location.href, {method: 'HEAD', cache: 'no-cache'})
-          .then(res => {
-            log('Root path check', {
-              status: res.status,
-              statusText: res.statusText,
-              contentType: res.headers.get('content-type'),
-              location: res.headers.get('location'),
-              isRedirect: res.status >= 300 && res.status < 400
-            }, 'D');
-          })
-          .catch(err => {
-            log('Root path check failed', {
-              error: err.toString(),
-              errorName: err.name
-            }, 'D');
-          });
-      }, 2000);
-    })();
-    // #endregion
-  </script>
-  <script>
-    // #region agent log - immediate execution check
-    // Еще один скрипт для проверки, что HTML вообще загружается
-    console.log('[DEBUG] Second script block executed', {timestamp: Date.now()});
-    try {
-      fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          location:'index.html:second-script',
-          message:'Second script block executed',
-          data:{timestamp:Date.now(),readyState:document.readyState},
-          timestamp:Date.now(),
-          sessionId:'debug-session',
-          runId:'run1',
-          hypothesisId:'D'
-        }),
-        mode:'no-cors'
-      }).catch(()=>{});
-    } catch(e) {}
-    // #endregion
-  </script>
-  <script src="https://telegram.org/js/telegram-web-app.js" defer onerror="console.warn('Failed to load Telegram WebApp script'); window.Telegram = window.Telegram || {};"></script>
-</head>
-<body>
-  <div id="root">
-    <!-- Индикатор загрузки - показывается пока приложение не загрузилось -->
-    <div id="loading-indicator" style="
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--tg-theme-bg-color, #ffffff);
-      color: var(--tg-theme-text-color, #000000);
-    ">
-      <div style="
-        width: 50px;
-        height: 50px;
-        border: 4px solid var(--tg-theme-hint-color, #e0e0e0);
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: var(--tg-theme-bg-color, #1a1a1a);
+        z-index: 9999;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255,255,255,0.1);
         border-top-color: var(--tg-theme-button-color, #3390ec);
         border-radius: 50%;
         animation: spin 1s linear infinite;
-      "></div>
-      <div id="loading-text" style="margin-top: 16px; font-size: 14px; color: var(--tg-theme-hint-color, #999);">
-        Загрузка...
-      </div>
-      <div id="loading-progress" style="margin-top: 8px; font-size: 12px; color: var(--tg-theme-hint-color, #aaa);">
-      </div>
-      <div id="loading-error" style="
-        display: none;
-        margin-top: 20px;
-        padding: 16px;
-        background: var(--tg-theme-secondary-bg-color, #f5f5f5);
-        border-radius: 12px;
-        text-align: center;
-        max-width: 280px;
-      ">
-        <div style="font-size: 14px; color: var(--tg-theme-text-color, #333); margin-bottom: 12px;">
-          Проблемы с загрузкой. Проверьте соединение.
-        </div>
-        <button onclick="location.reload()" style="
-          padding: 10px 20px;
-          background: var(--tg-theme-button-color, #3390ec);
-          color: var(--tg-theme-button-text-color, #ffffff);
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
-          cursor: pointer;
-        ">
-          Попробовать снова
-        </button>
-      </div>
-    </div>
-    <style>
+      }
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+      .loading-text {
+        margin-top: 16px;
+        font-size: 14px;
+        opacity: 0.7;
+      }
     </style>
-    <script>
-      // Отслеживаем прогресс загрузки
-      (function() {
-        let loadedModules = 0;
-        let totalModules = 0;
-        let hasError = false;
-        
-        // Считаем modulepreload ссылки
-        document.addEventListener('DOMContentLoaded', function() {
-          const preloads = document.querySelectorAll('link[rel="modulepreload"]');
-          totalModules = preloads.length + 1; // +1 для основного модуля
-          updateProgress();
-        });
-        
-        function updateProgress() {
-          const progressEl = document.getElementById('loading-progress');
-          if (progressEl && totalModules > 0) {
-            progressEl.textContent = 'Загружено ' + loadedModules + ' из ' + totalModules + ' модулей';
-          }
-        }
-        
-        function showError() {
-          hasError = true;
-          const errorEl = document.getElementById('loading-error');
-          const textEl = document.getElementById('loading-text');
-          if (errorEl) errorEl.style.display = 'block';
-          if (textEl) textEl.textContent = 'Ошибка загрузки';
-        }
-        
-        // Глобальный обработчик успешной загрузки модулей
-        window.onModuleLoaded = function() {
-          loadedModules++;
-          updateProgress();
-        };
-        
-        // Показываем ошибку если приложение не загрузилось за 30 секунд
-        setTimeout(function() {
-          const root = document.getElementById('root');
-          const indicator = document.getElementById('loading-indicator');
-          if (root && indicator && indicator.style.display !== 'none') {
-            showError();
-          }
-        }, 30000);
-        
-        // Прячем индикатор когда React загрузится
-        const observer = new MutationObserver(function(mutations) {
-          const root = document.getElementById('root');
-          const indicator = document.getElementById('loading-indicator');
-          if (root && root.children.length > 1 && indicator) {
-            indicator.style.display = 'none';
-            observer.disconnect();
-          }
-        });
-        
-        setTimeout(function() {
-          const root = document.getElementById('root');
-          if (root) {
-            observer.observe(root, { childList: true, subtree: true });
-          }
-        }, 100);
-      })();
-    </script>
-  </div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
+  </head>
+  <body>
+    <div id="root">
+      <div id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Загрузка...</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
-
