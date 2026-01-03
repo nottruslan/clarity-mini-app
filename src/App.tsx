@@ -19,12 +19,26 @@ import BooksPage from './pages/BooksPage';
 import DiaryPage from './pages/DiaryPage';
 
 function App() {
+  // #region agent log
+  const logEndpoint = 'http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5';
+  const log = (msg: string, data?: any, hypothesisId?: string) => {
+    fetch(logEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx',message:msg,data:data||{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:hypothesisId||'C'})}).catch(()=>{});
+  };
+  log('App component rendering', {}, 'C');
+  // #endregion
+  
   const { isReady, tg } = useTelegram();
   const storage = useCloudStorage();
   const [currentSection, setCurrentSection] = useState<Section>('home');
   const [navigationHistory, setNavigationHistory] = useState<Section[]>(['home']);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  
+  // #region agent log
+  useEffect(() => {
+    log('App state changed', {isReady, storageLoading: storage.loading, showSplash}, 'C');
+  }, [isReady, storage.loading, showSplash]);
+  // #endregion
 
   // Восстановление данных из резервной копии после перезагрузки
   useEffect(() => {

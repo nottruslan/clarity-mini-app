@@ -61,8 +61,20 @@ export function useCloudStorage() {
   }, []);
 
   const loadAllData = async () => {
+    // #region agent log
+    const logEndpoint = 'http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5';
+    const log = (msg: string, data?: any, hypothesisId?: string) => {
+      fetch(logEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCloudStorage.ts',message:msg,data:data||{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:hypothesisId||'E'})}).catch(()=>{});
+    };
+    const loadStartTime = Date.now();
+    log('loadAllData started', {}, 'E');
+    // #endregion
+    
     // Защита от множественных одновременных вызовов
     if (isLoadingRef.current) {
+      // #region agent log
+      log('loadAllData skipped - already loading', {}, 'E');
+      // #endregion
       console.log('[DIAG] loadAllData - already loading, skipping duplicate call');
       return;
     }
@@ -109,6 +121,9 @@ export function useCloudStorage() {
       ]);
       
       const loadTime = Date.now() - loadStartTime;
+      // #region agent log
+      log('loadAllData completed', {loadTime, habitsCount: habitsData.length, financeCount: financeData.transactions.length}, 'E');
+      // #endregion
       console.log(`✅ Данные загружены за ${loadTime}ms`);
       
       // Миграция привычек при загрузке
@@ -160,8 +175,14 @@ export function useCloudStorage() {
         await saveHabits(migratedHabits);
       }
     } catch (error) {
+      // #region agent log
+      log('loadAllData error', {error: error?.toString(), stack: (error as Error)?.stack}, 'E');
+      // #endregion
       console.error('Error loading data:', error);
     } finally {
+      // #region agent log
+      log('loadAllData finally', {loading: false}, 'E');
+      // #endregion
       setLoading(false);
       isLoadingRef.current = false;
     }
