@@ -14,18 +14,10 @@ function optimizeHtmlPlugin() {
         // Удаляем crossorigin атрибут из script и link тегов (может вызывать проблемы с Cloudflare)
         html = html.replace(/\s+crossorigin/g, '');
         
-        // Оставляем modulepreload только для vendor чанков (они загружаются первыми)
-        // Убираем preload для основного entry файла, так как он загружается сразу
-        const preloadRegex = /<link[^>]*rel=["']modulepreload["'][^>]*>/g;
-        const preloadMatches = html.match(preloadRegex);
-        if (preloadMatches) {
-          // Оставляем только preload для vendor файлов
-          preloadMatches.forEach(match => {
-            if (!match.includes('vendor')) {
-              html = html.replace(match, '');
-            }
-          });
-        }
+        // КРИТИЧНО: НЕ удаляем modulepreload ссылки - они критичны для правильной загрузки зависимостей
+        // Vite автоматически создает правильный порядок: vendor chunks должны загрузиться до main chunk
+        // Удаление preload может привести к race condition, когда main модуль загружается раньше зависимостей
+        // Оставляем все preload ссылки как есть - Vite знает правильный порядок
         
         // Убеждаемся, что defer атрибут сохранен для telegram-web-app.js
         if (!html.includes('telegram-web-app.js')) {
@@ -39,10 +31,22 @@ function optimizeHtmlPlugin() {
           }
         }
         
-        // Добавляем обработку ошибок загрузки для основных скриптов
+        // Добавляем обработку ошибок и логирование для основных скриптов
         html = html.replace(
           /<script type="module" src="([^"]+)"><\/script>/g,
-          '<script type="module" src="$1" onerror="console.error(\'Failed to load module:\', this.src); window.location.reload();"></script>'
+          (match, src) => {
+            const scriptName = src.split('/').pop();
+            return `<script type="module" src="${src}" onload="console.log('[DEBUG] Module loaded:', '${scriptName}');" onerror="console.error('[DEBUG] Module failed:', '${scriptName}', this.src); window.location.reload();"></script>`;
+          }
+        );
+        
+        // Добавляем логирование для preload ссылок
+        html = html.replace(
+          /<link[^>]*rel=["']modulepreload["'][^>]*href="([^"]+)"[^>]*>/g,
+          (match, href) => {
+            const chunkName = href.split('/').pop();
+            return match.replace('>', ` onload="console.log('[DEBUG] Preload loaded:', '${chunkName}');" onerror="console.error('[DEBUG] Preload failed:', '${chunkName}');">`);
+          }
         );
         
         writeFileSync(htmlPath, html, 'utf-8');

@@ -29,19 +29,48 @@
       const resourceObserver = new PerformanceObserver((list) => {
         list.getEntries().forEach(entry => {
           if (entry.initiatorType === 'script' || entry.initiatorType === 'link') {
+            const name = entry.name.split('/').pop();
             log('Resource loaded', {
-              name: entry.name.split('/').pop(),
+              name: name,
+              fullUrl: entry.name,
               type: entry.initiatorType,
               duration: Math.round(entry.duration),
               size: entry.transferSize,
-              status: entry.responseStatus
+              status: entry.responseStatus,
+              failed: entry.transferSize === 0 && entry.duration === 0
             }, 'A');
+            
+            // Проверяем ошибки загрузки
+            if (entry.transferSize === 0 && entry.duration === 0 && entry.initiatorType === 'script') {
+              log('Resource failed to load', {name, url: entry.name}, 'A');
+            }
           }
         });
       });
       try {
         resourceObserver.observe({entryTypes: ['resource']});
       } catch(e) {}
+      
+      // Отслеживаем ошибки загрузки модулей
+      window.addEventListener('error', (e) => {
+        if (e.target && (e.target as HTMLElement).tagName === 'SCRIPT') {
+          const script = e.target as HTMLScriptElement;
+          log('Script load error', {
+            src: script.src,
+            type: script.type,
+            message: e.message
+          }, 'B');
+        }
+      }, true);
+      
+      // Проверяем, какие скрипты есть в DOM
+      setTimeout(() => {
+        const scripts = Array.from(document.querySelectorAll('script'));
+        log('Scripts in DOM', {
+          count: scripts.length,
+          scripts: scripts.map(s => ({src: s.src, type: s.type, async: s.async, defer: s.defer}))
+        }, 'B');
+      }, 200);
       
       // Проверяем загрузку Telegram через небольшой таймаут
       setTimeout(() => {
