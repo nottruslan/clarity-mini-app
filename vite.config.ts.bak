@@ -39,43 +39,7 @@ function optimizeHtmlPlugin() {
             const scriptName = src.split('/').pop();
             // Упрощенная обработка ошибок - просто логируем, не делаем автоматический retry
             // Retry может быть добавлен позже, если нужно
-            const retryId = 'module-retry-' + scriptName.replace(/[^a-zA-Z0-9]/g, '_') + '_' + Date.now();
-            // Retry механизм для загрузки модуля при ошибке (до 3 попыток)
-            return `<script type="module" src="${src}" 
-              onload="console.log('[DEBUG] Module loaded:', '${scriptName}'); 
-                      if (window['${retryId}']) { clearTimeout(window['${retryId}'].timeout); delete window['${retryId}']; }" 
-              onerror="(function() {
-                console.error('[DEBUG] Module failed:', '${scriptName}', this.src); 
-                const retryKey = '${retryId}';
-                if (!window[retryKey] || !window[retryKey].retryCount) {
-                  window[retryKey] = { retryCount: 0, maxRetries: 3 };
-                }
-                if (window[retryKey].retryCount < window[retryKey].maxRetries) {
-                  window[retryKey].retryCount++;
-                  const delay = 1000 * window[retryKey].retryCount;
-                  console.log('[DEBUG] Retrying module load:', '${scriptName}', 'attempt', window[retryKey].retryCount, 'delay', delay + 'ms');
-                  window[retryKey].timeout = setTimeout(() => {
-                    const script = document.createElement('script');
-                    script.type = 'module';
-                    script.src = '${src}';
-                    script.onload = function() { 
-                      console.log('[DEBUG] Module loaded after retry:', '${scriptName}'); 
-                      if (window[retryKey]) { clearTimeout(window[retryKey].timeout); delete window[retryKey]; }
-                    };
-                    script.onerror = function() { 
-                      console.error('[DEBUG] Module failed after retry:', '${scriptName}'); 
-                      if (window[retryKey].retryCount >= window[retryKey].maxRetries) {
-                        console.error('[DEBUG] Max retries reached for:', '${scriptName}');
-                        delete window[retryKey];
-                      }
-                    };
-                    document.body.appendChild(script);
-                  }, delay);
-                } else {
-                  console.error('[DEBUG] Max retries reached for:', '${scriptName}');
-                  delete window[retryKey];
-                }
-              })();"></script>`;
+            return `<script type="module" src="${src}" onload="console.log('[DEBUG] Module loaded:', '${scriptName}');" onerror="console.error('[DEBUG] Module failed:', '${scriptName}', this.src);"></script>`;
           }
         );
         
@@ -119,7 +83,7 @@ export default defineConfig({
         // Умное разделение на чанки для оптимизации загрузки
         // Разделяем только большие библиотеки, чтобы основной код загружался быстрее
         manualChunks(id) {
-          // Разделяем node_modules на отдельные чанки для оптимизации загрузки
+          // Разделяем node_modules на отдельные чанки только для больших библиотек
           if (id.includes('node_modules')) {
             // React и React-DOM вместе (часто используются вместе)
             if (id.includes('react') || id.includes('react-dom')) {
@@ -129,20 +93,8 @@ export default defineConfig({
             if (id.includes('recharts')) {
               return 'vendor-recharts';
             }
-            // @dnd-kit библиотеки отдельно (большая библиотека)
-            if (id.includes('@dnd-kit')) {
-              return 'vendor-dnd';
-            }
             // Остальные библиотеки вместе
             return 'vendor';
-          }
-          // Разделяем основной код на чанки для уменьшения размера основного модуля
-          // Это поможет избежать обрыва соединения при загрузке большого файла
-          if (id.includes('src/pages/')) {
-            return 'pages';
-          }
-          if (id.includes('src/components/')) {
-            return 'components';
           }
         }
       }
