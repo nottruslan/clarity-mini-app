@@ -32,4 +32,26 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
     Access-Control-Allow-Origin = "*"
+    Connection = "keep-alive"
+    # Важно для ES модулей
+    Content-Type = "application/javascript; charset=utf-8"
+
+# Специальные настройки для JS модулей
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=31536000, immutable"
+    Access-Control-Allow-Origin = "*"
+    Connection = "keep-alive"
+    # Отключаем Cloudflare RUM для JS файлов, чтобы избежать проблем с загрузкой
+    X-Content-Type-Options = "nosniff"
+
+# Настройки для работы с Cloudflare RUM (отключаем проблемные запросы)
+[[headers]]
+  for = "/cdn-cgi/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    # Разрешаем Cloudflare RUM работать, но с ограничениями
+    Access-Control-Allow-Origin = "*"
 

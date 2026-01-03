@@ -13,6 +13,11 @@ function optimizeHtmlPlugin() {
         let html = readFileSync(htmlPath, 'utf-8');
         // Удаляем crossorigin атрибут из script и link тегов (может вызывать проблемы с Cloudflare)
         html = html.replace(/\s+crossorigin/g, '');
+        
+        // Убираем проблемные modulepreload ссылки, которые могут вызывать проблемы с загрузкой через Cloudflare
+        // Оставляем только основные скрипты, которые точно будут использованы
+        html = html.replace(/<link[^>]*rel=["']modulepreload["'][^>]*>/g, '');
+        
         // Убеждаемся, что defer атрибут сохранен для telegram-web-app.js
         if (!html.includes('telegram-web-app.js')) {
           // Если скрипт был удален при сборке, добавляем его обратно
@@ -24,6 +29,13 @@ function optimizeHtmlPlugin() {
             );
           }
         }
+        
+        // Добавляем обработку ошибок загрузки для основных скриптов
+        html = html.replace(
+          /<script type="module" src="([^"]+)"><\/script>/g,
+          '<script type="module" src="$1" onerror="console.error(\'Failed to load module:\', this.src); window.location.reload();"></script>'
+        );
+        
         writeFileSync(htmlPath, html, 'utf-8');
       } catch (error) {
         console.warn('Could not optimize HTML:', error);
@@ -58,11 +70,9 @@ export default defineConfig({
         assetFileNames: 'assets/[name].[hash].[ext]',
         chunkFileNames: 'assets/[name].[hash].js',
         entryFileNames: 'assets/[name].[hash].js',
-        // Оптимизация для лучшего кеширования
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'telegram-vendor': ['@tma.js/sdk']
-        }
+        // Убираем manualChunks для более надежной загрузки через Cloudflare
+        // Разделение на чанки может вызывать проблемы с потерей соединения
+        // Vite автоматически оптимизирует разделение кода при необходимости
       }
     }
   },

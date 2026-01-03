@@ -10,18 +10,23 @@
   Content-Type: text/html; charset=utf-8
   Cache-Control: public, max-age=0, must-revalidate
 
-# Заголовки для статических ассетов
+# Заголовки для статических ассетов (ES модули)
 /assets/*
-  Content-Type: application/javascript
+  Content-Type: application/javascript; charset=utf-8
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=31536000, immutable
   Connection: keep-alive
+  # Важно для ES модулей - правильный MIME тип
+  X-Content-Type-Options: nosniff
 
-# Заголовки для JavaScript файлов
+# Заголовки для JavaScript файлов (ES модули)
 /*.js
   Content-Type: application/javascript; charset=utf-8
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=31536000, immutable
+  Connection: keep-alive
+  # Важно для надежной загрузки модулей через Cloudflare
+  X-Content-Type-Options: nosniff
 
 # Заголовки для CSS файлов
 /*.css
@@ -50,4 +55,10 @@
 /*.json
   Content-Type: application/json; charset=utf-8
   Cache-Control: public, max-age=3600
+
+# Заголовки для Cloudflare RUM (разрешаем работу, но с ограничениями)
+/cdn-cgi/*
+  Cache-Control: no-cache, no-store, must-revalidate
+  Access-Control-Allow-Origin: *
+  Connection: keep-alive
 
