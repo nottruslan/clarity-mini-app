@@ -68,16 +68,125 @@
       const originalFetch = window.fetch;
       window.fetch = function(...args) {
         const url = args[0];
+        const startTime = Date.now();
         log('Fetch called', {url: url.toString(), method: args[1]?.method || 'GET'}, 'A');
         return originalFetch.apply(this, args)
-          .then(res => {
-            log('Fetch success', {url: url.toString(), status: res.status}, 'A');
+          .then(async res => {
+            const duration = Date.now() - startTime;
+            const headers = {};
+            res.headers.forEach((v, k) => headers[k] = v);
+            const contentType = res.headers.get('content-type') || '';
+            const isJS = url.toString().includes('.js') || contentType.includes('javascript');
+            const isHTML = contentType.includes('html');
+            log('Fetch success', {
+              url: url.toString(),
+              status: res.status,
+              statusText: res.statusText,
+              contentType: contentType,
+              isJS: isJS,
+              isHTML: isHTML,
+              duration: duration,
+              headers: headers
+            }, isJS ? 'C' : 'A');
+            // КРИТИЧНО: Если запрашиваем JS, а получаем HTML - это redirect!
+            if (isJS && isHTML && res.status === 200) {
+              const text = await res.clone().text();
+              log('JS file returned HTML (redirect detected)', {
+                url: url.toString(),
+                htmlPreview: text.substring(0, 200),
+                isIndexHtml: text.includes('<html') || text.includes('<!DOCTYPE')
+              }, 'C');
+            }
             return res;
           })
           .catch(err => {
-            log('Fetch failed', {url: url.toString(), error: err.toString()}, 'A');
+            const duration = Date.now() - startTime;
+            log('Fetch failed', {
+              url: url.toString(),
+              error: err.toString(),
+              errorName: err.name,
+              errorMessage: err.message,
+              duration: duration
+            }, 'C');
             throw err;
           });
+      };
+      
+      // Перехватываем XMLHttpRequest для отслеживания загрузки модулей
+      const originalXHROpen = XMLHttpRequest.prototype.open;
+      const originalXHRSend = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+        this._debugUrl = url;
+        this._debugMethod = method;
+        this._debugStartTime = Date.now();
+        log('XHR open', {method: method, url: url.toString()}, 'C');
+        return originalXHROpen.apply(this, [method, url, ...rest]);
+      };
+      XMLHttpRequest.prototype.send = function(...args) {
+        const xhr = this;
+        const url = this._debugUrl;
+        const isJS = url && (url.toString().includes('.js') || url.toString().includes('/assets/'));
+        
+        xhr.addEventListener('loadstart', () => {
+          log('XHR loadstart', {url: url?.toString(), method: xhr._debugMethod}, 'C');
+        });
+        
+        xhr.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            log('XHR progress', {
+              url: url?.toString(),
+              loaded: e.loaded,
+              total: e.total,
+              percent: Math.round((e.loaded / e.total) * 100)
+            }, 'C');
+          }
+        });
+        
+        xhr.addEventListener('load', () => {
+          const duration = Date.now() - (xhr._debugStartTime || Date.now());
+          const contentType = xhr.getResponseHeader('content-type') || '';
+          log('XHR load', {
+            url: url?.toString(),
+            status: xhr.status,
+            statusText: xhr.statusText,
+            contentType: contentType,
+            responseSize: xhr.responseText?.length || 0,
+            duration: duration,
+            isJS: isJS,
+            isHTML: contentType.includes('html')
+          }, 'C');
+        });
+        
+        xhr.addEventListener('error', (e) => {
+          const duration = Date.now() - (xhr._debugStartTime || Date.now());
+          log('XHR error', {
+            url: url?.toString(),
+            method: xhr._debugMethod,
+            duration: duration,
+            error: e.type
+          }, 'C');
+        });
+        
+        xhr.addEventListener('abort', () => {
+          const duration = Date.now() - (xhr._debugStartTime || Date.now());
+          log('XHR abort', {
+            url: url?.toString(),
+            method: xhr._debugMethod,
+            duration: duration
+          }, 'C');
+        });
+        
+        xhr.addEventListener('timeout', () => {
+          const duration = Date.now() - (xhr._debugStartTime || Date.now());
+          log('XHR timeout', {
+            url: url?.toString(),
+            method: xhr._debugMethod,
+            duration: duration,
+            timeout: xhr.timeout
+          }, 'C');
+        });
+        
+        return originalXHRSend.apply(this, args);
       };
       
       // Отслеживаем изменения состояния сети
@@ -134,20 +243,75 @@
         // Пытаемся загрузить файлы вручную для диагностики
         links.forEach(link => {
           if (link.href && link.href.includes('/assets/')) {
-            fetch(link.href, {method: 'HEAD'})
-              .then(res => {
-                log('Manual fetch HEAD success', {
-                  url: link.href,
+            const url = link.href;
+            const isJS = url.includes('.js');
+            // Для JS файлов делаем GET запрос, чтобы увидеть реальный ответ
+            fetch(url, {method: isJS ? 'GET' : 'HEAD'})
+              .then(async res => {
+                const headers = {};
+                res.headers.forEach((v, k) => headers[k] = v);
+                const contentType = res.headers.get('content-type') || '';
+                const isHTML = contentType.includes('html');
+                const details = {
+                  url: url,
                   status: res.status,
                   statusText: res.statusText,
-                  headers: Object.fromEntries(res.headers.entries())
-                }, 'A');
+                  contentType: contentType,
+                  isJS: isJS,
+                  isHTML: isHTML,
+                  headers: headers
+                };
+                
+                // КРИТИЧНО: Если JS файл возвращает HTML - это redirect!
+                if (isJS && isHTML && res.status === 200) {
+                  const text = await res.text();
+                  details.htmlPreview = text.substring(0, 300);
+                  details.isIndexHtml = text.includes('<html') || text.includes('<!DOCTYPE') || text.includes('root');
+                  log('Manual fetch: JS file returned HTML (REDIRECT DETECTED)', details, 'C');
+                } else {
+                  log('Manual fetch success', details, isJS ? 'C' : 'A');
+                }
               })
               .catch(err => {
-                log('Manual fetch HEAD failed', {
-                  url: link.href,
+                log('Manual fetch failed', {
+                  url: url,
+                  error: err.toString(),
+                  errorName: err.name,
+                  errorMessage: err.message
+                }, 'C');
+              });
+          }
+        });
+        
+        // Проверяем все script теги
+        scripts.forEach(script => {
+          if (script.src && script.src.includes('/assets/')) {
+            const url = script.src;
+            fetch(url, {method: 'GET'})
+              .then(async res => {
+                const contentType = res.headers.get('content-type') || '';
+                const isHTML = contentType.includes('html');
+                const details = {
+                  url: url,
+                  status: res.status,
+                  contentType: contentType,
+                  isHTML: isHTML
+                };
+                
+                if (isHTML && res.status === 200) {
+                  const text = await res.text();
+                  details.htmlPreview = text.substring(0, 300);
+                  details.isIndexHtml = text.includes('<html') || text.includes('<!DOCTYPE') || text.includes('root');
+                  log('Script src check: JS file returned HTML (REDIRECT DETECTED)', details, 'C');
+                } else {
+                  log('Script src check: OK', details, 'C');
+                }
+              })
+              .catch(err => {
+                log('Script src check: FAILED', {
+                  url: url,
                   error: err.toString()
-                }, 'A');
+                }, 'C');
               });
           }
         });
