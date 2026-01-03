@@ -5,8 +5,31 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# Настройки для работы через Cloudflare Proxy
+[functions]
+  # Увеличиваем таймаут для функций (если используются)
+  node_bundler = "esbuild"
+
+# Настройки для обработки запросов через Cloudflare
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
+
+# Дополнительные настройки для статики
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Увеличиваем таймауты для Cloudflare
+    Connection = "keep-alive"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Access-Control-Allow-Origin = "*"
 

@@ -1,13 +1,53 @@
+# Заголовки для всех файлов
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Connection: keep-alive
+
+# Заголовки для HTML
+/*.html
+  Content-Type: text/html; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Заголовки для статических ассетов
 /assets/*
   Content-Type: application/javascript
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=31536000, immutable
+  Connection: keep-alive
 
+# Заголовки для JavaScript файлов
 /*.js
-  Content-Type: application/javascript
+  Content-Type: application/javascript; charset=utf-8
   Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable
 
+# Заголовки для CSS файлов
 /*.css
-  Content-Type: text/css
+  Content-Type: text/css; charset=utf-8
   Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable
+
+# Заголовки для изображений
+/*.png
+  Content-Type: image/png
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpeg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.svg
+  Content-Type: image/svg+xml
+  Cache-Control: public, max-age=31536000, immutable
+
+# Заголовки для JSON файлов
+/*.json
+  Content-Type: application/json; charset=utf-8
+  Cache-Control: public, max-age=3600
 
