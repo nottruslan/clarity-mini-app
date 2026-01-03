@@ -12,15 +12,16 @@
 
 # Настройки для обработки запросов через Cloudflare
 # КРИТИЧНО: Netlify автоматически отдает существующие файлы БЕЗ redirect
-# Redirect применяется только для несуществующих файлов
-# Порядок redirects важен - более специфичные должны быть первыми
+# Redirect применяется ТОЛЬКО для несуществующих файлов
+# Статические файлы (/assets/*) всегда отдаются напрямую, если они существуют
 
-# SPA redirect - применяется только если файл не существует
+# SPA redirect - применяется только для несуществующих файлов
+# Netlify автоматически проверяет существование файла перед применением redirect
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  # БЕЗ force - существующие файлы (включая /assets/*) отдаются напрямую
+  # БЕЗ force - существующие файлы (включая /assets/*) отдаются напрямую БЕЗ redirect
 
 # Дополнительные настройки для статики
 [[headers]]
@@ -58,11 +59,8 @@
     X-Content-Type-Options = "nosniff"
     # Важно для параллельной загрузки чанков
     Accept-Ranges = "bytes"
-    # Отключаем сжатие для больших файлов через Cloudflare (может вызывать таймауты)
     # Cloudflare автоматически сжимает, но мы явно указываем
     Vary = "Accept-Encoding"
-    # Увеличиваем таймауты
-    Keep-Alive = "timeout=300, max=1000"
 
 # Заголовки для CSS файлов в assets
 [[headers]]
@@ -82,16 +80,8 @@
     Access-Control-Allow-Origin = "*"
     Connection = "keep-alive"
 
-# Специальные настройки для JS модулей
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Content-Type = "application/javascript; charset=utf-8"
-    Cache-Control = "public, max-age=31536000, immutable"
-    Access-Control-Allow-Origin = "*"
-    Connection = "keep-alive"
-    # Отключаем Cloudflare RUM для JS файлов, чтобы избежать проблем с загрузкой
-    X-Content-Type-Options = "nosniff"
+# Специальные настройки для JS модулей (только для файлов НЕ в assets, так как /assets/*.js уже обработан выше)
+# Убираем это правило, так как оно конфликтует с /assets/*.js
 
 # Настройки для работы с Cloudflare RUM (исправляем CORS)
 # КРИТИЧНО: Cloudflare RUM требует правильные CORS заголовки для XMLHttpRequest

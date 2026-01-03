@@ -25,8 +25,6 @@
   X-Content-Type-Options: nosniff
   # Важно для параллельной загрузки чанков
   Accept-Ranges: bytes
-  # Увеличиваем таймауты для больших файлов
-  Keep-Alive: timeout=300, max=1000
   Vary: Accept-Encoding
 
 # Заголовки для CSS файлов в assets
@@ -43,20 +41,8 @@
   Access-Control-Allow-Origin: *
   Connection: keep-alive
 
-# Заголовки для JavaScript файлов (ES модули)
-/*.js
-  Content-Type: application/javascript; charset=utf-8
-  Access-Control-Allow-Origin: *
-  Cache-Control: public, max-age=31536000, immutable
-  Connection: keep-alive
-  # Важно для надежной загрузки модулей через Cloudflare
-  X-Content-Type-Options: nosniff
-
-# Заголовки для CSS файлов
-/*.css
-  Content-Type: text/css; charset=utf-8
-  Access-Control-Allow-Origin: *
-  Cache-Control: public, max-age=31536000, immutable
+# Убираем общие правила для /*.js и /*.css, так как они конфликтуют с /assets/*.js и /assets/*.css
+# Более специфичные правила выше имеют приоритет, но лучше явно исключить конфликты
 
 # Заголовки для изображений
 /*.png

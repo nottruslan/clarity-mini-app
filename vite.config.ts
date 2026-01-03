@@ -31,12 +31,15 @@ function optimizeHtmlPlugin() {
           }
         }
         
-        // Добавляем обработку ошибок, логирование и retry для основных скриптов
+        // Добавляем обработку ошибок и логирование для основных скриптов
+        // Retry механизм может вызывать проблемы, если файл действительно недоступен
         html = html.replace(
           /<script type="module" src="([^"]+)"><\/script>/g,
           (match, src) => {
             const scriptName = src.split('/').pop();
-            return `<script type="module" src="${src}" onload="console.log('[DEBUG] Module loaded:', '${scriptName}');" onerror="(function(){const s=document.createElement('script');s.type='module';s.src='${src}';s.onload=()=>console.log('[DEBUG] Module retry loaded:', '${scriptName}');s.onerror=()=>{console.error('[DEBUG] Module retry failed:', '${scriptName}');setTimeout(()=>window.location.reload(),2000);};document.head.appendChild(s);})();"></script>`;
+            // Упрощенная обработка ошибок - просто логируем, не делаем автоматический retry
+            // Retry может быть добавлен позже, если нужно
+            return `<script type="module" src="${src}" onload="console.log('[DEBUG] Module loaded:', '${scriptName}');" onerror="console.error('[DEBUG] Module failed:', '${scriptName}', this.src);"></script>`;
           }
         );
         
