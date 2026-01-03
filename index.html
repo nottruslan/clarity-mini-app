@@ -7,17 +7,33 @@
   <title>Clarity</title>
   <script>
     // #region agent log
+    // КРИТИЧНО: Логирование должно работать ВСЕГДА, даже если страница не загружается полностью
     (function() {
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      // Логируем СРАЗУ, до любых других операций
+      console.log('[DEBUG] Script execution started', {timestamp: Date.now(), url: window.location.href});
+      
       const logEndpoint = 'http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5';
       const log = (msg, data, hypothesisId) => {
         const logData = {location:'index.html',message:msg,data:data||{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:hypothesisId||'A'};
         console.log('[DEBUG]', msg, data || '');
-        if (isLocalhost) {
-          fetch(logEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logData)}).catch(()=>{});
+        // ВСЕГДА пытаемся отправить логи, даже если это не localhost (может быть mixed content ошибка, но это нормально)
+        try {
+          fetch(logEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logData), mode:'no-cors'}).catch(()=>{});
+        } catch(e) {
+          // Игнорируем ошибки отправки логов (mixed content и т.д.)
         }
       };
-      log('HTML loaded', {url: window.location.href, userAgent: navigator.userAgent}, 'A');
+      
+      // Логируем СРАЗУ после определения функции
+      log('HTML script loaded', {
+        url: window.location.href,
+        hostname: window.location.hostname,
+        pathname: window.location.pathname,
+        userAgent: navigator.userAgent,
+        readyState: document.readyState,
+        hasWindow: typeof window !== 'undefined',
+        hasDocument: typeof document !== 'undefined'
+      }, 'D');
       
       // Отслеживаем загрузку Telegram скрипта
       const telegramLoadStart = Date.now();
@@ -321,7 +337,58 @@
       setTimeout(() => {
         log('Telegram check', {hasTelegram: !!window.Telegram, hasWebApp: !!window.Telegram?.WebApp, loadTime: Date.now() - telegramLoadStart}, 'D');
       }, 100);
+      
+      // КРИТИЧНО: Проверяем, что скрипт выполнился полностью
+      setTimeout(() => {
+        log('Script execution complete', {
+          readyState: document.readyState,
+          scriptsCount: document.querySelectorAll('script').length,
+          hasRoot: !!document.getElementById('root')
+        }, 'D');
+      }, 1000);
+      
+      // Проверяем, что возвращает сервер для корневого пути (может быть redirect loop)
+      setTimeout(() => {
+        fetch(window.location.href, {method: 'HEAD', cache: 'no-cache'})
+          .then(res => {
+            log('Root path check', {
+              status: res.status,
+              statusText: res.statusText,
+              contentType: res.headers.get('content-type'),
+              location: res.headers.get('location'),
+              isRedirect: res.status >= 300 && res.status < 400
+            }, 'D');
+          })
+          .catch(err => {
+            log('Root path check failed', {
+              error: err.toString(),
+              errorName: err.name
+            }, 'D');
+          });
+      }, 2000);
     })();
+    // #endregion
+  </script>
+  <script>
+    // #region agent log - immediate execution check
+    // Еще один скрипт для проверки, что HTML вообще загружается
+    console.log('[DEBUG] Second script block executed', {timestamp: Date.now()});
+    try {
+      fetch('http://127.0.0.1:7250/ingest/ee1f61b1-2553-4bd0-a919-0157b6f4b1e5', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          location:'index.html:second-script',
+          message:'Second script block executed',
+          data:{timestamp:Date.now(),readyState:document.readyState},
+          timestamp:Date.now(),
+          sessionId:'debug-session',
+          runId:'run1',
+          hypothesisId:'D'
+        }),
+        mode:'no-cors'
+      }).catch(()=>{});
+    } catch(e) {}
     // #endregion
   </script>
   <script src="https://telegram.org/js/telegram-web-app.js" defer onerror="console.warn('Failed to load Telegram WebApp script'); window.Telegram = window.Telegram || {};"></script>
