@@ -15,13 +15,15 @@
   Content-Type: text/html; charset=utf-8
   Cache-Control: public, max-age=0, must-revalidate
 
-# Заголовки для JS файлов в assets
+# Заголовки для JS файлов в assets (включая vendor чанки)
 /assets/*.js
   Content-Type: application/javascript; charset=utf-8
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=31536000, immutable
   Connection: keep-alive
   X-Content-Type-Options: nosniff
+  # Важно для параллельной загрузки чанков
+  Accept-Ranges: bytes
 
 # Заголовки для CSS файлов в assets
 /assets/*.css
@@ -75,11 +77,14 @@
   Cache-Control: public, max-age=3600
 
 # Заголовки для Cloudflare RUM (исправляем CORS)
+# КРИТИЧНО: Cloudflare RUM использует XMLHttpRequest, нужны правильные заголовки
 /cdn-cgi/*
   Cache-Control: no-cache, no-store, must-revalidate
   Access-Control-Allow-Origin: *
-  Access-Control-Allow-Methods: GET, POST, OPTIONS
-  Access-Control-Allow-Headers: *
+  Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE
+  Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With
+  Access-Control-Allow-Credentials: true
   Access-Control-Max-Age: 86400
+  Vary: Origin, Access-Control-Request-Headers, Access-Control-Request-Method
   Connection: keep-alive
 

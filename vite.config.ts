@@ -14,9 +14,18 @@ function optimizeHtmlPlugin() {
         // Удаляем crossorigin атрибут из script и link тегов (может вызывать проблемы с Cloudflare)
         html = html.replace(/\s+crossorigin/g, '');
         
-        // Убираем проблемные modulepreload ссылки, которые могут вызывать проблемы с загрузкой через Cloudflare
-        // Оставляем только основные скрипты, которые точно будут использованы
-        html = html.replace(/<link[^>]*rel=["']modulepreload["'][^>]*>/g, '');
+        // Оставляем modulepreload только для vendor чанков (они загружаются первыми)
+        // Убираем preload для основного entry файла, так как он загружается сразу
+        const preloadRegex = /<link[^>]*rel=["']modulepreload["'][^>]*>/g;
+        const preloadMatches = html.match(preloadRegex);
+        if (preloadMatches) {
+          // Оставляем только preload для vendor файлов
+          preloadMatches.forEach(match => {
+            if (!match.includes('vendor')) {
+              html = html.replace(match, '');
+            }
+          });
+        }
         
         // Убеждаемся, что defer атрибут сохранен для telegram-web-app.js
         if (!html.includes('telegram-web-app.js')) {
@@ -70,9 +79,23 @@ export default defineConfig({
         assetFileNames: 'assets/[name].[hash].[ext]',
         chunkFileNames: 'assets/[name].[hash].js',
         entryFileNames: 'assets/[name].[hash].js',
-        // Убираем manualChunks для более надежной загрузки через Cloudflare
-        // Разделение на чанки может вызывать проблемы с потерей соединения
-        // Vite автоматически оптимизирует разделение кода при необходимости
+        // Умное разделение на чанки для оптимизации загрузки
+        // Разделяем только большие библиотеки, чтобы основной код загружался быстрее
+        manualChunks(id) {
+          // Разделяем node_modules на отдельные чанки только для больших библиотек
+          if (id.includes('node_modules')) {
+            // React и React-DOM вместе (часто используются вместе)
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            // Большие библиотеки отдельно
+            if (id.includes('recharts')) {
+              return 'vendor-recharts';
+            }
+            // Остальные библиотеки вместе
+            return 'vendor';
+          }
+        }
       }
     }
   },

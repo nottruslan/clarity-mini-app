@@ -43,7 +43,7 @@
     Content-Type = "text/html; charset=utf-8"
     Cache-Control = "public, max-age=0, must-revalidate"
 
-# Заголовки для JS файлов в assets
+# Заголовки для JS файлов в assets (включая vendor чанки)
 [[headers]]
   for = "/assets/*.js"
   [headers.values]
@@ -52,6 +52,8 @@
     Connection = "keep-alive"
     Content-Type = "application/javascript; charset=utf-8"
     X-Content-Type-Options = "nosniff"
+    # Важно для параллельной загрузки чанков
+    Accept-Ranges = "bytes"
 
 # Заголовки для CSS файлов в assets
 [[headers]]
@@ -83,13 +85,17 @@
     X-Content-Type-Options = "nosniff"
 
 # Настройки для работы с Cloudflare RUM (исправляем CORS)
+# КРИТИЧНО: Cloudflare RUM требует правильные CORS заголовки для XMLHttpRequest
 [[headers]]
   for = "/cdn-cgi/*"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
-    # Правильные CORS заголовки для Cloudflare RUM
+    # Правильные CORS заголовки для Cloudflare RUM (XMLHttpRequest)
     Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS, PUT, DELETE"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
+    Access-Control-Allow-Credentials = "true"
     Access-Control-Max-Age = "86400"
+    # Важно для работы с Cloudflare
+    Vary = "Origin, Access-Control-Request-Headers, Access-Control-Request-Method"
 
