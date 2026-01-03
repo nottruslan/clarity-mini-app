@@ -53,8 +53,8 @@
       
       // Отслеживаем ошибки загрузки модулей
       window.addEventListener('error', (e) => {
-        if (e.target && (e.target as HTMLElement).tagName === 'SCRIPT') {
-          const script = e.target as HTMLScriptElement;
+        if (e.target && e.target.tagName === 'SCRIPT') {
+          const script = e.target;
           log('Script load error', {
             src: script.src,
             type: script.type,

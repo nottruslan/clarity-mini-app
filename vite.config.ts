@@ -40,14 +40,8 @@ function optimizeHtmlPlugin() {
           }
         );
         
-        // Добавляем логирование для preload ссылок
-        html = html.replace(
-          /<link[^>]*rel=["']modulepreload["'][^>]*href="([^"]+)"[^>]*>/g,
-          (match, href) => {
-            const chunkName = href.split('/').pop();
-            return match.replace('>', ` onload="console.log('[DEBUG] Preload loaded:', '${chunkName}');" onerror="console.error('[DEBUG] Preload failed:', '${chunkName}');">`);
-          }
-        );
+        // Preload ссылки не поддерживают onload/onerror события напрямую
+        // Логирование будет через PerformanceObserver в index.html
         
         writeFileSync(htmlPath, html, 'utf-8');
       } catch (error) {
